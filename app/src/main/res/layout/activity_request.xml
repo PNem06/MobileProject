@@ -1,0 +1,1280 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F2F2F2"
+    tools:context=".view.Request">
+
+    <!-- ========================================================= -->
+    <!-- HEADER                                                     -->
+    <!-- ========================================================= -->
+
+    <LinearLayout
+        android:id="@+id/headerRequest"
+        android:layout_width="0dp"
+        android:layout_height="105dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#FFFFFF"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Nút quay lại -->
+
+        <ImageView
+            android:id="@+id/btnBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:background="@drawable/bg_back_button"
+            android:src="@drawable/ic_arrow_back"
+            android:contentDescription="Quay lại" />
+
+
+        <!-- Tiêu đề -->
+
+        <TextView
+            android:id="@+id/txtRequest"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Request"
+            android:textColor="#000000"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:fontFamily="serif" />
+
+
+        <!-- Khoảng trống để tiêu đề nằm giữa -->
+
+        <View
+            android:layout_width="40dp"
+            android:layout_height="40dp" />
+
+    </LinearLayout>
+
+
+    <!-- ========================================================= -->
+    <!-- TAB                                                         -->
+    <!-- ========================================================= -->
+
+    <LinearLayout
+        android:id="@+id/tabLayout"
+        android:layout_width="0dp"
+        android:layout_height="62dp"
+        android:orientation="horizontal"
+        android:background="#BCBDB9"
+        app:layout_constraintTop_toBottomOf="@id/headerRequest"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+
+        <!-- ===================== ĐÃ GỬI ====================== -->
+
+        <LinearLayout
+            android:id="@+id/tabDaGui"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="#FFFFFF">
+
+            <TextView
+                android:id="@+id/txtDaGui"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Đã Gửi"
+                android:textColor="#000000"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:fontFamily="serif" />
+
+            <View
+                android:id="@+id/lineDaGui"
+                android:layout_width="140dp"
+                android:layout_height="4dp"
+                android:layout_marginTop="7dp"
+                android:background="#000000" />
+
+        </LinearLayout>
+
+
+        <!-- ===================== ĐÃ NHẬN ====================== -->
+
+        <LinearLayout
+            android:id="@+id/tabDaNhan"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/txtDaNhan"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Đã Nhận"
+                android:textColor="#666666"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:fontFamily="serif" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+
+    <!-- ========================================================= -->
+    <!-- SCROLL VIEW                                                -->
+    <!-- ========================================================= -->
+
+    <ScrollView
+        android:id="@+id/scrollRequest"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        android:clipToPadding="false"
+        android:background="#F5F5F5"
+        app:layout_constraintTop_toBottomOf="@id/tabLayout"
+        app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+
+        <!-- Danh sách Request -->
+
+        <LinearLayout
+            android:id="@+id/requestList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="42dp"
+            android:paddingEnd="42dp"
+            android:paddingTop="18dp"
+            android:paddingBottom="25dp">
+
+
+            <!-- ================================================= -->
+            <!-- TAB ĐÃ GỬI                                         -->
+            <!-- ================================================= -->
+
+            <LinearLayout
+                android:id="@+id/requestSentLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+
+                <!-- ================================================= -->
+                <!-- REQUEST 1                                          -->
+                <!-- ================================================= -->
+
+                <LinearLayout
+                    android:id="@+id/requestCard1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp"
+                    android:background="@drawable/bg_request_card"
+                    android:elevation="3dp">
+
+
+                    <!-- ẢNH + THÔNG TIN -->
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="112dp"
+                        android:orientation="horizontal">
+
+
+                        <!-- Ảnh -->
+
+                        <FrameLayout
+                            android:layout_width="112dp"
+                            android:layout_height="112dp">
+
+
+                            <ImageView
+                                android:id="@+id/imgRequest1"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="#D8D8D8"
+                                android:scaleType="centerCrop"
+                                android:contentDescription="Ảnh chỗ ở" />
+
+
+                            <!-- Nhãn yêu thích -->
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_margin="7dp"
+                                android:padding="5dp"
+                                android:text="Được khách\nyêu thích"
+                                android:textColor="#333333"
+                                android:textSize="7sp"
+                                android:background="#FFFFFF" />
+
+
+                            <!-- Tim -->
+
+                            <ImageView
+                                android:layout_width="27dp"
+                                android:layout_height="27dp"
+                                android:layout_gravity="top|end"
+                                android:padding="3dp"
+                                android:src="@drawable/ic_heart_outline"
+                                android:contentDescription="Yêu thích" />
+
+                        </FrameLayout>
+
+
+                        <!-- Thông tin -->
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginStart="12dp"
+                            android:orientation="vertical">
+
+
+                            <!-- Status + Rating -->
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="32dp"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical">
+
+
+                                <TextView
+                                    android:id="@+id/status1"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:paddingStart="13dp"
+                                    android:paddingEnd="13dp"
+                                    android:paddingTop="5dp"
+                                    android:paddingBottom="5dp"
+                                    android:text="Đang chờ"
+                                    android:textColor="#555555"
+                                    android:textSize="12sp"
+                                    android:background="@drawable/bg_status_waiting"
+                                    android:fontFamily="serif" />
+
+
+                                <TextView
+                                    android:id="@+id/rating1"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:gravity="end"
+                                    android:text="⭐ 5,0"
+                                    android:textColor="#000000"
+                                    android:textSize="14sp" />
+
+                            </LinearLayout>
+
+
+                            <!-- Tên -->
+
+                            <TextView
+                                android:id="@+id/title1"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="7dp"
+                                android:maxLines="2"
+                                android:ellipsize="end"
+                                android:text="Căn hộ tại Quận Hai Bà Trưng"
+                                android:textColor="#4A4A4A"
+                                android:textSize="17sp"
+                                android:textStyle="bold"
+                                android:fontFamily="serif" />
+
+
+                            <!-- Ngày -->
+
+                            <TextView
+                                android:id="@+id/date1"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="5dp"
+                                android:text="31/02/2026-4/03/2026"
+                                android:textColor="#666666"
+                                android:textSize="13sp"
+                                android:fontFamily="serif" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+
+                    <!-- BUTTON -->
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+
+                        <TextView
+                            android:id="@+id/btnCancel1"
+                            android:layout_width="0dp"
+                            android:layout_height="45dp"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="Hủy"
+                            android:textColor="#D00000"
+                            android:textSize="15sp"
+                            android:background="@drawable/bg_request_button_gray"
+                            android:fontFamily="serif" />
+
+
+                        <TextView
+                            android:id="@+id/btnEdit1"
+                            android:layout_width="0dp"
+                            android:layout_height="45dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="7dp"
+                            android:gravity="center"
+                            android:text="Chỉnh sửa"
+                            android:textColor="#FFFFFF"
+                            android:textSize="15sp"
+                            android:background="@drawable/bg_request_button_red"
+                            android:fontFamily="serif" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+
+                <!-- ================================================= -->
+                <!-- REQUEST 2                                          -->
+                <!-- ================================================= -->
+
+                <LinearLayout
+                    android:id="@+id/requestCard2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:orientation="vertical"
+                    android:padding="12dp"
+                    android:background="@drawable/bg_request_card"
+                    android:elevation="3dp">
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="112dp"
+                        android:orientation="horizontal">
+
+
+                        <FrameLayout
+                            android:layout_width="112dp"
+                            android:layout_height="112dp">
+
+
+                            <ImageView
+                                android:id="@+id/imgRequest2"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="#D8D8D8"
+                                android:scaleType="centerCrop"
+                                android:contentDescription="Ảnh chỗ ở" />
+
+
+                            <ImageView
+                                android:layout_width="27dp"
+                                android:layout_height="27dp"
+                                android:layout_gravity="top|end"
+                                android:padding="3dp"
+                                android:src="@drawable/ic_heart_outline"
+                                android:contentDescription="Yêu thích" />
+
+                        </FrameLayout>
+
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginStart="12dp"
+                            android:orientation="vertical">
+
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="32dp"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical">
+
+
+                                <TextView
+                                    android:id="@+id/status2"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:paddingStart="13dp"
+                                    android:paddingEnd="13dp"
+                                    android:paddingTop="5dp"
+                                    android:paddingBottom="5dp"
+                                    android:text="Đã chấp nhận"
+                                    android:textColor="#000000"
+                                    android:textSize="12sp"
+                                    android:background="@drawable/bg_status_accepted"
+                                    android:fontFamily="serif" />
+
+
+                                <TextView
+                                    android:id="@+id/rating2"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:gravity="end"
+                                    android:text="⭐ 4,84"
+                                    android:textColor="#000000"
+                                    android:textSize="14sp" />
+
+                            </LinearLayout>
+
+
+                            <TextView
+                                android:id="@+id/title2"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="7dp"
+                                android:maxLines="2"
+                                android:ellipsize="end"
+                                android:text="Căn hộ tại quận Hai Bà Trưng"
+                                android:textColor="#4A4A4A"
+                                android:textSize="17sp"
+                                android:textStyle="bold"
+                                android:fontFamily="serif" />
+
+
+                            <TextView
+                                android:id="@+id/date2"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="5dp"
+                                android:text="31/02/2025-4/03/2025"
+                                android:textColor="#666666"
+                                android:textSize="13sp"
+                                android:fontFamily="serif" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+
+                        <TextView
+                            android:id="@+id/btnContact1"
+                            android:layout_width="0dp"
+                            android:layout_height="45dp"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="Liên hệ chủ"
+                            android:textColor="#D00000"
+                            android:textSize="14sp"
+                            android:background="@drawable/bg_request_button_gray"
+                            android:fontFamily="serif" />
+
+
+                        <TextView
+                            android:id="@+id/btnContinue1"
+                            android:layout_width="0dp"
+                            android:layout_height="45dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="7dp"
+                            android:gravity="center"
+                            android:text="Tiếp tục"
+                            android:textColor="#FFFFFF"
+                            android:textSize="15sp"
+                            android:background="@drawable/bg_request_button_red"
+                            android:fontFamily="serif" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+
+                <!-- ================================================= -->
+                <!-- REQUEST 3                                          -->
+                <!-- ================================================= -->
+
+                <LinearLayout
+                    android:id="@+id/requestCard3"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:orientation="vertical"
+                    android:padding="12dp"
+                    android:background="@drawable/bg_request_card"
+                    android:elevation="3dp">
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="112dp"
+                        android:orientation="horizontal">
+
+
+                        <FrameLayout
+                            android:layout_width="112dp"
+                            android:layout_height="112dp">
+
+
+                            <ImageView
+                                android:id="@+id/imgRequest3"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="#D8D8D8"
+                                android:scaleType="centerCrop"
+                                android:contentDescription="Ảnh chỗ ở" />
+
+
+                            <ImageView
+                                android:layout_width="27dp"
+                                android:layout_height="27dp"
+                                android:layout_gravity="top|end"
+                                android:padding="3dp"
+                                android:src="@drawable/ic_heart_outline"
+                                android:contentDescription="Yêu thích" />
+
+                        </FrameLayout>
+
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginStart="12dp"
+                            android:orientation="vertical">
+
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="32dp"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical">
+
+
+                                <TextView
+                                    android:id="@+id/status3"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:paddingStart="15dp"
+                                    android:paddingEnd="15dp"
+                                    android:paddingTop="5dp"
+                                    android:paddingBottom="5dp"
+                                    android:text="Đã hủy"
+                                    android:textColor="#A33333"
+                                    android:textSize="12sp"
+                                    android:background="@drawable/bg_status_cancelled"
+                                    android:fontFamily="serif" />
+
+
+                                <TextView
+                                    android:id="@+id/rating3"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:gravity="end"
+                                    android:text="⭐ 4,9"
+                                    android:textColor="#000000"
+                                    android:textSize="14sp" />
+
+                            </LinearLayout>
+
+
+                            <TextView
+                                android:id="@+id/title3"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="7dp"
+                                android:maxLines="2"
+                                android:text="Hotel Vendôme"
+                                android:textColor="#4A4A4A"
+                                android:textSize="17sp"
+                                android:textStyle="bold"
+                                android:fontFamily="serif" />
+
+
+                            <TextView
+                                android:id="@+id/date3"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="5dp"
+                                android:text="5/09/2025-10/10/2025"
+                                android:textColor="#666666"
+                                android:textSize="13sp"
+                                android:fontFamily="serif" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+
+                        <TextView
+                            android:id="@+id/btnReport"
+                            android:layout_width="0dp"
+                            android:layout_height="45dp"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="Report"
+                            android:textColor="#D00000"
+                            android:textSize="15sp"
+                            android:background="@drawable/bg_request_button_gray"
+                            android:fontFamily="serif" />
+
+
+                        <TextView
+                            android:id="@+id/btnBlock"
+                            android:layout_width="0dp"
+                            android:layout_height="45dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="7dp"
+                            android:gravity="center"
+                            android:text="Block"
+                            android:textColor="#FFFFFF"
+                            android:textSize="15sp"
+                            android:background="@drawable/bg_request_button_red"
+                            android:fontFamily="serif" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+
+            <!-- ================================================= -->
+            <!-- TAB ĐÃ NHẬN                                         -->
+            <!-- ================================================= -->
+
+            <LinearLayout
+                android:id="@+id/requestReceivedLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+
+                <!-- ICON LỌC -->
+
+                <ImageView
+                    android:id="@+id/btnFilter"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="end"
+                    android:layout_marginEnd="2dp"
+                    android:layout_marginBottom="10dp"
+                    android:src="@drawable/ic_filter"
+                    android:contentDescription="Lọc Request" />
+
+
+                <!-- ================================================= -->
+                <!-- RECEIVED REQUEST 1                                -->
+                <!-- ================================================= -->
+
+                <LinearLayout
+                    android:id="@+id/receivedCard1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp"
+                    android:background="@drawable/bg_request_card"
+                    android:elevation="3dp">
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="112dp"
+                        android:orientation="horizontal">
+
+
+                        <FrameLayout
+                            android:layout_width="112dp"
+                            android:layout_height="112dp">
+
+
+                            <ImageView
+                                android:id="@+id/imgReceived1"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="#D8D8D8"
+                                android:scaleType="centerCrop"
+                                android:contentDescription="Ảnh chỗ ở" />
+
+
+                            <ImageView
+                                android:layout_width="27dp"
+                                android:layout_height="27dp"
+                                android:layout_gravity="top|end"
+                                android:padding="3dp"
+                                android:src="@drawable/ic_heart_outline"
+                                android:contentDescription="Yêu thích" />
+
+                        </FrameLayout>
+
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginStart="12dp"
+                            android:orientation="vertical">
+
+
+                            <TextView
+                                android:id="@+id/receivedStatus1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:paddingStart="13dp"
+                                android:paddingEnd="13dp"
+                                android:paddingTop="5dp"
+                                android:paddingBottom="5dp"
+                                android:text="Đang chờ"
+                                android:textColor="#555555"
+                                android:textSize="12sp"
+                                android:background="@drawable/bg_status_waiting"
+                                android:fontFamily="serif" />
+
+
+                            <TextView
+                                android:id="@+id/receivedTitle1"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="7dp"
+                                android:maxLines="2"
+                                android:text="CNemea Apart Hôtel Nice Sunset"
+                                android:textColor="#4A4A4A"
+                                android:textSize="17sp"
+                                android:textStyle="bold"
+                                android:fontFamily="serif" />
+
+
+                            <TextView
+                                android:id="@+id/receivedDate1"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="5dp"
+                                android:text="31/02/2026-4/03/2026"
+                                android:textColor="#666666"
+                                android:textSize="13sp"
+                                android:fontFamily="serif" />
+
+
+                            <TextView
+                                android:id="@+id/receivedPrice1"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="2.700.000đ cho 1 đêm"
+                                android:textColor="#000000"
+                                android:textSize="13sp"
+                                android:fontFamily="serif" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+
+                        <TextView
+                            android:id="@+id/btnReject1"
+                            android:layout_width="0dp"
+                            android:layout_height="45dp"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="Từ chối"
+                            android:textColor="#D00000"
+                            android:textSize="15sp"
+                            android:background="@drawable/bg_request_button_gray"
+                            android:fontFamily="serif" />
+
+
+                        <TextView
+                            android:id="@+id/btnAccept1"
+                            android:layout_width="0dp"
+                            android:layout_height="45dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="7dp"
+                            android:gravity="center"
+                            android:text="Đồng ý"
+                            android:textColor="#FFFFFF"
+                            android:textSize="15sp"
+                            android:background="@drawable/bg_request_button_red"
+                            android:fontFamily="serif" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+
+                <!-- ================================================= -->
+                <!-- RECEIVED REQUEST 2                                -->
+                <!-- ================================================= -->
+
+                <LinearLayout
+                    android:id="@+id/receivedCard2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:orientation="vertical"
+                    android:padding="12dp"
+                    android:background="@drawable/bg_request_card"
+                    android:elevation="3dp">
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="112dp"
+                        android:orientation="horizontal">
+
+
+                        <FrameLayout
+                            android:layout_width="112dp"
+                            android:layout_height="112dp">
+
+                            <ImageView
+                                android:id="@+id/imgReceived2"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="#D8D8D8"
+                                android:scaleType="centerCrop"
+                                android:contentDescription="Ảnh chỗ ở" />
+
+                            <ImageView
+                                android:layout_width="27dp"
+                                android:layout_height="27dp"
+                                android:layout_gravity="top|end"
+                                android:padding="3dp"
+                                android:src="@drawable/ic_heart_outline"
+                                android:contentDescription="Yêu thích" />
+
+                        </FrameLayout>
+
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginStart="12dp"
+                            android:orientation="vertical">
+
+
+                            <TextView
+                                android:id="@+id/receivedStatus2"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:paddingStart="13dp"
+                                android:paddingEnd="13dp"
+                                android:paddingTop="5dp"
+                                android:paddingBottom="5dp"
+                                android:text="Đã chấp nhận"
+                                android:textColor="#000000"
+                                android:textSize="12sp"
+                                android:background="@drawable/bg_status_accepted"
+                                android:fontFamily="serif" />
+
+
+                            <TextView
+                                android:id="@+id/receivedTitle2"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="7dp"
+                                android:maxLines="2"
+                                android:text="CNemea Apart Hôtel Nice Sunset"
+                                android:textColor="#4A4A4A"
+                                android:textSize="17sp"
+                                android:textStyle="bold"
+                                android:fontFamily="serif" />
+
+
+                            <TextView
+                                android:id="@+id/receivedDate2"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="5dp"
+                                android:text="31/02/2026-4/03/2026"
+                                android:textColor="#666666"
+                                android:textSize="13sp"
+                                android:fontFamily="serif" />
+
+
+                            <TextView
+                                android:id="@+id/receivedPrice2"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="2.700.000đ cho 1 đêm"
+                                android:textColor="#000000"
+                                android:textSize="13sp"
+                                android:fontFamily="serif" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+
+                        <TextView
+                            android:id="@+id/btnReportReceived1"
+                            android:layout_width="0dp"
+                            android:layout_height="45dp"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="Report"
+                            android:textColor="#D00000"
+                            android:textSize="15sp"
+                            android:background="@drawable/bg_request_button_gray"
+                            android:fontFamily="serif" />
+
+
+                        <TextView
+                            android:id="@+id/btnContactGuest"
+                            android:layout_width="0dp"
+                            android:layout_height="45dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="7dp"
+                            android:gravity="center"
+                            android:text="Liên hệ du khách"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:background="@drawable/bg_request_button_red"
+                            android:fontFamily="serif" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+
+                <!-- ================================================= -->
+                <!-- RECEIVED REQUEST 3                                -->
+                <!-- ================================================= -->
+
+                <LinearLayout
+                    android:id="@+id/receivedCard3"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:orientation="vertical"
+                    android:padding="12dp"
+                    android:background="@drawable/bg_request_card"
+                    android:elevation="3dp">
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="112dp"
+                        android:orientation="horizontal">
+
+
+                        <FrameLayout
+                            android:layout_width="112dp"
+                            android:layout_height="112dp">
+
+                            <ImageView
+                                android:id="@+id/imgReceived3"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="#D8D8D8"
+                                android:scaleType="centerCrop"
+                                android:contentDescription="Ảnh chỗ ở" />
+
+                            <ImageView
+                                android:layout_width="27dp"
+                                android:layout_height="27dp"
+                                android:layout_gravity="top|end"
+                                android:padding="3dp"
+                                android:src="@drawable/ic_heart_outline"
+                                android:contentDescription="Yêu thích" />
+
+                        </FrameLayout>
+
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginStart="12dp"
+                            android:orientation="vertical">
+
+
+                            <TextView
+                                android:id="@+id/receivedStatus3"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:paddingStart="15dp"
+                                android:paddingEnd="15dp"
+                                android:paddingTop="5dp"
+                                android:paddingBottom="5dp"
+                                android:text="Đã hủy"
+                                android:textColor="#A33333"
+                                android:textSize="12sp"
+                                android:background="@drawable/bg_status_cancelled"
+                                android:fontFamily="serif" />
+
+
+                            <TextView
+                                android:id="@+id/receivedTitle3"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="7dp"
+                                android:maxLines="2"
+                                android:text="CNemea Apart Hôtel Nice Sunset"
+                                android:textColor="#4A4A4A"
+                                android:textSize="17sp"
+                                android:textStyle="bold"
+                                android:fontFamily="serif" />
+
+
+                            <TextView
+                                android:id="@+id/receivedDate3"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="5dp"
+                                android:text="31/02/2026-4/03/2026"
+                                android:textColor="#666666"
+                                android:textSize="13sp"
+                                android:fontFamily="serif" />
+
+
+                            <TextView
+                                android:id="@+id/receivedPrice3"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="2.700.000đ cho 1 đêm"
+                                android:textColor="#000000"
+                                android:textSize="13sp"
+                                android:fontFamily="serif" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+
+                        <TextView
+                            android:id="@+id/btnReportReceived2"
+                            android:layout_width="0dp"
+                            android:layout_height="45dp"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="Report"
+                            android:textColor="#D00000"
+                            android:textSize="15sp"
+                            android:background="@drawable/bg_request_button_gray"
+                            android:fontFamily="serif" />
+
+
+                        <TextView
+                            android:id="@+id/btnBlockReceived"
+                            android:layout_width="0dp"
+                            android:layout_height="45dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="7dp"
+                            android:gravity="center"
+                            android:text="Block"
+                            android:textColor="#FFFFFF"
+                            android:textSize="15sp"
+                            android:background="@drawable/bg_request_button_red"
+                            android:fontFamily="serif" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+
+    <!-- ========================================================= -->
+    <!-- BOTTOM NAVIGATION                                          -->
+    <!-- ========================================================= -->
+
+    <LinearLayout
+        android:id="@+id/bottomNavigation"
+        android:layout_width="0dp"
+        android:layout_height="70dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="#FFFFFF"
+        android:elevation="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+
+        <!-- KHÁM PHÁ -->
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <ImageView
+                android:layout_width="25dp"
+                android:layout_height="25dp"
+                android:src="@drawable/ic_search"
+                android:contentDescription="Khám phá" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Khám phá"
+                android:textSize="10sp"
+                android:textColor="#000000" />
+
+        </LinearLayout>
+
+
+        <!-- YÊU THÍCH -->
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <ImageView
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:src="@drawable/ic_favorite"
+                android:contentDescription="Yêu thích" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Yêu thích"
+                android:textSize="10sp"
+                android:textColor="#000000" />
+
+        </LinearLayout>
+
+
+        <!-- CHUYẾN ĐI -->
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <ImageView
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:src="@drawable/ic_trip"
+                android:contentDescription="Chuyến đi" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Chuyến đi"
+                android:textSize="10sp"
+                android:textColor="#000000" />
+
+        </LinearLayout>
+
+
+        <!-- TIN NHẮN -->
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <ImageView
+                android:layout_width="27dp"
+                android:layout_height="27dp"
+                android:src="@drawable/ic_message"
+                android:contentDescription="Tin nhắn" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tin nhắn"
+                android:textSize="10sp"
+                android:textColor="#000000" />
+
+        </LinearLayout>
+
+
+        <!-- ĐĂNG NHẬP -->
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <ImageView
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:src="@drawable/ic_account"
+                android:contentDescription="Đăng nhập" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Đăng nhập"
+                android:textSize="10sp"
+                android:textColor="#000000" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
