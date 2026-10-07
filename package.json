@@ -1,0 +1,21 @@
+{
+  "name": "mobileproject",
+  "version": "1.0.0",
+  "description": "- **Học phần:** Phát triển ứng dụng Mobile\r - **Đề tài:** Xây dựng ứng dụng trao đổi chỗ ở\r - **Giảng viên:** Đặng Ngọc Hoàng Thành",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PNem06/MobileProject.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/PNem06/MobileProject/issues"
+  },
+  "homepage": "https://github.com/PNem06/MobileProject#readme"
+}
