@@ -12,7 +12,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MobileProject">
         <activity
-            android:name=".view.Request"
+            android:name=".MainActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -26,7 +26,11 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name=".MainActivity"
+            android:name=".view.Request"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".view.Login"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
     </application>

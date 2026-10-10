@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".view.Login">
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideLeft"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.154"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideRight"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.846"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideLogoTop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.107"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideTitleTop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.184"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideEmailTop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.323"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guidePasswordTop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.414"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideLoginButtonTop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.501"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideOrTop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.602"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideAccountTop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.762"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideRegisterTop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.797"/>
+
+    <ImageView
+        android:id="@+id/imgLogo"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:contentDescription="Logo StageExchange"
+        android:scaleType="fitCenter"
+        android:src="@drawable/logo_stageexchange"
+        app:layout_constraintTop_toTopOf="@id/guideLogoTop"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintWidth_percent="0.16"
+        app:layout_constraintHeight_percent="0.083"/>
+
+    <TextView android:id="@+id/txtLoginTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="serif"
+        android:text="Đăng nhập"
+        android:textColor="#000000"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="@id/guideTitleTop"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <EditText
+        android:id="@+id/edtEmail"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/bg_login_input"
+        android:elevation="8dp"
+        android:fontFamily="serif"
+        android:hint="Số điện thoại hoặc email"
+        android:inputType="textEmailAddress"
+        android:paddingStart="16dp"
+        android:paddingEnd="12dp"
+        android:singleLine="true"
+        android:textColor="#222222"
+        android:textColorHint="#555555"
+        android:textSize="15sp"
+        app:layout_constraintStart_toStartOf="@id/guideLeft"
+        app:layout_constraintEnd_toEndOf="@id/guideRight"
+        app:layout_constraintTop_toTopOf="@id/guideEmailTop"
+        app:layout_constraintHeight_percent="0.067"/>
+
+    <EditText
+        android:id="@+id/edtPassword"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/bg_login_input"
+        android:elevation="8dp"
+        android:fontFamily="serif"
+        android:hint="Password"
+        android:inputType="textPassword"
+        android:paddingStart="16dp"
+        android:paddingEnd="12dp"
+        android:singleLine="true"
+        android:textColor="#222222"
+        android:textColorHint="#555555"
+        android:textSize="15sp"
+        app:layout_constraintStart_toStartOf="@id/guideLeft"
+        app:layout_constraintEnd_toEndOf="@id/guideRight"
+        app:layout_constraintTop_toTopOf="@id/guidePasswordTop"
+        app:layout_constraintHeight_percent="0.067"/>
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btnLogin"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/bg_black_blue"
+        android:backgroundTint="@null"
+        android:stateListAnimator="@null"
+        android:elevation="8dp"
+        android:fontFamily="serif"
+        android:text="Đăng nhập"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        app:layout_constraintStart_toStartOf="@id/guideLeft"
+        app:layout_constraintEnd_toEndOf="@id/guideRight"
+        app:layout_constraintTop_toTopOf="@id/guideLoginButtonTop"
+        app:layout_constraintHeight_percent="0.067" />
+
+
+    <View
+        android:id="@+id/lineLeft"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="18dp"
+        android:background="#999999"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/txtOr"
+        app:layout_constraintTop_toTopOf="@id/txtOr"
+        app:layout_constraintBottom_toBottomOf="@id/txtOr" />
+
+    <TextView
+        android:id="@+id/txtOr"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="serif"
+        android:text="hoặc"
+        android:textColor="#000000"
+        android:textSize="15sp"
+        app:layout_constraintTop_toTopOf="@id/guideOrTop"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <View
+        android:id="@+id/lineRight"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:layout_marginStart="18dp"
+        android:layout_marginEnd="24dp"
+        android:background="#999999"
+        app:layout_constraintStart_toEndOf="@id/txtOr"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/txtOr"
+        app:layout_constraintBottom_toBottomOf="@id/txtOr" />
+
+    <ImageView
+        android:id="@+id/btnGoogle"
+        android:layout_width="32dp"
+        android:layout_height="42dp"
+        android:layout_marginTop="12dp"
+        android:contentDescription="Đăng nhập bằng Google"
+        android:scaleType="fitCenter"
+        android:src="@drawable/google_logo"
+        app:layout_constraintTop_toBottomOf="@id/txtOr"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btnFacebook"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintHorizontal_bias="0.5"/>
+
+    <ImageView
+        android:id="@+id/btnFacebook"
+        android:layout_width="34dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="40dp"
+        android:layout_marginTop="12dp"
+        android:contentDescription="Đăng nhập bằng Facebook"
+        android:scaleType="fitCenter"
+        android:src="@drawable/facebook_logo"
+        app:layout_constraintTop_toBottomOf="@id/txtOr"
+        app:layout_constraintStart_toEndOf="@id/btnGoogle"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <TextView
+        android:id="@+id/txtNoAccount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="serif"
+        android:text="Chưa có tài khoản"
+        android:textColor="#000000"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="@id/guideAccountTop"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btnRegister"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="15dp"
+        android:background="@drawable/bg_black_blue"
+        android:backgroundTint="@null"
+        android:stateListAnimator="@null"
+        android:elevation="8dp"
+        android:fontFamily="serif"
+        android:text="Đăng ký"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        app:layout_constraintStart_toStartOf="@id/guideLeft"
+        app:layout_constraintEnd_toEndOf="@id/guideRight"
+        app:layout_constraintTop_toBottomOf="@id/txtNoAccount"
+        app:layout_constraintHeight_percent="0.067" />
+
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
