@@ -142,4 +142,10 @@ public class Exchange {
     public void complete(){
         this.status = ExchangeStatus.COMPLETED;
     }
+    public void reciprocal(){
+        this.exchangeType = ExchangeType.RECIPROCAL;
+    }
+    public void nonReciprocal(){
+        this.exchangeType = ExchangeType.NON_RECIPROCAL;
+    }
 }

@@ -39,7 +39,8 @@ public class Admin extends Account {
                     phone,
                     avatarUrl,
                     googleUid,
-                    status
+                    status,
+                    AccountRole.ADMIN
             );
 
             users = new ArrayList<>();

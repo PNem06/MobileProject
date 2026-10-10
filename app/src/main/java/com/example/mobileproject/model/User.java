@@ -35,7 +35,8 @@ public class User extends Account {
                 phone,
                 avatarUrl,
                 googleUid,
-                status
+                status,
+                AccountRole.USER
         );
 
         this.averageRating = averageRating;

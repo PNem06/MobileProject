@@ -19,6 +19,9 @@ public abstract class Account {
     private String googleUid;
     private AccountStatus status;
 
+    private AccountRole role;
+
+
     // Constructor rỗng
     public Account() {
         this.status = AccountStatus.ACTIVE;
@@ -34,7 +37,8 @@ public abstract class Account {
             String phone,
             String avatarUrl,
             String googleUid,
-            AccountStatus status
+            AccountStatus status,
+            AccountRole role
     ) {
         this.accountId = accountId;
         this.username = username;
@@ -45,6 +49,7 @@ public abstract class Account {
         this.avatarUrl = avatarUrl;
         this.googleUid = googleUid;
         this.status = status != null ? status : AccountStatus.ACTIVE;
+        this.role = role;
     }
 
     // =========================
@@ -139,5 +144,12 @@ public abstract class Account {
 
     public void setStatus(AccountStatus status) {
         this.status = status;
+    }
+    public AccountRole getRole() {
+        return role;
+    }
+
+    public void setRole(AccountRole role) {
+        this.role = role;
     }
 }
