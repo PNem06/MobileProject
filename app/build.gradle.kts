@@ -43,4 +43,5 @@ dependencies {
     androidTestImplementation(libs.ext.junit)
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-firestore:26.0.2")
 }
