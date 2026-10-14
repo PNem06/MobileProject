@@ -7,10 +7,6 @@
     android:layout_height="match_parent"
     tools:context=".view.DashboardAdmin">
 
-    <!-- ================================================= -->
-    <!-- NỘI DUNG DASHBOARD -->
-    <!-- ================================================= -->
-
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scrollDashboard"
         android:layout_width="0dp"
@@ -32,11 +28,6 @@
             android:paddingEnd="20dp"
             android:paddingBottom="24dp">
 
-
-            <!-- ================================================= -->
-            <!-- HEADER -->
-            <!-- ================================================= -->
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -52,7 +43,6 @@
                     android:textSize="24sp"
                     android:textStyle="bold" />
 
-
                 <ImageView
                     android:layout_width="42dp"
                     android:layout_height="42dp"
@@ -62,11 +52,6 @@
                     android:src="@drawable/ic_notification" />
 
             </LinearLayout>
-
-
-            <!-- ================================================= -->
-            <!-- GREETING -->
-            <!-- ================================================= -->
 
             <TextView
                 android:layout_width="match_parent"
@@ -86,11 +71,6 @@
                 android:textColor="#555555"
                 android:textSize="15sp" />
 
-
-            <!-- ================================================= -->
-            <!-- TỔNG QUAN -->
-            <!-- ================================================= -->
-
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -100,144 +80,176 @@
                 android:textSize="21sp"
                 android:textStyle="bold" />
 
-
-            <!-- ================================================= -->
-            <!-- 3 CARD THỐNG KÊ -->
-            <!-- ================================================= -->
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                android:orientation="horizontal">
-
-
-                <!-- TỔNG USER -->
+                android:orientation="vertical">
 
                 <LinearLayout
-                    android:id="@+id/cardTotalUser"
-                    android:layout_width="0dp"
-                    android:layout_height="145dp"
-                    android:layout_marginEnd="5dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_black_blue"
-                    android:orientation="vertical"
-                    android:padding="14dp">
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
 
-                    <ImageView
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:contentDescription="User"
-                        android:src="@drawable/ic_user" />
+                    <LinearLayout
+                        android:id="@+id/cardTotalUser"
+                        android:layout_width="0dp"
+                        android:layout_height="145dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/bg_black_blue"
+                        android:orientation="vertical"
+                        android:padding="14dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Tổng số User"
-                        android:textColor="#FFFFFF"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
+                        <ImageView
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
+                            android:contentDescription="User"
+                            android:src="@drawable/ic_user" />
 
-                    <TextView
-                        android:id="@+id/tvTotalUser"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="152"
-                        android:textColor="#FFFFFF"
-                        android:textSize="26sp"
-                        android:textStyle="bold" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="Tổng số User"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvTotalUser"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="--"
+                            android:textColor="#FFFFFF"
+                            android:textSize="28sp"
+                            android:textStyle="bold" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/cardTotalPost"
+                        android:layout_width="0dp"
+                        android:layout_height="145dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_black_blue"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+
+                        <ImageView
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
+                            android:contentDescription="Bài đăng"
+                            android:src="@drawable/ic_post" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="Tổng số bài đăng"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvTotalPost"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="--"
+                            android:textColor="#FFFFFF"
+                            android:textSize="28sp"
+                            android:textStyle="bold" />
+
+                    </LinearLayout>
 
                 </LinearLayout>
 
-
-                <!-- BÀI ĐĂNG -->
-
                 <LinearLayout
-                    android:id="@+id/cardTotalPost"
-                    android:layout_width="0dp"
-                    android:layout_height="145dp"
-                    android:layout_marginStart="2dp"
-                    android:layout_marginEnd="2dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_black_blue"
-                    android:orientation="vertical"
-                    android:padding="14dp">
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
 
-                    <ImageView
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:contentDescription="Bài đăng"
-                        android:src="@drawable/ic_post" />
+                    <LinearLayout
+                        android:id="@+id/cardTotalExchange"
+                        android:layout_width="0dp"
+                        android:layout_height="145dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/bg_black_blue"
+                        android:orientation="vertical"
+                        android:padding="14dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Bài đăng"
-                        android:textColor="#FFFFFF"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
+                        <ImageView
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
+                            android:contentDescription="Trao đổi"
+                            android:src="@drawable/ic_exchange" />
 
-                    <TextView
-                        android:id="@+id/tvTotalPost"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="87"
-                        android:textColor="#FFFFFF"
-                        android:textSize="26sp"
-                        android:textStyle="bold" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="Yêu cầu trao đổi"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
 
-                </LinearLayout>
+                        <TextView
+                            android:id="@+id/tvTotalExchange"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="--"
+                            android:textColor="#FFFFFF"
+                            android:textSize="28sp"
+                            android:textStyle="bold" />
 
+                    </LinearLayout>
 
-                <!-- TRAO ĐỔI -->
+                    <LinearLayout
+                        android:id="@+id/cardPendingReport"
+                        android:layout_width="0dp"
+                        android:layout_height="145dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_black_blue"
+                        android:orientation="vertical"
+                        android:padding="14dp">
 
-                <LinearLayout
-                    android:id="@+id/cardTotalExchange"
-                    android:layout_width="0dp"
-                    android:layout_height="145dp"
-                    android:layout_marginStart="5dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_black_blue"
-                    android:orientation="vertical"
-                    android:padding="14dp">
+                        <ImageView
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
+                            android:contentDescription="Report đang chờ"
+                            android:src="@drawable/ic_report" />
 
-                    <ImageView
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:contentDescription="Trao đổi"
-                        android:src="@drawable/ic_exchange" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="Report chờ xử lý"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Trao đổi"
-                        android:textColor="#FFFFFF"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
+                        <TextView
+                            android:id="@+id/tvPendingReport"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="--"
+                            android:textColor="#FFFFFF"
+                            android:textSize="28sp"
+                            android:textStyle="bold" />
 
-                    <TextView
-                        android:id="@+id/tvTotalExchange"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="36"
-                        android:textColor="#FFFFFF"
-                        android:textSize="26sp"
-                        android:textStyle="bold" />
+                    </LinearLayout>
 
                 </LinearLayout>
 
             </LinearLayout>
-
-
-            <!-- ================================================= -->
-            <!-- QUẢN LÝ HỆ THỐNG -->
-            <!-- ================================================= -->
 
             <TextView
                 android:layout_width="match_parent"
@@ -247,11 +259,6 @@
                 android:textColor="#000000"
                 android:textSize="21sp"
                 android:textStyle="bold" />
-
-
-            <!-- ================================================= -->
-            <!-- QUẢN LÝ USER -->
-            <!-- ================================================= -->
 
             <LinearLayout
                 android:id="@+id/layoutManageUser"
@@ -297,11 +304,6 @@
 
             </LinearLayout>
 
-
-            <!-- ================================================= -->
-            <!-- QUẢN LÝ BÀI ĐĂNG -->
-            <!-- ================================================= -->
-
             <LinearLayout
                 android:id="@+id/layoutManagePost"
                 android:layout_width="match_parent"
@@ -345,11 +347,6 @@
                 </LinearLayout>
 
             </LinearLayout>
-
-
-            <!-- ================================================= -->
-            <!-- QUẢN LÝ TRAO ĐỔI -->
-            <!-- ================================================= -->
 
             <LinearLayout
                 android:id="@+id/layoutManageExchange"
@@ -395,11 +392,6 @@
 
             </LinearLayout>
 
-
-            <!-- ================================================= -->
-            <!-- REPORT -->
-            <!-- ================================================= -->
-
             <LinearLayout
                 android:id="@+id/layoutReport"
                 android:layout_width="match_parent"
@@ -444,11 +436,6 @@
 
             </LinearLayout>
 
-
-            <!-- ================================================= -->
-            <!-- FOOTER -->
-            <!-- ================================================= -->
-
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -463,11 +450,6 @@
 
     </androidx.core.widget.NestedScrollView>
 
-
-    <!-- ================================================= -->
-    <!-- BOTTOM NAVIGATION -->
-    <!-- ================================================= -->
-
     <LinearLayout
         android:id="@+id/bottomNavigation"
         android:layout_width="0dp"
@@ -480,14 +462,13 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-
-        <!-- TRANG CHỦ -->
-
         <LinearLayout
             android:id="@+id/navHome"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="center"
             android:orientation="vertical"
             android:paddingTop="8dp">
@@ -508,14 +489,13 @@
 
         </LinearLayout>
 
-
-        <!-- DASHBOARD - ĐANG CHỌN -->
-
         <LinearLayout
             android:id="@+id/navDashboard"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="center"
             android:orientation="vertical"
             android:paddingTop="8dp">
@@ -537,42 +517,13 @@
 
         </LinearLayout>
 
-
-        <!-- TIN NHẮN -->
-
-        <LinearLayout
-            android:id="@+id/navMessage"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:paddingTop="8dp">
-
-            <ImageView
-                android:layout_width="26dp"
-                android:layout_height="26dp"
-                android:contentDescription="Tin nhắn"
-                android:src="@drawable/ic_message" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:text="Tin nhắn"
-                android:textColor="#000000"
-                android:textSize="11sp" />
-
-        </LinearLayout>
-
-
-        <!-- TÀI KHOẢN -->
-
         <LinearLayout
             android:id="@+id/navAccount"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="center"
             android:orientation="vertical"
             android:paddingTop="8dp">

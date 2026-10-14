@@ -205,24 +205,11 @@
         android:contentDescription="Đăng nhập bằng Google"
         android:scaleType="fitCenter"
         android:src="@drawable/google_logo"
-        app:layout_constraintTop_toBottomOf="@id/txtOr"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/btnFacebook"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintHorizontal_chainStyle="packed"
-        app:layout_constraintHorizontal_bias="0.5"/>
-
-    <ImageView
-        android:id="@+id/btnFacebook"
-        android:layout_width="34dp"
-        android:layout_height="42dp"
-        android:layout_marginStart="40dp"
-        android:layout_marginTop="12dp"
-        android:contentDescription="Đăng nhập bằng Facebook"
-        android:scaleType="fitCenter"
-        android:src="@drawable/facebook_logo"
-        app:layout_constraintTop_toBottomOf="@id/txtOr"
-        app:layout_constraintStart_toEndOf="@id/btnGoogle"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/txtOr" />
 
     <TextView
         android:id="@+id/txtNoAccount"
@@ -236,8 +223,6 @@
         app:layout_constraintTop_toTopOf="@id/guideAccountTop"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
-
-
 
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btnRegister"
@@ -257,7 +242,6 @@
         app:layout_constraintEnd_toEndOf="@id/guideRight"
         app:layout_constraintTop_toBottomOf="@id/txtNoAccount"
         app:layout_constraintHeight_percent="0.067" />
-
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

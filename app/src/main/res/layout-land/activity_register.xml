@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".view.Register">
+
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#FFFFFF"
+        android:fillViewport="true"
+        android:clipToPadding="false"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:padding="24dp">
+
+            <ImageView
+                android:id="@+id/imgLogoRegister"
+                android:layout_width="120dp"
+                android:layout_height="75dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="12dp"
+                android:contentDescription="Logo StageExchange"
+                android:scaleType="fitCenter"
+                android:src="@drawable/logo_stageexchange" />
+
+            <TextView
+                android:id="@+id/txtRegisterTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:fontFamily="serif"
+                android:text="Đăng ký"
+                android:textColor="#000000"
+                android:textSize="30sp"
+                android:textStyle="bold" />
+
+            <FrameLayout
+                android:layout_width="110dp"
+                android:layout_height="110dp"
+                android:layout_marginBottom="10dp">
+
+                <ImageView
+                    android:id="@+id/regAvatar"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_register_avatar"
+                    android:contentDescription="Ảnh đại diện"
+                    android:padding="3dp"
+                    android:scaleType="centerCrop"
+                    android:src="@android:drawable/ic_menu_camera"
+                    android:clipToOutline="true" />
+
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/regChooseAvatar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="8dp"
+                android:text="Chọn ảnh đại diện"
+                android:textColor="#263C75"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/regFullName"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_login_input"
+                android:hint="Họ và tên"
+                android:inputType="textPersonName"
+                android:padding="12dp"
+                android:singleLine="true"
+                android:textColor="#222222"
+                android:textColorHint="#555555"
+                android:textSize="15sp"
+                android:maxWidth="440dp" />
+
+            <EditText
+                android:id="@+id/regUsername"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_login_input"
+                android:hint="Tên đăng nhập (a-z, 0-9, _)"
+                android:inputType="text"
+                android:padding="12dp"
+                android:singleLine="true"
+                android:textColor="#222222"
+                android:textColorHint="#555555"
+                android:textSize="15sp"
+                android:maxWidth="440dp" />
+
+            <EditText
+                android:id="@+id/regEmail"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_login_input"
+                android:hint="Email"
+                android:inputType="textEmailAddress"
+                android:padding="12dp"
+                android:singleLine="true"
+                android:textColor="#222222"
+                android:textColorHint="#555555"
+                android:textSize="15sp"
+                android:maxWidth="440dp" />
+
+            <EditText
+                android:id="@+id/regPhone"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_login_input"
+                android:hint="Số điện thoại"
+                android:inputType="phone"
+                android:padding="12dp"
+                android:singleLine="true"
+                android:textColor="#222222"
+                android:textColorHint="#555555"
+                android:textSize="15sp"
+                android:maxWidth="440dp" />
+
+            <EditText
+                android:id="@+id/regPassword"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_login_input"
+                android:hint="Mật khẩu (tối thiểu 6 ký tự)"
+                android:inputType="textPassword"
+                android:padding="12dp"
+                android:singleLine="true"
+                android:textColor="#222222"
+                android:textColorHint="#555555"
+                android:textSize="15sp"
+                android:maxWidth="440dp" />
+
+            <EditText
+                android:id="@+id/regConfirm"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_login_input"
+                android:hint="Nhập lại mật khẩu"
+                android:inputType="textPassword"
+                android:padding="12dp"
+                android:singleLine="true"
+                android:textColor="#222222"
+                android:textColorHint="#555555"
+                android:textSize="15sp"
+                android:maxWidth="440dp" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/regSubmit"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_black_blue"
+                android:backgroundTint="@null"
+                android:stateListAnimator="@null"
+                android:elevation="8dp"
+                android:fontFamily="serif"
+                android:text="Đăng ký"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:maxWidth="440dp" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/regBack"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/bg_black_blue"
+                android:backgroundTint="@null"
+                android:stateListAnimator="@null"
+                android:elevation="8dp"
+                android:fontFamily="serif"
+                android:text="Quay lại đăng nhập"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:maxWidth="440dp" />
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

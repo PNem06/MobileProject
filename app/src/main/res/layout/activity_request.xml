@@ -221,7 +221,7 @@
                                 android:text="Được khách\nyêu thích"
                                 android:textColor="#333333"
                                 android:textSize="7sp"
-                                android:background="#FFFFFF" />
+                                android:background="@drawable/bg_white" />
 
 
                             <!-- Tim -->
