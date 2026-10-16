@@ -47,6 +47,7 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
 
     implementation("com.google.android.gms:play-services-auth:21.4.0")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 
     implementation("androidx.lifecycle:lifecycle-livedata:2.10.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel:2.10.0")
