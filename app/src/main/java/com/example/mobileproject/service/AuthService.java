@@ -67,16 +67,64 @@ public class AuthService {
                 }).addOnFailureListener(e -> callback.onError("Không kiểm tra được username: " + e.getMessage()));
     }
 
-    public void signInWithPassword(String email, String password, Callback callback) {
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches()) {
-            // TODO: Username -> email phải được giải quyết bằng backend an toàn, không mở public accounts/email.
-            callback.onError("Hiện hãy nhập email. Đăng nhập bằng username cần API tra cứu an toàn.");
+
+    public void signInWithPassword(String usernameOrEmail, String password, Callback callback) {
+
+        String input = usernameOrEmail.trim();
+
+        if (input.isEmpty() || password.isEmpty()) {
+            callback.onError("Vui lòng nhập tên đăng nhập hoặc email và mật khẩu.");
             return;
         }
+
+        // Trường hợp 1: Người dùng nhập Email
+        if (android.util.Patterns.EMAIL_ADDRESS.matcher(input).matches()) {
+            loginByEmail(input, password, callback);
+            return;
+        }
+
+        // Trường hợp 2: Người dùng nhập Username
+        String username = input.toLowerCase(Locale.ROOT);
+
+        db.collection("accounts")
+                .whereEqualTo("username", username)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(query -> {
+
+                    if (query.isEmpty()) {
+                        callback.onError("Tên đăng nhập hoặc mật khẩu không chính xác.");
+                        return;
+                    }
+
+                    DocumentSnapshot document = query.getDocuments().get(0);
+
+                    String email = document.getString("email");
+
+                    if (email == null || email.trim().isEmpty()) {
+                        callback.onError("Tài khoản chưa có email đăng nhập hợp lệ.");
+                        return;
+                    }
+
+                    // Dùng email tìm được để Firebase kiểm tra mật khẩu
+                    loginByEmail(email, password, callback);
+
+                })
+                .addOnFailureListener(e -> {
+                    callback.onError("Không thể tra cứu tên đăng nhập: " + e.getMessage());
+                });
+    }
+
+    // Hàm dùng chung cho cả Email và Username
+    private void loginByEmail(String email, String password, Callback callback) {
+
         auth.signInWithEmailAndPassword(email.trim(), password)
                 .addOnSuccessListener(result -> loadProfile(callback))
-                .addOnFailureListener(e -> callback.onError("Đăng nhập thất bại: " + e.getMessage()));
+                .addOnFailureListener(e -> {
+                    callback.onError("Tên đăng nhập/email hoặc mật khẩu không chính xác.");
+                });
     }
+
 
     public void signInWithGoogle(String idToken, Callback callback) {
         AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
@@ -101,8 +149,11 @@ public class AuthService {
                                 profile.put("status", "ACTIVE");
                                 profile.put("totalExchanges", 0);
                                 db.collection("accounts").document(user.getUid()).set(profile)
-                                        .addOnSuccessListener(unused -> callback.onSuccess("USER"))
-                                        .addOnFailureListener(e -> { auth.signOut(); callback.onError("Không tạo được hồ sơ Google: " + e.getMessage()); });
+                                        .addOnSuccessListener(unused -> loadProfile(callback))
+                                        .addOnFailureListener(e -> {
+                                            auth.signOut();
+                                            callback.onError("Không tạo được hồ sơ Google: " + e.getMessage());
+                                        });
                             }).addOnFailureListener(e -> { auth.signOut(); callback.onError(e.getMessage()); });
                 }).addOnFailureListener(e -> callback.onError("Google Sign-In thất bại: " + e.getMessage()));
     }
