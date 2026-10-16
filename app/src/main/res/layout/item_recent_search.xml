@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp">
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_location_pin"
+            android:layout_marginEnd="16dp"
+            app:tint="#000000" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/txtLocationName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#1A1A1A"
+                android:textSize="16sp"
+                android:textStyle="normal"
+                android:text="Bà Rịa, Vũng Tàu" />
+
+            <TextView
+                android:id="@+id/txtSearchDetail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#888888"
+                android:textSize="13sp"
+                android:layout_marginTop="3dp"
+                android:text="1 Trưởng thành" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#E5E5E5" />
+
+</LinearLayout>

@@ -13,14 +13,8 @@
         android:theme="@style/Theme.MobileProject">
         <activity
             android:name=".MainActivity"
-            android:exported="true"
-            android:windowSoftInputMode="adjustResize">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".view.DashboardAdmin"
             android:exported="false"
@@ -31,10 +25,28 @@
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".view.Login"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".view.Register"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name=".view.Register"
+            android:name=".view.Search.SearchLocationActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".view.Search.SearchActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".view.Search.SearchTimeActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
     </application>
