@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="16dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginBottom="14dp"
+    app:cardBackgroundColor="#FFFFFF"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="2dp"
+    app:strokeColor="#F0F1F5"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp">
+
+        <ImageView
+            android:id="@+id/imgExchange"
+            android:layout_width="126dp"
+            android:layout_height="126dp"
+            android:background="#EEEEEE"
+            android:contentDescription="Ảnh chỗ ở"
+            android:scaleType="centerCrop" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/txtExchangeStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sắp tới"
+                android:textColor="#B96A00"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/txtExchangeTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="7dp"
+                android:ellipsize="end"
+                android:fontFamily="@font/sx_fraunces"
+                android:maxLines="2"
+                android:text="Căn hộ tại Quận Tây Hồ"
+                android:textColor="#111827"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/txtExchangeHost"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Chủ nhà: Nguyễn Minh Anh"
+                android:textColor="#667085"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/txtExchangeAddress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Quận Tây Hồ, Hà Nội"
+                android:textColor="#667085"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/txtExchangeDate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="7dp"
+                android:text="31/03/2026 - 04/04/2026"
+                android:textColor="#344054"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
