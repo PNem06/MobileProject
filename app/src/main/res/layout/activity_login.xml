@@ -196,20 +196,47 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/txtOr"
         app:layout_constraintBottom_toBottomOf="@id/txtOr" />
-
-    <ImageView
+    <LinearLayout
         android:id="@+id/btnGoogle"
-        android:layout_width="32dp"
-        android:layout_height="42dp"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
+        android:minHeight="52dp"
+        android:background="@drawable/bg_login_input"
+        android:foreground="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
         android:contentDescription="Đăng nhập bằng Google"
-        android:scaleType="fitCenter"
-        android:src="@drawable/google_logo"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintHorizontal_chainStyle="packed"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/txtOr" />
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="12dp"
+        app:layout_constraintStart_toStartOf="@id/guideLeft"
+        app:layout_constraintEnd_toEndOf="@id/guideRight"
+        app:layout_constraintTop_toBottomOf="@id/txtOr">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
+            android:scaleType="fitCenter"
+            android:src="@drawable/google_logo" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:fontFamily="serif"
+            android:gravity="center"
+            android:importantForAccessibility="no"
+            android:text="Đăng nhập bằng Google"
+            android:textColor="#222222"
+            android:textSize="15sp" />
+
+    </LinearLayout>
 
     <TextView
         android:id="@+id/txtNoAccount"

@@ -55,32 +55,43 @@ public class ExchangeScheduleAdapter
         h.host.setText("Chủ nhà: " + item.hostName);
         h.address.setText(item.address.isEmpty() ? "Chưa có địa chỉ" : item.address);
 
-        String date = (item.startDate == null ? "--/--/----" : dateFormat.format(item.startDate))
+        String date = (item.startDate == null
+                ? "--/--/----"
+                : dateFormat.format(item.startDate))
                 + " - "
-                + (item.endDate == null ? "--/--/----" : dateFormat.format(item.endDate));
-        if (item.guestCount > 0) date += "  •  " + item.guestCount + " khách";
+                + (item.endDate == null
+                ? "--/--/----"
+                : dateFormat.format(item.endDate));
+
+        if (item.guestCount > 0) {
+            date += "  •  " + item.guestCount + " khách";
+        }
         h.date.setText(date);
 
         if ("ONGOING".equals(item.status)) {
             h.status.setText("Đang diễn ra");
-            h.status.setBackgroundResource(R.drawable.bg_schedule_status_ongoing);
+            h.status.setBackgroundResource(
+                    R.drawable.bg_schedule_status_ongoing);
         } else if ("COMPLETED".equals(item.status)) {
             h.status.setText("Đã xong");
-            h.status.setBackgroundResource(R.drawable.bg_schedule_status_done);
+            h.status.setBackgroundResource(
+                    R.drawable.bg_schedule_status_done);
         } else {
             h.status.setText("Sắp tới");
-            h.status.setBackgroundResource(R.drawable.bg_schedule_status_upcoming);
+            h.status.setBackgroundResource(
+                    R.drawable.bg_schedule_status_upcoming);
         }
 
         if (item.imageUrl != null && !item.imageUrl.isEmpty()) {
             Glide.with(h.image)
                     .load(item.imageUrl)
-                    .placeholder(R.drawable.sx_room_1)
-                    .error(R.drawable.sx_room_1)
+                    .placeholder(android.R.drawable.ic_menu_gallery)
+                    .error(android.R.drawable.ic_menu_gallery)
                     .centerCrop()
                     .into(h.image);
         } else {
-            h.image.setImageResource(R.drawable.sx_room_1);
+            Glide.with(h.image).clear(h.image);
+            h.image.setImageResource(android.R.drawable.ic_menu_gallery);
         }
 
         h.itemView.setOnClickListener(v -> {

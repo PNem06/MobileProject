@@ -57,7 +57,6 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel:2.10.0")
     implementation("com.github.bumptech.glide:glide:4.16.0")
 
-    implementation("androidx.recyclerview:recyclerview:1.4.0")
     implementation("androidx.cardview:cardview:1.0.0")
 
     testImplementation(libs.junit)
