@@ -14,9 +14,9 @@ import android.widget.*;
 
 import com.example.mobileproject.MainActivity;
 import com.example.mobileproject.R;
+import com.example.mobileproject.view.New_Post;
 import com.example.mobileproject.view.Request;
 import com.example.mobileproject.viewmodel.HomeViewModel;
-import com.google.firebase.auth.*;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -31,7 +31,7 @@ public class HomeUi extends HomeViews {
     private final PostCards cards;
     private final AccountUi accountUi;
     private LinearLayout homeSections;
-    private String builtPage = "", headerPage = "", lastUser = "";
+    private String builtPage = "", headerPage = "";
     private int selectedFilter;
 
     public HomeUi(MainActivity activity, HomeViewModel vm, Bundle saved) {
@@ -43,8 +43,7 @@ public class HomeUi extends HomeViews {
         scroll = activity.findViewById(R.id.homeScroll);
         progress = activity.findViewById(R.id.homeProgress);
         cards = new PostCards(activity, vm);
-        cards.onFavoritesChanged = this::renderHomeSections;
-        accountUi = new AccountUi(activity, vm, content, cards);
+        accountUi = new AccountUi(activity, vm, content, cards, this::openNewPost);
         restoreState(saved);
         scroll.setOnScrollChangeListener(
                 (View.OnScrollChangeListener) (v, x, y, oldX, oldY) -> vm.scrollY = y);
@@ -53,9 +52,6 @@ public class HomeUi extends HomeViews {
     private void restoreState(Bundle saved) {
         if (saved == null) return;
         selectedFilter = saved.getInt("filter", 0);
-        lastUser = saved.getString("lastUser", "");
-        ArrayList<String> liked = saved.getStringArrayList("hearts");
-        if (liked != null) cards.hearts.addAll(liked);
         Bundle offsets = saved.getBundle("tracks");
         if (offsets != null)
             for (String key : offsets.keySet()) cards.trackOffsets.put(key, offsets.getInt(key));
@@ -77,8 +73,6 @@ public class HomeUi extends HomeViews {
         out.putString("avatar", vm.draftAvatar);
         out.putInt("scroll", vm.scrollY);
         out.putInt("filter", selectedFilter);
-        out.putString("lastUser", lastUser);
-        out.putStringArrayList("hearts", new ArrayList<>(cards.hearts));
         Bundle offsets = new Bundle();
         for (Map.Entry<String, Integer> item : cards.trackOffsets.entrySet())
             offsets.putInt(item.getKey(), item.getValue());
@@ -108,12 +102,6 @@ public class HomeUi extends HomeViews {
     }
 
     public void render() {
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        String identity = user == null ? "guest" : user.getUid();
-        if (!identity.equals(lastUser)) {
-            cards.hearts.clear();
-            lastUser = identity;
-        }
         if (!vm.signedIn() && !Arrays.asList("home", "about").contains(vm.page)) vm.page = "home";
         progress.setVisibility(vm.busy ? View.VISIBLE : View.GONE);
         buildHeader();
@@ -342,6 +330,7 @@ public class HomeUi extends HomeViews {
             chips.addView(chip, params);
             chip.setOnClickListener(
                     v -> {
+                        if (value == 2 && !requireLogin()) return;
                         selectedFilter = value;
                         cards.trackOffsets.remove("feed0");
                         cards.trackOffsets.remove("feed1");
@@ -361,7 +350,23 @@ public class HomeUi extends HomeViews {
     private void renderHomeSections() {
         if (homeSections == null) return;
         homeSections.removeAllViews();
+        if (selectedFilter == 2 && !vm.signedIn()) {
+            empty(
+                    homeSections,
+                    "Đăng nhập để xem yêu thích",
+                    "Các chỗ ở đã lưu gắn với tài khoản của bạn.");
+            return;
+        }
+        if (selectedFilter == 2 && !vm.favoritesLoaded()) {
+            empty(
+                    homeSections,
+                    "Chưa tải xong yêu thích",
+                    "Danh sách sẽ cập nhật khi đồng bộ thành công. Nếu có lỗi, hãy kiểm tra kết nối"
+                            + " và mở lại ứng dụng.");
+            return;
+        }
         List<JSONObject> posts = new ArrayList<>();
+        Set<String> favoriteIds = vm.favoriteIds();
         String query = vm.search.trim().toLowerCase(Locale.ROOT);
         JSONArray source = vm.rows("feed");
         long now = System.currentTimeMillis();
@@ -376,7 +381,7 @@ public class HomeUi extends HomeViews {
                             + p.optString("addressText"))
                             .toLowerCase(Locale.ROOT);
             if (!searchable.contains(query)) continue;
-            if (!PostCardData.matchesFilter(p, selectedFilter, cards.hearts, now)) continue;
+            if (!PostCardData.matchesFilter(p, selectedFilter, favoriteIds, now)) continue;
             posts.add(p);
         }
         if (posts.isEmpty()) {
@@ -421,6 +426,20 @@ public class HomeUi extends HomeViews {
         }
     }
 
+    private void openNewPost() {
+        if (vm.busy || !requireLogin()) return;
+        if (!vm.online()) {
+            vm.tell("Kết nối mạng để tạo bài đăng mới.");
+            return;
+        }
+        hideKeyboard();
+        try {
+            activity.startActivity(new Intent(activity, New_Post.class));
+        } catch (ActivityNotFoundException error) {
+            vm.tell("Chưa mở được màn hình tạo bài đăng.");
+        }
+    }
+
     private void showMenu() {
         if (vm.busy) return;
         Dialog drawer = new Dialog(this);
@@ -430,9 +449,11 @@ public class HomeUi extends HomeViews {
         gap(menu, 28);
         menu.addView(heading("StayExchange", 29));
         gap(menu, 22);
-        String[] labels = {"Khám phá", "Tài khoản", "Thông báo", "Cài đặt", "Thông tin ứng dụng"};
-        String[] icons = {"search", "user", "bell", "settings", "info"};
-        String[] pages = {"home", "account", "notifications", "settings", "about"};
+        String[] labels = {
+                "Khám phá", "Tài khoản", "Bài đăng mới", "Thông báo", "Cài đặt", "Thông tin ứng dụng"
+        };
+        String[] icons = {"search", "user", "plus", "bell", "settings", "info"};
+        String[] pages = {"home", "account", "new_post", "notifications", "settings", "about"};
         for (int i = 0; i < labels.length; i++) {
             final String page = pages[i];
             menu.addView(
@@ -443,6 +464,10 @@ public class HomeUi extends HomeViews {
                             false,
                             () -> {
                                 drawer.dismiss();
+                                if ("new_post".equals(page)) {
+                                    openNewPost();
+                                    return;
+                                }
                                 if (Arrays.asList("home", "about").contains(page) || requireLogin())
                                     go(page);
                             }));
@@ -458,7 +483,12 @@ public class HomeUi extends HomeViews {
                             if (vm.signedIn()) accountUi.confirmLogout();
                             else requireLogin();
                         }));
-        drawer.setContentView(menu);
+        ScrollView menuScroll = new ScrollView(this);
+        menuScroll.setFillViewport(true);
+        menuScroll.setBackgroundColor(Color.WHITE);
+        menuScroll.addView(menu, new ScrollView.LayoutParams(-1, -2));
+        drawer.setContentView(menuScroll);
+        drawer.show();
         Window window = drawer.getWindow();
         if (window != null) {
             window.setBackgroundDrawableResource(android.R.color.transparent);
@@ -468,6 +498,5 @@ public class HomeUi extends HomeViews {
             window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             window.setDimAmount(.3f);
         }
-        drawer.show();
     }
 }

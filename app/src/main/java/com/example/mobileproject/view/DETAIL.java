@@ -57,18 +57,33 @@ public class DETAIL extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_detail);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+
+        ViewCompat.setOnApplyWindowInsetsListener(
+                findViewById(R.id.main),
+                (v, insets) -> {
+                    Insets systemBars = insets.getInsets(
+                            WindowInsetsCompat.Type.systemBars()
+                    );
+
+                    v.setPadding(
+                            systemBars.left,
+                            systemBars.top,
+                            systemBars.right,
+                            systemBars.bottom
+                    );
+
+                    return insets;
+                }
+        );
 
         if (getIntent() != null) {
             postId = getIntent().getStringExtra(EXTRA_POST_ID);
+
             if (postId == null) {
                 postId = getIntent().getStringExtra("postId");
             }
         }
+
         if (postId == null) postId = "";
 
         db = FirebaseFirestore.getInstance();
@@ -104,22 +119,27 @@ public class DETAIL extends AppCompatActivity {
 
     private void listenToRoomRealtime() {
         if (postId.isEmpty()) return;
+
         roomListener = db.collection("posts")
                 .document(postId)
                 .addSnapshotListener((snapshot, error) -> {
                     if (isFinishing() || isDestroyed()) return;
 
                     if (error != null) {
-                        Toast.makeText(this,
+                        Toast.makeText(
+                                this,
                                 "Lỗi đọc Firestore: " + error.getLocalizedMessage(),
-                                Toast.LENGTH_LONG).show();
+                                Toast.LENGTH_LONG
+                        ).show();
                         return;
                     }
 
                     if (snapshot == null || !snapshot.exists()) {
-                        Toast.makeText(this,
+                        Toast.makeText(
+                                this,
                                 "Bài đăng không tồn tại hoặc đã bị xóa",
-                                Toast.LENGTH_SHORT).show();
+                                Toast.LENGTH_SHORT
+                        ).show();
                         return;
                     }
 
@@ -140,32 +160,49 @@ public class DETAIL extends AppCompatActivity {
         int bathrooms = intValue(doc, "bathroomCount", 0);
         int maxGuests = intValue(doc, "maxGuests", 0);
 
-        txtBedInfo.setText(bedrooms + " phòng ngủ • "
-                + bathrooms + " phòng tắm • Tối đa "
-                + maxGuests + " khách");
+        txtBedInfo.setText(
+                bedrooms + " phòng ngủ • "
+                        + bathrooms + " phòng tắm • Tối đa "
+                        + maxGuests + " khách"
+        );
 
         Date startDate = dateValue(doc, "startDate");
         Date endDate = dateValue(doc, "endDate");
-        txtDates.setText("Ngày bắt đầu: " + formatDate(startDate)
-                + "\nNgày kết thúc: " + formatDate(endDate));
 
-        txtRoomCounts.setText("Phòng ngủ: " + bedrooms
-                + "  |  Phòng tắm: " + bathrooms
-                + "\nSố khách tối đa: " + maxGuests);
+        txtDates.setText(
+                "Ngày bắt đầu: " + formatDate(startDate)
+                        + "\nNgày kết thúc: " + formatDate(endDate)
+        );
+
+        txtRoomCounts.setText(
+                "Phòng ngủ: " + bedrooms
+                        + "  |  Phòng tắm: " + bathrooms
+                        + "\nSố khách tối đa: " + maxGuests
+        );
 
         double latitude = doubleValue(doc, "latitude", 0);
         double longitude = doubleValue(doc, "longitude", 0);
+
         txtLocation.setText("Vị trí: " + latitude + ", " + longitude);
 
         txtAdditionalInformation.setText(
-                nonEmpty(additionalInfo, "Chưa có thông tin bổ sung."));
+                nonEmpty(additionalInfo, "Chưa có thông tin bổ sung.")
+        );
 
         List<String> amenityIds = stringList(doc, "amenityIds");
-        txtAmenities.setText(amenityIds.isEmpty()
-                ? "Chưa có thông tin tiện nghi."
-                : "Mã tiện nghi:\n• " + TextUtils.join("\n• ", amenityIds));
 
-        fullDescription = nonEmpty(description, "Chưa có mô tả cho chỗ ở này.");
+        txtAmenities.setText(
+                amenityIds.isEmpty()
+                        ? "Chưa có thông tin tiện nghi."
+                        : "Mã tiện nghi:\n• "
+                          + TextUtils.join("\n• ", amenityIds)
+        );
+
+        fullDescription = nonEmpty(
+                description,
+                "Chưa có mô tả cho chỗ ở này."
+        );
+
         updateDescription();
 
         txtRating.setText("—");
@@ -189,43 +226,74 @@ public class DETAIL extends AppCompatActivity {
     }
 
     private int intValue(DocumentSnapshot doc, String field, int fallback) {
-        Number value = doc.get(field, Number.class);
-        return value == null ? fallback : value.intValue();
+        Object value = doc.get(field);
+
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+
+        return fallback;
     }
 
-    private double doubleValue(DocumentSnapshot doc, String field, double fallback) {
-        Number value = doc.get(field, Number.class);
-        return value == null ? fallback : value.doubleValue();
+    private double doubleValue(
+            DocumentSnapshot doc,
+            String field,
+            double fallback
+    ) {
+        Object value = doc.get(field);
+
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+
+        return fallback;
     }
 
     private Date dateValue(DocumentSnapshot doc, String field) {
         Object value = doc.get(field);
-        if (value instanceof Timestamp) return ((Timestamp) value).toDate();
-        if (value instanceof Date) return (Date) value;
+
+        if (value instanceof Timestamp) {
+            return ((Timestamp) value).toDate();
+        }
+
+        if (value instanceof Date) {
+            return (Date) value;
+        }
+
         return null;
     }
 
     private List<String> stringList(DocumentSnapshot doc, String field) {
         List<String> result = new ArrayList<>();
         Object value = doc.get(field);
+
         if (value instanceof List<?>) {
             for (Object item : (List<?>) value) {
-                if (item != null) result.add(String.valueOf(item));
+                if (item != null) {
+                    result.add(String.valueOf(item));
+                }
             }
         }
+
         return result;
     }
 
     private String formatDate(Date date) {
         if (date == null) return "Chưa có";
+
         SimpleDateFormat formatter = new SimpleDateFormat(
-                "dd/MM/yyyy HH:mm", new Locale("vi", "VN"));
+                "dd/MM/yyyy HH:mm",
+                new Locale("vi", "VN")
+        );
+
         formatter.setTimeZone(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
+
         return formatter.format(date);
     }
 
     private void updateDescription() {
         txtDescription.setText(fullDescription);
+
         if (isExpanded) {
             txtDescription.setMaxLines(Integer.MAX_VALUE);
             txtDescription.setEllipsize(null);
@@ -250,14 +318,22 @@ public class DETAIL extends AppCompatActivity {
         updateFavoriteIcon();
 
         String uid = FirebaseAuth.getInstance().getUid();
+
         if (uid != null && !postId.isEmpty()) {
             String favDocId = uid + "_" + postId;
-            favoriteListener = db.collection("favorites").document(favDocId)
+
+            favoriteListener = db.collection("favorites")
+                    .document(favDocId)
                     .addSnapshotListener((snapshot, error) -> {
                         if (isFinishing() || isDestroyed()) return;
+
                         if (snapshot != null) {
                             isFavorite = snapshot.exists();
-                            preferences.edit().putBoolean(postId, isFavorite).apply();
+
+                            preferences.edit()
+                                    .putBoolean(postId, isFavorite)
+                                    .apply();
+
                             updateFavoriteIcon();
                         }
                     });
@@ -268,10 +344,12 @@ public class DETAIL extends AppCompatActivity {
 
     private void toggleFavorite() {
         String uid = FirebaseAuth.getInstance().getUid();
+
         if (uid == null) {
             showMessage("Vui lòng đăng nhập để lưu yêu thích.");
             return;
         }
+
         if (postId.isEmpty()) {
             showMessage("Không xác định được bài đăng.");
             return;
@@ -287,13 +365,29 @@ public class DETAIL extends AppCompatActivity {
             fav.put("postId", postId);
             fav.put("createdAt", FieldValue.serverTimestamp());
 
-            db.collection("favorites").document(favDocId).set(fav)
-                    .addOnSuccessListener(aVoid -> showMessage("Đã thêm vào yêu thích"))
-                    .addOnFailureListener(e -> showMessage("Lỗi thêm yêu thích: " + e.getMessage()));
+            db.collection("favorites")
+                    .document(favDocId)
+                    .set(fav)
+                    .addOnSuccessListener(
+                            aVoid -> showMessage("Đã thêm vào yêu thích")
+                    )
+                    .addOnFailureListener(
+                            e -> showMessage(
+                                    "Lỗi thêm yêu thích: " + e.getMessage()
+                            )
+                    );
         } else {
-            db.collection("favorites").document(favDocId).delete()
-                    .addOnSuccessListener(aVoid -> showMessage("Đã bỏ khỏi yêu thích"))
-                    .addOnFailureListener(e -> showMessage("Lỗi xóa yêu thích: " + e.getMessage()));
+            db.collection("favorites")
+                    .document(favDocId)
+                    .delete()
+                    .addOnSuccessListener(
+                            aVoid -> showMessage("Đã bỏ khỏi yêu thích")
+                    )
+                    .addOnFailureListener(
+                            e -> showMessage(
+                                    "Lỗi xóa yêu thích: " + e.getMessage()
+                            )
+                    );
         }
     }
 
@@ -308,10 +402,14 @@ public class DETAIL extends AppCompatActivity {
         findViewById(R.id.btnShare).setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_SEND);
             intent.setType("text/plain");
-            intent.putExtra(Intent.EXTRA_TEXT,
+
+            intent.putExtra(
+                    Intent.EXTRA_TEXT,
                     txtRoomName.getText() + "\n"
                             + txtAddress.getText() + "\n"
-                            + txtDescription.getText());
+                            + txtDescription.getText()
+            );
+
             startActivity(Intent.createChooser(intent, "Chia sẻ chỗ ở"));
         });
 
@@ -320,17 +418,29 @@ public class DETAIL extends AppCompatActivity {
             updateDescription();
         });
 
-        findViewById(R.id.btnAvailability).setOnClickListener(v ->
-                showMessage("Cần kết nối nghiệp vụ để kiểm tra phòng trống."));
+        findViewById(R.id.btnAvailability).setOnClickListener(
+                v -> showMessage(
+                        "Cần kết nối nghiệp vụ để kiểm tra phòng trống."
+                )
+        );
 
-        findViewById(R.id.btnMessage).setOnClickListener(v ->
-                showMessage("Cần triển khai chức năng nhắn tin với chủ nhà."));
+        findViewById(R.id.btnMessage).setOnClickListener(
+                v -> showMessage(
+                        "Cần triển khai chức năng nhắn tin với chủ nhà."
+                )
+        );
 
-        findViewById(R.id.btnBooking).setOnClickListener(v ->
-                showMessage("Cần triển khai quy trình đặt phòng."));
+        findViewById(R.id.btnBooking).setOnClickListener(
+                v -> showMessage(
+                        "Cần triển khai quy trình đặt phòng."
+                )
+        );
 
-        btnAllReviews.setOnClickListener(v ->
-                showMessage("Cần kết nối dữ liệu đánh giá để xem chi tiết."));
+        btnAllReviews.setOnClickListener(
+                v -> showMessage(
+                        "Cần kết nối dữ liệu đánh giá để xem chi tiết."
+                )
+        );
     }
 
     private void showMessage(String message) {
@@ -343,10 +453,12 @@ public class DETAIL extends AppCompatActivity {
             roomListener.remove();
             roomListener = null;
         }
+
         if (favoriteListener != null) {
             favoriteListener.remove();
             favoriteListener = null;
         }
+
         super.onDestroy();
     }
 }

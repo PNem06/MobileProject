@@ -36,6 +36,10 @@ public class GlyphView extends View {
         paint.setStrokeCap(Paint.Cap.ROUND);
         paint.setStrokeJoin(Paint.Join.ROUND);
         switch (name) {
+            case "plus":
+                line(c, 12, 4, 12, 20);
+                line(c, 4, 12, 20, 12);
+                break;
             case "menu":
                 line(c, 4, 6, 20, 6);
                 line(c, 4, 12, 20, 12);

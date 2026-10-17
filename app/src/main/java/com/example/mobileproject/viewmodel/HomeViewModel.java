@@ -8,11 +8,12 @@ import android.net.Uri;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MutableLiveData;
 
-import com.google.firebase.Timestamp;
+import com.example.mobileproject.data.HomePostMapper;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.MetadataChanges;
@@ -27,8 +28,10 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class HomeViewModel extends AndroidViewModel {
@@ -44,6 +47,9 @@ public class HomeViewModel extends AndroidViewModel {
     private final Map<String, ListenerRegistration> imageListeners = new HashMap<>();
     private final Map<String, ListenerRegistration> ownerListeners = new HashMap<>();
     private final Map<String, JSONObject> ownerProfiles = new HashMap<>();
+    private final Set<String> favoritePosts = new HashSet<>();
+    private final Map<String, Boolean> pendingFavorites = new HashMap<>();
+    private boolean favoritesReady;
     private boolean warnedOwnerRead;
     private String uid = "", lastError = "";
     private boolean running, cleared, active;
@@ -65,11 +71,94 @@ public class HomeViewModel extends AndroidViewModel {
         return p == null ? new JSONObject() : p;
     }
 
+    public boolean isFavorite(String postId) {
+        Boolean pending = pendingFavorites.get(postId);
+        return pending == null ? favoritePosts.contains(postId) : pending;
+    }
+
+    public Set<String> favoriteIds() {
+        Set<String> result = new HashSet<>(favoritePosts);
+        for (Map.Entry<String, Boolean> entry : pendingFavorites.entrySet()) {
+            if (entry.getValue()) result.add(entry.getKey());
+            else result.remove(entry.getKey());
+        }
+        return result;
+    }
+
+    public boolean favoritePending(String postId) {
+        return pendingFavorites.containsKey(postId);
+    }
+
+    public boolean favoritesLoaded() {
+        return favoritesReady;
+    }
+
+    public void toggleFavorite(String postId) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (busy || user == null || postId == null || postId.isEmpty()) return;
+        if (!online()) {
+            tell("Kết nối mạng để cập nhật yêu thích.");
+            return;
+        }
+        if (!running || !user.getUid().equals(uid) || !favoritesReady) {
+            tell("Danh sách yêu thích chưa sẵn sàng. Vui lòng thử lại sau.");
+            return;
+        }
+        if (favoritePending(postId)) return;
+        String userId = uid;
+        int token = generation;
+        boolean next = !favoritePosts.contains(postId);
+        pendingFavorites.put(postId, next);
+        refreshUi();
+        com.google.firebase.firestore.DocumentReference ref =
+                db.collection("favorites").document(userId + "_" + postId);
+        com.google.android.gms.tasks.Task<Void> operation;
+        if (next) {
+            Map<String, Object> values = new HashMap<>();
+            values.put("favoriteId", userId + "_" + postId);
+            values.put("userId", userId);
+            values.put("postId", postId);
+            values.put("createdAt", FieldValue.serverTimestamp());
+            operation = ref.set(values);
+        } else operation = ref.delete();
+        operation.addOnCompleteListener(
+                task -> {
+                    finishFavorite(
+                            postId, next, userId, token, task.isSuccessful(), task.getException());
+                });
+    }
+
+    private void finishFavorite(
+            String postId,
+            boolean next,
+            String userId,
+            int token,
+            boolean success,
+            Exception failure) {
+        if (!running || token != generation || !userId.equals(uid)) return;
+        pendingFavorites.remove(postId);
+        if (success) {
+            if (next) favoritePosts.add(postId);
+            else favoritePosts.remove(postId);
+        } else {
+            tell(
+                    "Không lưu được yêu thích: "
+                            + (failure == null ? "Vui lòng thử lại." : failure.getMessage()));
+        }
+        refreshUi();
+    }
+
     public String image(String postId) {
-        JSONArray photos = rows("photos");
-        for (int i = 0; i < photos.length(); i++) {
-            JSONObject p = photos.optJSONObject(i);
-            if (p != null && postId.equals(p.optString("id"))) return p.optString("url");
+        // Ảnh theo code đăng bài hiện tại được ưu tiên; hỗ trợ dữ liệu cũ.
+        for (String source : new String[] {"images", "postImages"}) {
+            JSONArray photos = rows("photos");
+            for (int i = 0; i < photos.length(); i++) {
+                JSONObject photo = photos.optJSONObject(i);
+                if (photo != null
+                        && postId.equals(photo.optString("id"))
+                        && source.equals(photo.optString("source"))
+                        && !photo.optString("url").isEmpty()) return photo.optString("url");
+            }
         }
         return "";
     }
@@ -162,8 +251,10 @@ public class HomeViewModel extends AndroidViewModel {
                                         }
                                         store("profile", new JSONArray().put(convert(doc)));
                                     }));
-            watch(db.collection("posts").whereEqualTo("ownerId", uid), "mine", token);
+            watch(db.collection("posts").whereEqualTo("accountId", uid), "mineCurrent", token);
+            watch(db.collection("posts").whereEqualTo("ownerId", uid), "mineLegacy", token);
             watch(db.collection("notifications").whereEqualTo("userId", uid), "notices", token);
+            watchFavorites(token);
         }
         watchImages(token);
     }
@@ -192,7 +283,13 @@ public class HomeViewModel extends AndroidViewModel {
                             else items.sort(Comparator.comparing(a -> a.optString("title")));
                             JSONArray array = new JSONArray();
                             for (JSONObject item : items) array.put(item);
-                            store(key, array);
+                            if ("mineCurrent".equals(key) || "mineLegacy".equals(key)) {
+                                data.put(key, array);
+                                store(
+                                        "mine",
+                                        HomePostMapper.mergeMine(
+                                                rows("mineCurrent"), rows("mineLegacy"), uid));
+                            } else store(key, array);
                             if (!"notices".equals(key)) {
                                 watchImages(token);
                                 watchOwners(token);
@@ -201,115 +298,132 @@ public class HomeViewModel extends AndroidViewModel {
     }
 
     private JSONObject convert(DocumentSnapshot doc) {
-        JSONObject o = new JSONObject();
-        try {
-            o.put("id", doc.getId());
-            // Chỉ đọc các trường giao diện cần.
-            String[] fields = {
-                    "fullName",
-                    "email",
-                    "phone",
-                    "avatarUrl",
-                    "username",
-                    "title",
-                    "description",
-                    "addressText",
-                    "ownerId",
-                    "status",
-                    "body",
-                    "type"
-            };
-            for (String key : fields) {
-                Object v = doc.get(key);
-                o.put(key, v instanceof String ? v : "");
-            }
-            for (String key : new String[] {"maxGuests", "bedroomCount", "bathroomCount"}) {
-                Object v = doc.get(key);
-                o.put(key, v instanceof Number ? v : 0);
-            }
-            for (String key : new String[] {"pricePerNight", "ratingAverage", "reviewCount"}) {
-                Object value = doc.get(key);
-                if (value instanceof Number) o.put(key, value);
-            }
-            for (String key : new String[] {"availableFrom", "availableTo"}) {
-                Object value = doc.get(key);
-                long time =
-                        value instanceof Timestamp
-                                ? ((Timestamp) value).toDate().getTime()
-                                : value instanceof java.util.Date
-                                  ? ((java.util.Date) value).getTime()
-                                  : 0;
-                o.put(key, time);
-            }
-            Object when = doc.get("createdAt");
-            o.put(
-                    "createdAt",
-                    when instanceof Timestamp ? ((Timestamp) when).toDate().getTime() : 0);
-            String readField = doc.contains("isRead") && !doc.contains("read") ? "isRead" : "read";
-            o.put("readField", readField);
-            o.put("read", Boolean.TRUE.equals(doc.get(readField)));
-        } catch (JSONException ignored) {
-        }
-        return o;
+        return HomePostMapper.fromDocument(doc.getId(), doc.getData());
+    }
+
+    private void watchFavorites(int token) {
+        String userId = uid;
+        listeners.add(
+                db.collection("favorites")
+                        .whereEqualTo("userId", userId)
+                        .addSnapshotListener(
+                                MetadataChanges.INCLUDE,
+                                (snap, failure) -> {
+                                    if (!running
+                                            || token != generation
+                                            || !userId.equals(uid)
+                                            || !online()) return;
+                                    if (failure != null) {
+                                        favoritesReady = false;
+                                        error("Không đọc được yêu thích: " + failure.getMessage());
+                                        refreshUi();
+                                        return;
+                                    }
+                                    if (snap == null
+                                            || snap.getMetadata().isFromCache()
+                                            || snap.getMetadata().hasPendingWrites()) return;
+                                    favoritePosts.clear();
+                                    for (DocumentSnapshot doc : snap.getDocuments()) {
+                                        Object value = doc.get("postId");
+                                        if (value instanceof String && !((String) value).isEmpty())
+                                            favoritePosts.add((String) value);
+                                    }
+                                    favoritesReady = true;
+                                    refreshUi();
+                                }));
     }
 
     private void watchImages(int token) {
+        java.util.Set<String> needed = new java.util.HashSet<>();
         for (String key : new String[] {"feed", "mine"}) {
             JSONArray posts = rows(key);
             for (int i = 0; i < posts.length(); i++) {
-                JSONObject p = posts.optJSONObject(i);
-                if (p == null) continue;
-                String id = p.optString("id");
-                if (imageListeners.containsKey(id)) continue;
+                JSONObject post = posts.optJSONObject(i);
+                if (post != null) needed.add(post.optString("id"));
+            }
+        }
+        java.util.Iterator<Map.Entry<String, ListenerRegistration>> iterator =
+                imageListeners.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, ListenerRegistration> entry = iterator.next();
+            String postId = entry.getKey().substring(entry.getKey().indexOf('/') + 1);
+            if (!needed.contains(postId)) {
+                entry.getValue().remove();
+                iterator.remove();
+            }
+        }
+        JSONArray retained = new JSONArray();
+        for (int i = 0; i < rows("photos").length(); i++) {
+            JSONObject photo = rows("photos").optJSONObject(i);
+            if (photo != null && needed.contains(photo.optString("id"))) retained.put(photo);
+        }
+        data.put("photos", retained);
+        for (String postId : needed) {
+            for (String source : new String[] {"images", "postImages"}) {
+                String listenerKey = source + "/" + postId;
+                if (imageListeners.containsKey(listenerKey)) continue;
                 ListenerRegistration listener =
-                        db.collection("postImages")
-                                .whereEqualTo("postId", id)
+                        db.collection(source)
+                                .whereEqualTo("postId", postId)
                                 .addSnapshotListener(
                                         MetadataChanges.INCLUDE,
-                                        (snap, e) -> {
-                                            if (!running || token != generation || !online())
+                                        (snap, error) -> {
+                                            if (!running
+                                                    || token != generation
+                                                    || !online()
+                                                    || !imageListeners.containsKey(listenerKey))
                                                 return;
-                                            if (e != null) {
-                                                error(
-                                                        "Không tải được ảnh bài đăng: "
-                                                                + e.getMessage());
+                                            if (error != null) {
+                                                // Quyền collection cũ có thể bị bỏ sau khi nhóm đổi
+                                                // cấu trúc.
+                                                if ("images".equals(source))
+                                                    error(
+                                                            "Không tải được ảnh bài đăng: "
+                                                                    + error.getMessage());
                                                 return;
                                             }
                                             if (snap == null || snap.getMetadata().isFromCache())
                                                 return;
                                             long best = Long.MAX_VALUE;
-                                            String url = "";
-                                            for (DocumentSnapshot d : snap.getDocuments()) {
-                                                Number order =
-                                                        d.get("orderIndex") instanceof Number
-                                                                ? (Number) d.get("orderIndex")
-                                                                : null;
-                                                long n =
-                                                        order == null
-                                                                ? Long.MAX_VALUE - 1
-                                                                : order.longValue();
-                                                if (n < best) {
-                                                    best = n;
-                                                    url = d.getString("imageUrl");
+                                            String url = "", bestId = "";
+                                            for (DocumentSnapshot doc : snap.getDocuments()) {
+                                                String candidate =
+                                                        HomePostMapper.imageUrl(doc.getData());
+                                                if (candidate.isEmpty()) continue;
+                                                Object value = doc.get("orderIndex");
+                                                long order =
+                                                        value instanceof Number
+                                                                ? ((Number) value).longValue()
+                                                                : Long.MAX_VALUE - 1;
+                                                if (order < best
+                                                        || (order == best
+                                                        && doc.getId().compareTo(bestId)
+                                                        < 0)) {
+                                                    best = order;
+                                                    bestId = doc.getId();
+                                                    url = candidate;
                                                 }
                                             }
                                             JSONArray photos = new JSONArray();
-                                            for (int j = 0; j < rows("photos").length(); j++) {
-                                                JSONObject photo = rows("photos").optJSONObject(j);
+                                            for (int i = 0; i < rows("photos").length(); i++) {
+                                                JSONObject photo = rows("photos").optJSONObject(i);
                                                 if (photo != null
-                                                        && !id.equals(photo.optString("id")))
+                                                        && !(postId.equals(photo.optString("id"))
+                                                        && source.equals(
+                                                        photo.optString("source"))))
                                                     photos.put(photo);
                                             }
-                                            JSONObject photo = new JSONObject();
                                             try {
-                                                photo.put("id", id);
-                                                photo.put("url", url == null ? "" : url);
+                                                photos.put(
+                                                        new JSONObject()
+                                                                .put("id", postId)
+                                                                .put("source", source)
+                                                                .put("url", url));
                                             } catch (JSONException ignored) {
                                             }
-                                            photos.put(photo);
                                             store("photos", photos);
                                         });
-                imageListeners.put(id, listener);
+                imageListeners.put(listenerKey, listener);
             }
         }
     }
@@ -330,6 +444,9 @@ public class HomeViewModel extends AndroidViewModel {
     private void clearData() {
         data.clear();
         ownerProfiles.clear();
+        favoritePosts.clear();
+        pendingFavorites.clear();
+        favoritesReady = false;
     }
 
     private void watchOwners(int token) {
@@ -398,6 +515,8 @@ public class HomeViewModel extends AndroidViewModel {
     public void stop() {
         running = false;
         generation++;
+        pendingFavorites.clear();
+        favoritesReady = false;
         for (ListenerRegistration listener : listeners) listener.remove();
         for (ListenerRegistration listener : imageListeners.values()) listener.remove();
         for (ListenerRegistration listener : ownerListeners.values()) listener.remove();
