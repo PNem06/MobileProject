@@ -15,6 +15,8 @@ import android.widget.*;
 import com.example.mobileproject.MainActivity;
 import com.example.mobileproject.R;
 import com.example.mobileproject.view.Request;
+import com.example.mobileproject.view.ExchangeScheduleActivity;
+import com.example.mobileproject.view.Chat;
 import com.example.mobileproject.viewmodel.HomeViewModel;
 import com.google.firebase.auth.*;
 
@@ -266,57 +268,171 @@ public class HomeUi extends HomeViews {
 
     private void buildNavigation() {
         navigation.removeAllViews();
+
         String[] labels = {
-                "Khám phá", "Yêu cầu", "Lịch", "Tin nhắn", vm.signedIn() ? "Tài khoản" : "Đăng nhập"
+                "Khám phá",
+                "Request",
+                "Lịch",
+                "Tin nhắn",
+                vm.signedIn() ? "Tài khoản" : "Đăng nhập"
         };
-        String[] icons = {"search", "exchange", "calendar", "chat", "userCircle"};
+
+        String[] icons = {
+                "search",
+                "exchange",
+                "calendar",
+                "chat",
+                "userCircle"
+        };
+
         for (int i = 0; i < labels.length; i++) {
+
             final int index = i;
+
             boolean selected =
-                    (i == 0 && "home".equals(vm.page))
-                            || (i == 4
-                            && !Arrays.asList("home", "notifications").contains(vm.page));
+                    (index == 0 && "home".equals(vm.page))
+                            || (index == 4
+                            && !Arrays.asList(
+                            "home",
+                            "notifications"
+                    ).contains(vm.page));
+
             LinearLayout tab = vertical();
+
             tab.setGravity(Gravity.CENTER);
             tab.setMinimumHeight(dp(49));
-            tab.addView(new GlyphView(this, icons[i], selected ? PURPLE : INK), lp(25, 25));
-            TextView label = body(labels[i], 10, selected ? PURPLE : INK);
+
+            // Icon
+            tab.addView(
+                    new GlyphView(
+                            this,
+                            icons[index],
+                            selected ? PURPLE : INK
+                    ),
+                    lp(25, 25)
+            );
+
+            // Label
+            TextView label =
+                    body(
+                            labels[index],
+                            10,
+                            selected ? PURPLE : INK
+                    );
+
             label.setGravity(Gravity.CENTER);
-            LinearLayout.LayoutParams labelParams = lp(-1, -2);
+
+            LinearLayout.LayoutParams labelParams =
+                    lp(-1, -2);
+
             labelParams.topMargin = dp(5);
+
             tab.addView(label, labelParams);
+
+            // Chấm báo tab đang được chọn
             View dot = new View(this);
-            dot.setBackground(round(selected ? PURPLE : Color.TRANSPARENT, 4));
-            LinearLayout.LayoutParams dotParams = lp(4, 4);
+
+            dot.setBackground(
+                    round(
+                            selected
+                                    ? PURPLE
+                                    : Color.TRANSPARENT,
+                            4
+                    )
+            );
+
+            LinearLayout.LayoutParams dotParams =
+                    lp(4, 4);
+
             dotParams.topMargin = dp(5);
+
             tab.addView(dot, dotParams);
-            navigation.addView(tab, new LinearLayout.LayoutParams(0, -2, 1));
-            tab.setContentDescription(labels[i]);
-            tab.setOnClickListener(
-                    v -> {
-                        if (vm.busy) return;
-                        if (index == 0) {
-                            go("home");
+
+            navigation.addView(
+                    tab,
+                    new LinearLayout.LayoutParams(
+                            0,
+                            -2,
+                            1
+                    )
+            );
+
+            tab.setContentDescription(labels[index]);
+
+            tab.setOnClickListener(v -> {
+
+                if (vm.busy) {
+                    return;
+                }
+
+                switch (index) {
+
+                    // KHÁM PHÁ
+                    case 0:
+                        go("home");
+                        break;
+
+                    // REQUEST
+                    case 1:
+
+                        if (!requireLogin()) {
                             return;
                         }
-                        if (!requireLogin()) return;
-                        if (index == 4) go("account");
-                        else if (index == 1) startActivity(new Intent(activity, Request.class));
-                        else
-                            try {
-                                startActivity(
-                                        new Intent()
-                                                .setClassName(
-                                                        this,
-                                                        getPackageName()
-                                                                + ".view."
-                                                                + (index == 2
-                                                                ? "Calendar"
-                                                                : "Chat")));
-                            } catch (ActivityNotFoundException e) {
-                                vm.tell("Tính năng này chưa khả dụng.");
-                            }
-                    });
+
+                        startActivity(
+                                new Intent(
+                                        activity,
+                                        Request.class
+                                )
+                        );
+
+                        break;
+
+                    // LỊCH TRAO ĐỔI
+                    case 2:
+
+                        if (!requireLogin()) {
+                            return;
+                        }
+
+                        startActivity(
+                                new Intent(
+                                        activity,
+                                        ExchangeScheduleActivity.class
+                                )
+                        );
+
+                        break;
+
+
+                    // TIN NHẮN
+                    case 3:
+
+                        if (!requireLogin()) {
+                            return;
+                        }
+
+                        startActivity(
+                                new Intent(
+                                        activity,
+                                        Chat.class
+                                )
+                        );
+
+                        break;
+
+                    // TÀI KHOẢN / ĐĂNG NHẬP
+                    case 4:
+
+                        if (!requireLogin()) {
+                            return;
+                        }
+
+                        go("account");
+
+                        break;
+                }
+            });
         }
     }
 

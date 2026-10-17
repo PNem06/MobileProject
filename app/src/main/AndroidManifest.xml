@@ -14,52 +14,81 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MobileProject">
+
+        <!-- Main -->
         <activity
             android:name=".MainActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <!-- Admin -->
         <activity
             android:name=".view.DashboardAdmin"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <!-- Request -->
         <activity
             android:name=".view.Request"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <!-- Exchange Schedule / Lịch trao đổi -->
+        <activity
+            android:name=".view.ExchangeScheduleActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".view.Chat"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <!-- Login: Launcher -->
         <activity
             android:name=".view.Login"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Register -->
         <activity
             android:name=".view.Register"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <!-- Search -->
         <activity
             android:name=".view.Search.SearchLocationActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.Search.SearchActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.Search.SearchTimeActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <!-- Detail -->
         <activity
             android:name=".view.DETAIL"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <!-- New Post -->
         <activity
             android:name=".view.New_Post"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
     </application>
 
 </manifest>
