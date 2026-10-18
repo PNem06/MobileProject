@@ -4,7 +4,6 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
-import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
 
@@ -18,6 +17,7 @@ import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.example.mobileproject.MainActivity;
+import com.example.mobileproject.R;
 import com.example.mobileproject.ui.adapter.PostCardAdapter;
 import com.example.mobileproject.ui.adapter.PostCardAdapter.PostViewHolder;
 import com.example.mobileproject.view.DETAIL;
@@ -46,52 +46,47 @@ public class PostCards extends HomeViews {
             String key,
             boolean mine,
             Runnable createPost) {
-        LinearLayout section = vertical();
-        LinearLayout top = horizontal();
-        top.setGravity(Gravity.CENTER_VERTICAL);
-        top.setPadding(dp(22), mine ? dp(3) : dp(1), dp(22), dp(13));
-        TextView name = heading(title, mine ? 21 : 23);
-        top.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
-        RecyclerView track = new RecyclerView(activity);
+        LinearLayout section = template(R.id.homePostSection);
+        section.setPadding(0, 0, 0, dp(mine ? 16 : 22));
+        TextView txtSectionTitle = section.findViewById(R.id.postSectionTitle);
+        TextView txtSectionCount = section.findViewById(R.id.postSectionCount);
+        txtSectionTitle.setText(title);
+        txtSectionTitle.setTextSize(mine ? 21 : 23);
+        FrameLayout arrow = section.findViewById(R.id.postSectionArrow);
+        if (mine) {
+            txtSectionCount.setText(posts.size() + " bài đăng");
+            txtSectionCount.setVisibility(View.VISIBLE);
+        } else {
+            arrow.setVisibility(View.VISIBLE);
+            GlyphView arrowGlyph = arrow.findViewById(R.id.postArrowGlyph);
+            arrowGlyph.setGlyph("next", INK);
+            arrow.setContentDescription("Xem thêm chỗ ở");
+            arrow.setOnClickListener(v -> {
+                RecyclerView list = section.findViewById(R.id.postSectionTrack);
+                list.smoothScrollBy(dp(172), 0);
+            });
+        }
+        RecyclerView track = section.findViewById(R.id.postSectionTrack);
         LinearLayoutManager manager =
                 new LinearLayoutManager(activity, RecyclerView.HORIZONTAL, false);
         track.setLayoutManager(manager);
-        track.setNestedScrollingEnabled(false);
         track.setHorizontalScrollBarEnabled(false);
-        track.setClipToPadding(false);
-        track.setPadding(dp(22), 0, dp(22), dp(12));
-        if (mine) {
-            TextView count = body(posts.size() + " bài đăng", 11, MUTED);
-            top.addView(count);
-        } else {
-            FrameLayout arrow =
-                    iconButton("next", "Xem thêm chỗ ở", () -> track.smoothScrollBy(dp(172), 0));
-            arrow.setBackground(round(0xFFE8E8E4, 30));
-            LinearLayout.LayoutParams a = lp(28, 28);
-            a.leftMargin = dp(12);
-            top.addView(arrow, a);
-        }
-        section.addView(top);
         if (mine && createPost != null) {
-            LinearLayout action = padded(22);
-            action.setPadding(dp(22), 0, dp(22), dp(18));
+            LinearLayout action = section.findViewById(R.id.postCreateAction);
+            action.setVisibility(View.VISIBLE);
             if (posts.isEmpty()) {
-                action.addView(heading("Bạn chưa có bài đăng", 19));
-                gap(action, 8);
-                action.addView(
-                        body("Chia sẻ chỗ ở của bạn để bắt đầu kết nối trao đổi.", 13, MUTED));
-                gap(action, 16);
+                section.findViewById(R.id.postEmptyTitle).setVisibility(View.VISIBLE);
+                section.findViewById(R.id.postEmptyDescription).setVisibility(View.VISIBLE);
             }
-            action.addView(
-                    primary(posts.isEmpty() ? "Đăng chỗ ở đầu tiên" : "＋ Tạo bài đăng", createPost),
-                    lp(-1, -2));
-            section.addView(action);
+            TextView createButton = section.findViewById(R.id.postCreateButton);
+            createButton.setText(posts.isEmpty() ? "Đăng chỗ ở đầu tiên" : "＋ Tạo bài đăng");
+            createButton.setOnClickListener(v -> {
+                if (!vm.busy) createPost.run();
+            });
         }
         if (posts.isEmpty()) {
             if (!mine || createPost == null) {
-                TextView empty = body("Bạn chưa có bài đăng nào được tải về.", 12, MUTED);
-                empty.setPadding(dp(22), dp(10), dp(22), dp(25));
-                section.addView(empty);
+                section.findViewById(R.id.postSectionEmpty).setVisibility(View.VISIBLE);
             }
         } else {
             int width = wide() ? 182 : (mine ? 157 : 154);
@@ -124,10 +119,9 @@ public class PostCards extends HomeViews {
             manager.scrollToPositionWithOffset(position, -(x % stride));
             float fontScale = getResources().getConfiguration().fontScale;
             int height = dp((mine ? 106 : 155) + (int) Math.ceil(95 * fontScale) + 24);
-            section.addView(track, lp(-1, height));
+            track.setVisibility(View.VISIBLE);
+            track.getLayoutParams().height = height;
         }
-
-        section.setPadding(0, 0, 0, dp(mine ? 16 : 22));
         parent.addView(section);
     }
 
@@ -154,8 +148,9 @@ public class PostCards extends HomeViews {
                     if (vm.busy || !requireLogin()) return;
                     vm.toggleFavorite(id);
                 });
-        holder.heart.solid = vm.isFavorite(id);
-        holder.heart.invalidate();
+        boolean favorite = vm.isFavorite(id);
+        holder.heart.setImageResource(favorite ? R.drawable.ic_favorite : R.drawable.ic_heart_outline);
+        holder.heart.setColorFilter(favorite ? 0xFFD92D38 : Color.WHITE);
         String badge =
                 mine
                         ? ""

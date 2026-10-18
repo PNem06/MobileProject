@@ -1,16 +1,17 @@
 package com.example.mobileproject.ui;
 
-import android.app.Dialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.view.Gravity;
+import android.view.MenuItem;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
+
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.example.mobileproject.MainActivity;
 import com.example.mobileproject.R;
@@ -19,6 +20,7 @@ import com.example.mobileproject.view.Request;
 import com.example.mobileproject.view.ExchangeScheduleActivity;
 import com.example.mobileproject.view.Chat;
 import com.example.mobileproject.viewmodel.HomeViewModel;
+import com.google.android.material.navigation.NavigationView;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -27,13 +29,21 @@ import java.util.*;
 
 public class HomeUi extends HomeViews {
     private final FrameLayout header, filters;
-    private final LinearLayout content, navigation;
+    private final LinearLayout content;
     private final ScrollView scroll;
     private final ProgressBar progress;
+    private final androidx.appcompat.widget.Toolbar toolbarHome;
+    private final LinearLayout homeHeaderContent;
+    private final FrameLayout subpageHeader;
+    private final EditText searchInput;
+    private final View unreadDot;
+    private final TextView subpageTitle;
     private final PostCards cards;
     private final AccountUi accountUi;
+    private final DrawerLayout drawerLayout;
+    private final NavigationView drawerMenu;
     private LinearLayout homeSections;
-    private String builtPage = "", headerPage = "";
+    private String builtPage = "";
     private int selectedFilter;
 
     public HomeUi(MainActivity activity, HomeViewModel vm, Bundle saved) {
@@ -41,14 +51,72 @@ public class HomeUi extends HomeViews {
         header = activity.findViewById(R.id.homeHeader);
         filters = activity.findViewById(R.id.homeFilters);
         content = activity.findViewById(R.id.homeContent);
-        navigation = activity.findViewById(R.id.homeNavigation);
         scroll = activity.findViewById(R.id.homeScroll);
         progress = activity.findViewById(R.id.homeProgress);
+        homeHeaderContent = activity.findViewById(R.id.headerHomeContent);
+        subpageHeader = activity.findViewById(R.id.headerSubpageContent);
+        searchInput = activity.findViewById(R.id.edtSearch);
+        unreadDot = activity.findViewById(R.id.viewUnreadDot);
+        subpageTitle = activity.findViewById(R.id.txtHeaderTitle);
+        toolbarHome = activity.findViewById(R.id.toolbarHome);
+        drawerLayout = activity.findViewById(R.id.homeRoot);
+        drawerMenu = activity.findViewById(R.id.homeDrawerMenu);
         cards = new PostCards(activity, vm);
         accountUi = new AccountUi(activity, vm, content, cards, this::openNewPost);
+        setupToolbar();
+        setupHeaderControls();
         restoreState(saved);
         scroll.setOnScrollChangeListener(
                 (View.OnScrollChangeListener) (v, x, y, oldX, oldY) -> vm.scrollY = y);
+    }
+
+    private void setupToolbar() {
+        activity.setSupportActionBar(toolbarHome);
+        ActionBarDrawerToggle drawerToggle = new ActionBarDrawerToggle(
+                activity, drawerLayout, toolbarHome, R.string.open, R.string.close);
+        drawerLayout.addDrawerListener(drawerToggle);
+        drawerToggle.syncState();
+        drawerMenu.setNavigationItemSelectedListener(item -> {
+            drawerLayout.closeDrawer(GravityCompat.START);
+            return handleDrawerItem(item);
+        });
+    }
+
+    private boolean handleDrawerItem(MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.menu_account) {
+            if (requireLogin()) go("account");
+        } else if (id == R.id.menu_new_post) {
+            openNewPost();
+        } else if (id == R.id.menu_notifications) {
+            if (requireLogin()) go("notifications");
+        } else if (id == R.id.menu_settings) {
+            if (requireLogin()) go("settings");
+        } else if (id == R.id.menu_about) {
+            go("about");
+        } else if (id == R.id.menu_logout) {
+            if (vm.signedIn()) accountUi.confirmLogout();
+            else requireLogin();
+        } else {
+            return false;
+        }
+        return true;
+    }
+
+    private void setupHeaderControls() {
+        activity.findViewById(R.id.btnNotification).setOnClickListener(v -> {
+            if (requireLogin()) go("notifications");
+        });
+        activity.findViewById(R.id.btnHeaderBack).setOnClickListener(v ->
+                go(Arrays.asList("edit", "settings", "about").contains(vm.page) ? "account" : "home"));
+        change(searchInput, value -> {
+            vm.search = value;
+            if (homeSections != null) renderHomeSections();
+        });
+        searchInput.setOnEditorActionListener((v, action, event) -> {
+            hideKeyboard();
+            return true;
+        });
     }
 
     private void restoreState(Bundle saved) {
@@ -155,88 +223,14 @@ public class HomeUi extends HomeViews {
     }
 
     private void buildHeader() {
-        if (vm.page.equals(headerPage)) {
-            View badge = header.findViewWithTag("unread");
-            if (badge != null) badge.setVisibility(unread() > 0 ? View.VISIBLE : View.GONE);
-            return;
-        }
-        headerPage = vm.page;
-        header.removeAllViews();
-        LinearLayout row = horizontal();
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(13), dp(4), dp(13), dp(4));
-        header.addView(row, new FrameLayout.LayoutParams(-1, -1));
-        if ("home".equals(vm.page)) {
-            row.addView(iconButton("menu", "Mở menu", this::showMenu), lp(42, 46));
-            LinearLayout search = horizontal();
-            search.setGravity(Gravity.CENTER_VERTICAL);
-            search.addView(new GlyphView(this, "search", INK), lp(26, 26));
-            EditText input = new EditText(this);
-            input.setSingleLine(true);
-            input.setTextSize(18);
-            input.setTypeface(serif);
-            input.setTextColor(INK);
-            input.setHintTextColor(INK);
-            input.setBackgroundColor(Color.TRANSPARENT);
-            input.setHint("Bắt đầu tìm kiếm");
-            input.setPadding(dp(10), 0, 0, 0);
-            input.setText(vm.search);
-            input.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
-            input.setOnEditorActionListener(
-                    (v, action, event) -> {
-                        hideKeyboard();
-                        return true;
-                    });
-            search.addView(input, new LinearLayout.LayoutParams(0, -1, 1));
-            row.addView(search, new LinearLayout.LayoutParams(0, dp(48), 1));
-            change(
-                    input,
-                    value -> {
-                        vm.search = value;
-                        if (homeSections != null) renderHomeSections();
-                    });
-            FrameLayout bell = new FrameLayout(this);
-            bell.addView(
-                    iconButton(
-                            "bell",
-                            "Thông báo",
-                            () -> {
-                                if (requireLogin()) go("notifications");
-                            }),
-                    new FrameLayout.LayoutParams(-1, -1));
-            View dot = new View(this);
-            dot.setTag("unread");
-            dot.setBackground(round(PURPLE, 8));
-            FrameLayout.LayoutParams dotParams =
-                    new FrameLayout.LayoutParams(dp(7), dp(7), Gravity.TOP | Gravity.END);
-            dotParams.setMargins(0, dp(10), dp(7), 0);
-            bell.addView(dot, dotParams);
-            dot.setVisibility(unread() > 0 ? View.VISIBLE : View.GONE);
-            row.addView(bell, lp(42, 46));
-        } else {
-            FrameLayout titleFrame = new FrameLayout(this);
-            row.addView(titleFrame, new LinearLayout.LayoutParams(-1, -1));
-            TextView title = body(pageTitle(), 24, INK);
-            title.setGravity(Gravity.CENTER);
-            FrameLayout.LayoutParams titleParams = new FrameLayout.LayoutParams(-1, -1);
-            titleParams.setMargins(dp(42), 0, dp(42), 0);
-            titleFrame.addView(title, titleParams);
-            FrameLayout back =
-                    iconButton(
-                            "back",
-                            "Quay lại",
-                            () ->
-                                    go(
-                                            Arrays.asList("edit", "settings", "about")
-                                                    .contains(vm.page)
-                                                    ? "account"
-                                                    : "home"));
-            back.setBackground(round(0xFFE9E9E6, 40));
-            FrameLayout.LayoutParams backParams =
-                    new FrameLayout.LayoutParams(
-                            dp(34), dp(34), Gravity.START | Gravity.CENTER_VERTICAL);
-            titleFrame.addView(back, backParams);
-        }
+        boolean home = "home".equals(vm.page);
+        MenuItem logoutItem = drawerMenu.getMenu().findItem(R.id.menu_logout);
+        if (logoutItem != null) logoutItem.setTitle(vm.signedIn() ? "Đăng xuất" : "Đăng nhập");
+        homeHeaderContent.setVisibility(home ? View.VISIBLE : View.GONE);
+        subpageHeader.setVisibility(home ? View.GONE : View.VISIBLE);
+        subpageTitle.setText(pageTitle());
+        if (!vm.search.equals(searchInput.getText().toString())) searchInput.setText(vm.search);
+        unreadDot.setVisibility(unread() > 0 ? View.VISIBLE : View.GONE);
     }
 
     private String pageTitle() {
@@ -255,8 +249,6 @@ public class HomeUi extends HomeViews {
     }
 
     private void buildNavigation() {
-        navigation.removeAllViews();
-
         String[] labels = {
                 "Khám phá",
                 "Request",
@@ -265,13 +257,10 @@ public class HomeUi extends HomeViews {
                 vm.signedIn() ? "Tài khoản" : "Đăng nhập"
         };
 
-        String[] icons = {
-                "search",
-                "exchange",
-                "calendar",
-                "chat",
-                "userCircle"
-        };
+        int[] tabIds = {R.id.tabExplore, R.id.tabRequest, R.id.tabSchedule, R.id.tabChat, R.id.tabAccount};
+        int[] dotIds = {R.id.dotExplore, R.id.dotRequest, R.id.dotSchedule, R.id.dotChat, R.id.dotAccount};
+        int[] iconIds = {R.drawable.ic_search, R.drawable.ic_exchange, R.drawable.ic_trip,
+                R.drawable.ic_message, R.drawable.ic_profile};
 
         for (int i = 0; i < labels.length; i++) {
 
@@ -285,65 +274,16 @@ public class HomeUi extends HomeViews {
                             "notifications"
                     ).contains(vm.page));
 
-            LinearLayout tab = vertical();
-
-            tab.setGravity(Gravity.CENTER);
-            tab.setMinimumHeight(dp(49));
-
-            // Icon
-            tab.addView(
-                    new GlyphView(
-                            this,
-                            icons[index],
-                            selected ? PURPLE : INK
-                    ),
-                    lp(25, 25)
-            );
-
-            // Label
-            TextView label =
-                    body(
-                            labels[index],
-                            10,
-                            selected ? PURPLE : INK
-                    );
-
-            label.setGravity(Gravity.CENTER);
-
-            LinearLayout.LayoutParams labelParams =
-                    lp(-1, -2);
-
-            labelParams.topMargin = dp(5);
-
-            tab.addView(label, labelParams);
-
-            // Chấm báo tab đang được chọn
-            View dot = new View(this);
-
-            dot.setBackground(
-                    round(
-                            selected
-                                    ? PURPLE
-                                    : Color.TRANSPARENT,
-                            4
-                    )
-            );
-
-            LinearLayout.LayoutParams dotParams =
-                    lp(4, 4);
-
-            dotParams.topMargin = dp(5);
-
-            tab.addView(dot, dotParams);
-
-            navigation.addView(
-                    tab,
-                    new LinearLayout.LayoutParams(
-                            0,
-                            -2,
-                            1
-                    )
-            );
+            LinearLayout tab = activity.findViewById(tabIds[index]);
+            ImageView icon = (ImageView) tab.getChildAt(0);
+            TextView label = (TextView) tab.getChildAt(1);
+            View dot = activity.findViewById(dotIds[index]);
+            icon.setImageResource(iconIds[index]);
+            icon.setColorFilter(selected ? PURPLE : INK);
+            label.setText(labels[index]);
+            label.setTextColor(selected ? PURPLE : INK);
+            dot.setBackgroundResource(selected ? R.drawable.bg_schedule_tab_selected
+                    : R.drawable.bg_schedule_tab_unselected);
 
             tab.setContentDescription(labels[index]);
 
@@ -425,25 +365,19 @@ public class HomeUi extends HomeViews {
     }
 
     private void buildHomeFilters() {
-        filters.removeAllViews();
         boolean show = "home".equals(vm.page) && vm.online();
         filters.setVisibility(show ? View.VISIBLE : View.GONE);
         if (!show) return;
-        LinearLayout chips = horizontal();
-        chips.setPadding(dp(16), dp(4), dp(16), dp(16));
         String[] labels = {"Tất cả", "Còn trống", "Được\nyêu thích"};
+        int[] ids = {R.id.btnFilterAll, R.id.btnFilterAvailable, R.id.btnFilterFavorites};
         for (int i = 0; i < labels.length; i++) {
             final int value = i;
-            TextView chip = heading(labels[i], 15);
-            chip.setGravity(Gravity.CENTER);
-            chip.setMinHeight(dp(49));
-            chip.setPadding(dp(8), dp(10), dp(8), dp(10));
+            TextView chip = activity.findViewById(ids[i]);
+            chip.setText(labels[i]);
             chip.setSelected(i == selectedFilter);
             chip.setTextColor(i == selectedFilter ? Color.WHITE : INK);
-            chip.setBackground(i == selectedFilter ? chipBackground() : round(Color.WHITE, 30));
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -2, 1);
-            params.setMargins(dp(3), 0, dp(3), 0);
-            chips.addView(chip, params);
+            chip.setBackgroundResource(i == selectedFilter ? R.drawable.bg_chip_selected_dark
+                    : R.drawable.bg_chip_unselected);
             chip.setOnClickListener(
                     v -> {
                         if (value == 2 && !requireLogin()) return;
@@ -454,12 +388,10 @@ public class HomeUi extends HomeViews {
                         render();
                     });
         }
-        filters.addView(chips);
     }
 
     private void home() {
-        homeSections = vertical();
-        content.addView(homeSections);
+        homeSections = content;
         renderHomeSections();
     }
 
@@ -519,9 +451,9 @@ public class HomeUi extends HomeViews {
         int split = Math.min(3, posts.size());
         String firstTitle = query.isEmpty() ? "Nơi lưu trú được ưa chuộng" : "Kết quả tìm kiếm";
         if (wide() && posts.size() > split) {
-            LinearLayout columns = horizontal(), left = vertical(), right = vertical();
-            columns.addView(left, new LinearLayout.LayoutParams(0, -2, 1));
-            columns.addView(right, new LinearLayout.LayoutParams(0, -2, 1));
+            LinearLayout columns = template(R.id.homeColumns);
+            LinearLayout left = columns.findViewById(R.id.homeColumnLeft);
+            LinearLayout right = columns.findViewById(R.id.homeColumnRight);
             homeSections.addView(columns);
             cards.section(left, firstTitle, posts.subList(0, split), "feed0", false);
             cards.section(
@@ -556,63 +488,4 @@ public class HomeUi extends HomeViews {
         }
     }
 
-    private void showMenu() {
-        if (vm.busy) return;
-        Dialog drawer = new Dialog(this);
-        drawer.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        LinearLayout menu = padded(24);
-        menu.setBackgroundColor(Color.WHITE);
-        gap(menu, 28);
-        menu.addView(heading("StayExchange", 29));
-        gap(menu, 22);
-        String[] labels = {
-                "Khám phá", "Tài khoản", "Bài đăng mới", "Thông báo", "Cài đặt", "Thông tin ứng dụng"
-        };
-        String[] icons = {"search", "user", "plus", "bell", "settings", "info"};
-        String[] pages = {"home", "account", "new_post", "notifications", "settings", "about"};
-        for (int i = 0; i < labels.length; i++) {
-            final String page = pages[i];
-            menu.addView(
-                    menuRow(
-                            icons[i],
-                            labels[i],
-                            "",
-                            false,
-                            () -> {
-                                drawer.dismiss();
-                                if ("new_post".equals(page)) {
-                                    openNewPost();
-                                    return;
-                                }
-                                if (Arrays.asList("home", "about").contains(page) || requireLogin())
-                                    go(page);
-                            }));
-        }
-        menu.addView(
-                menuRow(
-                        "logout",
-                        vm.signedIn() ? "Đăng xuất" : "Đăng nhập",
-                        "",
-                        true,
-                        () -> {
-                            drawer.dismiss();
-                            if (vm.signedIn()) accountUi.confirmLogout();
-                            else requireLogin();
-                        }));
-        ScrollView menuScroll = new ScrollView(this);
-        menuScroll.setFillViewport(true);
-        menuScroll.setBackgroundColor(Color.WHITE);
-        menuScroll.addView(menu, new ScrollView.LayoutParams(-1, -2));
-        drawer.setContentView(menuScroll);
-        drawer.show();
-        Window window = drawer.getWindow();
-        if (window != null) {
-            window.setBackgroundDrawableResource(android.R.color.transparent);
-            window.setLayout(
-                    Math.min(dp(320), getResources().getDisplayMetrics().widthPixels - dp(35)), -1);
-            window.setGravity(Gravity.START);
-            window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-            window.setDimAmount(.3f);
-        }
-    }
 }

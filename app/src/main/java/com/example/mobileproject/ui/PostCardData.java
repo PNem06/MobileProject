@@ -5,27 +5,29 @@ import org.json.JSONObject;
 import java.text.NumberFormat;
 import java.util.Locale;
 
-/** Quy tắc hiển thị thẻ; không sửa dữ liệu bài đăng trên Firebase. */
+/** Quy tắc hiển thị thẻ; lấy dữ liệu trực tiếp từ bài đăng trên Firebase. */
 public final class PostCardData {
     private static final Locale VI = new Locale("vi", "VN");
 
     private PostCardData() {}
 
     public static boolean isAvailable(JSONObject post, long now) {
+        if (post == null) return false;
         long from = post.optLong("availableFrom");
         long to = post.optLong("availableTo");
-        // Đây là khoảng thời gian chủ nhà công bố, không phải kiểm tra booking trùng lịch.
         return from > 0 && to > from && from <= now && now < to;
     }
 
     public static boolean matchesFilter(
             JSONObject post, int filter, java.util.Set<String> liked, long now) {
+        if (post == null) return false;
         if (filter == 1) return isAvailable(post, now);
         if (filter == 2) return liked != null && liked.contains(post.optString("id"));
         return true;
     }
 
     public static String priceLabel(JSONObject post) {
+        if (post == null) return "Chưa cập nhật giá";
         Object value = post.opt("pricePerNight");
         if (!(value instanceof Number)) return "Chưa cập nhật giá";
         double amount = ((Number) value).doubleValue();
@@ -36,6 +38,7 @@ public final class PostCardData {
     }
 
     public static String ratingLabel(JSONObject post) {
+        if (post == null) return "";
         double rating = post.optDouble("ratingAverage", Double.NaN);
         if (!Double.isFinite(rating)
                 || rating <= 0
@@ -60,18 +63,8 @@ public final class PostCardData {
     }
 
     public static String title(JSONObject post) {
+        if (post == null) return "Chỗ ở";
         String title = post.optString("title").trim();
-        switch (title.toLowerCase(Locale.ROOT)) {
-            case "affordable room in can tho":
-                return "Phòng giá tốt tại Cần Thơ";
-            case "bright room near metro":
-                return "Phòng sáng thoáng gần ga metro";
-            case "small studio for short stay":
-                return "Studio nhỏ cho kỳ nghỉ ngắn";
-            case "two-bedroom apartment":
-                return "Căn hộ 2 phòng ngủ";
-            default:
-                return title.isEmpty() ? "Chỗ ở chưa có tên" : title;
-        }
+        return title.isEmpty() ? "Chỗ ở chưa có tên" : title;
     }
 }

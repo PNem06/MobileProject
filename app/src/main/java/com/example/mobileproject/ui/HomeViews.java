@@ -2,12 +2,9 @@ package com.example.mobileproject.ui;
 
 import android.content.ContextWrapper;
 import android.content.res.Configuration;
-import android.graphics.Color;
-import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
@@ -21,17 +18,14 @@ import org.json.JSONObject;
 
 public class HomeViews extends ContextWrapper {
     protected static final int INK = 0xFF171719, MUTED = 0xFF73737B, PURPLE = 0xFF3533CD;
-    protected static final int LINE = 0xFFE9E9ED, RED = 0xFFD92D38;
+    protected static final int RED = 0xFFD92D38;
     protected final MainActivity activity;
     protected final HomeViewModel vm;
-    protected final Typeface serif, sans;
 
     public HomeViews(MainActivity activity, HomeViewModel vm) {
         super(activity);
         this.activity = activity;
         this.vm = vm;
-        serif = getResources().getFont(R.font.sx_fraunces);
-        sans = getResources().getFont(R.font.sx_noto_sans);
     }
 
     protected void go(String page) {
@@ -44,56 +38,36 @@ public class HomeViews extends ContextWrapper {
 
     protected LinearLayout menuRow(
         String icon, String title, String subtitle, boolean danger, Runnable action) {
-        LinearLayout wrapper = vertical();
-        LinearLayout row = horizontal();
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0, dp(17), 0, dp(17));
-        row.addView(new GlyphView(this, icon, danger ? RED : INK), lp(23, 23));
-        LinearLayout words = vertical();
-        LinearLayout.LayoutParams w = new LinearLayout.LayoutParams(0, -2, 1);
-        w.leftMargin = dp(13);
-        w.rightMargin = dp(8);
-        row.addView(words, w);
-        TextView name = heading(title, 17);
+        LinearLayout wrapper = template(R.id.homeMenuRow);
+        GlyphView leading = wrapper.findViewById(R.id.menuLeadingGlyph);
+        GlyphView trailing = wrapper.findViewById(R.id.menuTrailingGlyph);
+        leading.setGlyph(icon, danger ? RED : INK);
+        trailing.setGlyph("chevron", danger ? RED : INK);
+        TextView name = wrapper.findViewById(R.id.menuTitle);
+        name.setText(title);
+        TextView detail = wrapper.findViewById(R.id.menuSubtitle);
+        detail.setText(subtitle);
+        detail.setVisibility(subtitle.isEmpty() ? View.GONE : View.VISIBLE);
         if (danger) name.setTextColor(RED);
-        words.addView(name);
-        if (!subtitle.isEmpty()) {
-            gap(words, 5);
-            words.addView(body(subtitle, 11, MUTED));
-        }
-        row.addView(new GlyphView(this, "chevron", danger ? RED : INK), lp(17, 17));
-        row.setOnClickListener(v -> {
+        wrapper.findViewById(R.id.menuRowContent).setOnClickListener(v -> {
             if (!vm.busy) action.run();
         });
-        wrapper.addView(row);
         if (!danger) divider(wrapper);
         return wrapper;
     }
 
     protected void empty(LinearLayout parent, String title, String description) {
-        LinearLayout box = padded(25);
-        box.setGravity(Gravity.CENTER_HORIZONTAL);
-        gap(box, 35);
-        box.addView(new GlyphView(this, "search", PURPLE), lp(38, 38));
-        gap(box, 17);
-        TextView name = heading(title, 23);
-        name.setGravity(Gravity.CENTER);
-        box.addView(name);
-        gap(box, 10);
-        TextView note = body(description, 13, MUTED);
-        note.setGravity(Gravity.CENTER);
-        box.addView(note);
-        gap(box, 30);
+        LinearLayout box = template(R.id.homeEmptyState);
+        GlyphView glyph = box.findViewById(R.id.emptyGlyph);
+        glyph.setGlyph("search", PURPLE);
+        ((TextView) box.findViewById(R.id.emptyTitle)).setText(title);
+        ((TextView) box.findViewById(R.id.emptyDescription)).setText(description);
         parent.addView(box);
     }
 
     protected TextView primary(String title, Runnable action) {
-        TextView button = heading(title, 17);
-        button.setTextColor(Color.WHITE);
-        button.setGravity(Gravity.CENTER);
-        button.setPadding(dp(12), dp(12), dp(12), dp(12));
-        button.setMinHeight(dp(48));
-        button.setBackground(gradient(10));
+        TextView button = template(R.id.homePrimary);
+        button.setText(title);
         button.setOnClickListener(v -> {
             if (!vm.busy) action.run();
         });
@@ -101,36 +75,31 @@ public class HomeViews extends ContextWrapper {
     }
 
     protected TextView heading(String text, int size) {
-        TextView view = body(text, size, INK);
-        view.setTypeface(serif);
-        view.setLetterSpacing(-.015f);
+        TextView view = template(R.id.homeHeading);
+        view.setText(text);
+        view.setTextSize(size);
         return view;
     }
 
     protected TextView body(String text, int size, int color) {
-        TextView view = new TextView(this);
+        TextView view = template(R.id.homeBody);
         view.setText(text);
         view.setTextSize(size);
         view.setTextColor(color);
-        view.setTypeface(sans);
-        view.setIncludeFontPadding(false);
-        view.setLineSpacing(dp(2), 1);
         return view;
     }
 
     protected TextView label(String text) {
-        TextView label = body(text, 11, 0xFF85858E);
-        label.setLetterSpacing(.07f);
-        label.setPadding(0, dp(11), 0, dp(4));
+        TextView label = template(R.id.homeLabel);
+        label.setText(text);
         return label;
     }
 
     protected FrameLayout iconButton(String name, String description, Runnable action) {
-        FrameLayout button = new FrameLayout(this);
+        FrameLayout button = template(R.id.homeIconButton);
         button.setContentDescription(description);
-        GlyphView icon = new GlyphView(this, name, INK);
-        FrameLayout.LayoutParams p = new FrameLayout.LayoutParams(dp(23), dp(23), Gravity.CENTER);
-        button.addView(icon, p);
+        GlyphView icon = button.findViewById(R.id.iconGlyph);
+        icon.setGlyph(name, INK);
         button.setOnClickListener(v -> {
             if (!vm.busy) action.run();
         });
@@ -138,16 +107,27 @@ public class HomeViews extends ContextWrapper {
     }
 
     protected LinearLayout vertical() {
-        LinearLayout v = new LinearLayout(this);
-        v.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout v = template(R.id.homeViewsContainer);
         v.setLayoutParams(new LinearLayout.LayoutParams(-1, -2));
         return v;
     }
 
+    @SuppressWarnings("unchecked")
+    protected <T extends View> T inflate(int layout, ViewGroup parent) {
+        return (T) android.view.LayoutInflater.from(this).inflate(layout, parent, false);
+    }
+
+    @SuppressWarnings("unchecked")
+    protected <T extends View> T template(int id) {
+        LinearLayout bank = inflate(R.layout.home_views, null);
+        View component = bank.findViewById(id);
+        if (component == null) throw new IllegalArgumentException("Missing home view template: " + id);
+        ((ViewGroup) component.getParent()).removeView(component);
+        return (T) component;
+    }
+
     protected LinearLayout horizontal() {
-        LinearLayout v = new LinearLayout(this);
-        v.setOrientation(LinearLayout.HORIZONTAL);
-        return v;
+        return template(R.id.homeHorizontal);
     }
 
     protected LinearLayout padded(int padding) {
@@ -161,13 +141,11 @@ public class HomeViews extends ContextWrapper {
     }
 
     protected void gap(LinearLayout parent, int height) {
-        parent.addView(new View(this), lp(1, height));
+        parent.addView(template(R.id.homeSpacer), lp(1, height));
     }
 
     protected void divider(LinearLayout parent) {
-        View line = new View(this);
-        line.setBackgroundColor(LINE);
-        parent.addView(line, lp(-1, 1));
+        parent.addView(template(R.id.homeDivider));
     }
 
     protected int dp(int value) {
@@ -182,26 +160,6 @@ public class HomeViews extends ContextWrapper {
     protected GradientDrawable round(int color, int radius) {
         GradientDrawable d = new GradientDrawable();
         d.setColor(color);
-        d.setCornerRadius(dp(radius));
-        return d;
-    }
-
-    protected GradientDrawable border(int color, int stroke, int radius) {
-        GradientDrawable d = round(color, radius);
-        d.setStroke(dp(1), stroke);
-        return d;
-    }
-
-    protected GradientDrawable chipBackground() {
-        GradientDrawable d =
-            new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[] {0xFF3834DC, 0xFF05040E});
-        d.setCornerRadius(dp(30));
-        return d;
-    }
-
-    protected GradientDrawable gradient(int radius) {
-        GradientDrawable d =
-            new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[] {0xFF0B0918, 0xFF3834D9});
         d.setCornerRadius(dp(radius));
         return d;
     }

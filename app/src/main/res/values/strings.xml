@@ -1,4 +1,7 @@
 <resources>
-    <string name="app_name">MobileProject</string>
+    <string name="app_name">StayExchange</string>
     <string name="default_web_client_id">748309737743-41flrnkpd49cgikq7qi5i8a1qjq6om27.apps.googleusercontent.com</string>
+
+    <string name="open">Mở menu</string>
+    <string name="close">Đóng menu</string>
 </resources>

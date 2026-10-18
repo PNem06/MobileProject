@@ -4,15 +4,25 @@ import android.graphics.*;
 import android.view.View;
 
 public class GlyphView extends View {
-    private final String name;
-    private final int color;
+    private String name = "search";
+    private int color = Color.BLACK;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     boolean solid;
 
     public GlyphView(android.content.Context context, String name, int color) {
         super(context);
+        setGlyph(name, color);
+    }
+
+    public GlyphView(android.content.Context context, android.util.AttributeSet attrs) {
+        super(context, attrs);
+        setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    }
+
+    public void setGlyph(String name, int color) {
         this.name = name;
         this.color = color;
+        invalidate();
         setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     }
 

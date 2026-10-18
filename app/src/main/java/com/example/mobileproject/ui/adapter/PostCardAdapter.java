@@ -12,7 +12,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.mobileproject.R;
-import com.example.mobileproject.ui.GlyphView;
 
 import org.json.JSONObject;
 
@@ -43,7 +42,7 @@ public final class PostCardAdapter extends RecyclerView.Adapter<PostCardAdapter.
     public PostViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View item =
                 LayoutInflater.from(parent.getContext())
-                        .inflate(R.layout.item_home_post, parent, false);
+                        .inflate(R.layout.post_card, parent, false);
         RecyclerView.LayoutParams params =
                 new RecyclerView.LayoutParams(width, ViewGroup.LayoutParams.WRAP_CONTENT);
         params.rightMargin = spacing;
@@ -77,7 +76,7 @@ public final class PostCardAdapter extends RecyclerView.Adapter<PostCardAdapter.
         public final FrameLayout photoFrame, avatarFrame, favoriteButton;
         public final ImageView photo, avatar;
         public final TextView imageState, title, price, rating, badge, initials;
-        public final GlyphView heart;
+        public final ImageView heart;
 
         public PostViewHolder(@NonNull View item) {
             super(item);
@@ -92,10 +91,7 @@ public final class PostCardAdapter extends RecyclerView.Adapter<PostCardAdapter.
             avatar = item.findViewById(R.id.postAvatar);
             initials = item.findViewById(R.id.postInitials);
             favoriteButton = item.findViewById(R.id.postFavoriteButton);
-            heart = new GlyphView(item.getContext(), "heart", android.graphics.Color.WHITE);
-            int size = Math.round(24 * item.getResources().getDisplayMetrics().density);
-            favoriteButton.addView(
-                    heart, new FrameLayout.LayoutParams(size, size, android.view.Gravity.CENTER));
+            heart = favoriteButton.findViewById(R.id.favoriteGlyph);
         }
     }
 }

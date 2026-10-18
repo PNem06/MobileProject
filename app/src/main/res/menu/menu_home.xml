@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <group android:id="@+id/group_main"
+        android:menuCategory="container">
+
+        <item
+            android:id="@+id/menu_account"
+            android:icon="@drawable/ic_user"
+            android:title="Tài khoản"
+            android:fontFamily="serif"
+            app:showAsAction="never" />
+
+        <item
+            android:id="@+id/menu_new_post"
+            android:icon="@drawable/ic_post"
+            android:title="Bài đăng mới"
+            android:fontFamily="serif"
+            app:showAsAction="never" />
+
+        <item
+            android:id="@+id/menu_notifications"
+            android:icon="@drawable/ic_notification"
+            android:title="Thông báo"
+            android:fontFamily="serif"
+            app:showAsAction="never" />
+
+        <item
+            android:id="@+id/menu_settings"
+            android:icon="@drawable/ic_setting"
+            android:title="Cài đặt"
+            android:fontFamily="serif"
+            app:showAsAction="never" />
+
+        <item
+            android:id="@+id/menu_about"
+            android:icon="@drawable/ic_information"
+            android:title="Thông tin ứng dụng"
+            android:fontFamily="serif"
+            android:textColor="#D00000"
+            app:showAsAction="never" />
+    </group>
+
+    <group android:id="@+id/group_account_action"
+        android:menuCategory="container">
+
+        <item
+            android:id="@+id/menu_logout"
+            android:icon="@drawable/ic_logout"
+            android:title="Đăng xuất"
+            android:fontFamily="serif"
+            app:showAsAction="never" />
+    </group>
+
+</menu>
