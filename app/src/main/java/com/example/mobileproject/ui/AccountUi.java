@@ -159,7 +159,8 @@ public class AccountUi extends HomeViews {
             if (notice == null) continue;
             LinearLayout row = template(R.id.notificationRowTemplate);
             row.setBackgroundColor(notice.optBoolean("read") ? Color.WHITE : 0xFFF8F7FE);
-            ((GlyphView) row.findViewById(R.id.notificationGlyph)).setGlyph("bell", INK);
+            ImageView notificationGlyph = row.findViewById(R.id.notificationGlyph);
+            notificationGlyph.setImageTintList(android.content.res.ColorStateList.valueOf(INK));
             TextView txtNotificationTitle = row.findViewById(R.id.notificationTitle);
             TextView txtNotificationBody = row.findViewById(R.id.notificationBody);
             TextView txtNotificationDate = row.findViewById(R.id.notificationDate);

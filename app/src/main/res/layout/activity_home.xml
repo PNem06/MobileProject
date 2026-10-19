@@ -12,7 +12,6 @@
         android:id="@+id/homeScreenContent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="20dp"
         android:orientation="vertical">
 
     <!-- Header Bar -->
@@ -20,6 +19,7 @@
         android:id="@+id/homeHeader"
         android:layout_width="match_parent"
         android:layout_height="64dp"
+        android:paddingTop="10dp"
         android:background="#FFFFFF">
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbarHome"
@@ -201,7 +201,7 @@
                 android:fontFamily="@font/sx_fraunces"
                 android:gravity="center"
                 android:minHeight="49dp"
-                android:text="Được\nyêu thích"
+                android:text="Yêu thích"
                 android:textColor="#171719"
                 android:textSize="15sp" />
 
@@ -246,7 +246,7 @@
         android:minHeight="68dp"
         android:orientation="horizontal"
         android:paddingHorizontal="6dp"
-        android:paddingTop="9dp"
+        android:paddingTop="5dp"
         android:paddingBottom="5dp"
         android:background="#FFFFFF">
 
@@ -340,11 +340,11 @@
             android:contentDescription="Lịch">
 
             <ImageView
-                android:layout_width="25dp"
+                android:layout_width="19dp"
                 android:layout_height="25dp"
-                android:src="@drawable/ic_trip"
-                app:tint="#171719"
-                android:importantForAccessibility="no" />
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_calendar"
+                app:tint="#171719" />
 
             <TextView
                 android:layout_width="match_parent"

@@ -1,6 +1,7 @@
 package com.example.mobileproject.ui;
 
 import android.content.ContextWrapper;
+import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.drawable.GradientDrawable;
 import android.text.Editable;
@@ -39,10 +40,12 @@ public class HomeViews extends ContextWrapper {
     protected LinearLayout menuRow(
         String icon, String title, String subtitle, boolean danger, Runnable action) {
         LinearLayout wrapper = template(R.id.homeMenuRow);
-        GlyphView leading = wrapper.findViewById(R.id.menuLeadingGlyph);
-        GlyphView trailing = wrapper.findViewById(R.id.menuTrailingGlyph);
-        leading.setGlyph(icon, danger ? RED : INK);
-        trailing.setGlyph("chevron", danger ? RED : INK);
+        ImageView leading = wrapper.findViewById(R.id.menuLeadingGlyph);
+        ImageView trailing = wrapper.findViewById(R.id.menuTrailingGlyph);
+        int tint = danger ? RED : INK;
+        leading.setImageResource(iconResource(icon));
+        leading.setImageTintList(ColorStateList.valueOf(tint));
+        trailing.setImageTintList(ColorStateList.valueOf(tint));
         TextView name = wrapper.findViewById(R.id.menuTitle);
         name.setText(title);
         TextView detail = wrapper.findViewById(R.id.menuSubtitle);
@@ -58,8 +61,8 @@ public class HomeViews extends ContextWrapper {
 
     protected void empty(LinearLayout parent, String title, String description) {
         LinearLayout box = template(R.id.homeEmptyState);
-        GlyphView glyph = box.findViewById(R.id.emptyGlyph);
-        glyph.setGlyph("search", PURPLE);
+        ImageView glyph = box.findViewById(R.id.emptyGlyph);
+        glyph.setImageTintList(ColorStateList.valueOf(PURPLE));
         ((TextView) box.findViewById(R.id.emptyTitle)).setText(title);
         ((TextView) box.findViewById(R.id.emptyDescription)).setText(description);
         parent.addView(box);
@@ -98,8 +101,9 @@ public class HomeViews extends ContextWrapper {
     protected FrameLayout iconButton(String name, String description, Runnable action) {
         FrameLayout button = template(R.id.homeIconButton);
         button.setContentDescription(description);
-        GlyphView icon = button.findViewById(R.id.iconGlyph);
-        icon.setGlyph(name, INK);
+        ImageView icon = button.findViewById(R.id.iconGlyph);
+        icon.setImageResource(iconResource(name));
+        icon.setImageTintList(ColorStateList.valueOf(INK));
         button.setOnClickListener(v -> {
             if (!vm.busy) action.run();
         });
@@ -124,6 +128,23 @@ public class HomeViews extends ContextWrapper {
         if (component == null) throw new IllegalArgumentException("Missing home view template: " + id);
         ((ViewGroup) component.getParent()).removeView(component);
         return (T) component;
+    }
+
+    protected int iconResource(String name) {
+        switch (name) {
+            case "user": return R.drawable.ic_profile;
+            case "info": return R.drawable.ic_information;
+            case "trash": return R.drawable.ic_delete;
+            case "bell": return R.drawable.ic_notification;
+            case "chevron": return R.drawable.ic_chevron_right;
+            case "next": return R.drawable.ic_arrow_next;
+            case "search": return R.drawable.ic_search;
+            case "exchange": return R.drawable.ic_exchange;
+            case "calendar": return R.drawable.ic_calendar;
+            case "chat": return R.drawable.ic_message;
+            case "userCircle": return R.drawable.ic_account;
+            default: throw new IllegalArgumentException("Unknown icon: " + name);
+        }
     }
 
     protected LinearLayout horizontal() {

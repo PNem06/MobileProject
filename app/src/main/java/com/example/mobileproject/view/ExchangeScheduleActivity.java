@@ -22,7 +22,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.mobileproject.MainActivity;
 import com.example.mobileproject.R;
 import com.example.mobileproject.ui.ExchangeScheduleItem;
-import com.example.mobileproject.ui.GlyphView;
 import com.example.mobileproject.viewmodel.ExchangeScheduleViewModel;
 
 import java.text.SimpleDateFormat;
@@ -113,7 +112,13 @@ public class ExchangeScheduleActivity extends AppCompatActivity {
     private void setNavigationIcon(int containerId, String name, int color) {
         FrameLayout container = findViewById(containerId);
         container.removeAllViews();
-        GlyphView glyph = new GlyphView(this, name, color);
+        android.widget.ImageView glyph = new android.widget.ImageView(this);
+        int icon = name.equals("search") ? R.drawable.ic_search
+                : name.equals("exchange") ? R.drawable.ic_exchange
+                : name.equals("calendar") ? R.drawable.ic_calendar
+                : name.equals("chat") ? R.drawable.ic_message : R.drawable.ic_account;
+        glyph.setImageResource(icon);
+        glyph.setColorFilter(color);
         container.addView(
                 glyph,
                 new FrameLayout.LayoutParams(

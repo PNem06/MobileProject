@@ -1213,7 +1213,7 @@
             <ImageView
                 android:layout_width="26dp"
                 android:layout_height="26dp"
-                android:src="@drawable/ic_trip"
+                android:src="@drawable/ic_calendar"
                 android:contentDescription="Chuyến đi" />
 
             <TextView

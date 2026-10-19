@@ -86,10 +86,12 @@
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingVertical="17dp">
-        <com.example.mobileproject.ui.GlyphView
+        <ImageView
             android:id="@+id/menuLeadingGlyph"
             android:layout_width="23dp"
-            android:layout_height="23dp" />
+            android:layout_height="23dp"
+            android:src="@drawable/ic_profile"
+            android:contentDescription="@null" />
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -114,10 +116,12 @@
                 android:textSize="11sp"
                 android:visibility="gone" />
         </LinearLayout>
-        <com.example.mobileproject.ui.GlyphView
+        <ImageView
             android:id="@+id/menuTrailingGlyph"
             android:layout_width="17dp"
-            android:layout_height="17dp" />
+            android:layout_height="17dp"
+            android:src="@drawable/ic_chevron_right"
+            android:contentDescription="@null" />
         </LinearLayout>
     </LinearLayout>
 
@@ -129,10 +133,12 @@
         android:orientation="vertical"
         android:paddingHorizontal="25dp"
         android:paddingVertical="35dp">
-        <com.example.mobileproject.ui.GlyphView
+        <ImageView
             android:id="@+id/emptyGlyph"
             android:layout_width="38dp"
-            android:layout_height="38dp" />
+            android:layout_height="38dp"
+            android:src="@drawable/ic_search"
+            android:contentDescription="@null" />
         <TextView
             android:id="@+id/emptyTitle"
             android:layout_width="match_parent"
@@ -159,11 +165,13 @@
         android:layout_height="wrap_content"
         android:clickable="true"
         android:focusable="true">
-        <com.example.mobileproject.ui.GlyphView
+        <ImageView
             android:id="@+id/iconGlyph"
             android:layout_width="23dp"
             android:layout_height="23dp"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            android:src="@drawable/ic_search"
+            android:contentDescription="@null" />
     </FrameLayout>
     <View
         android:id="@+id/homeDivider"
@@ -212,11 +220,13 @@
                 android:layout_marginStart="12dp"
                 android:background="#FFE8E8E4"
                 android:visibility="gone">
-                <com.example.mobileproject.ui.GlyphView
+                <ImageView
                     android:id="@+id/postArrowGlyph"
                     android:layout_width="23dp"
                     android:layout_height="23dp"
-                    android:layout_gravity="center" />
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_arrow_next"
+                    android:contentDescription="@null" />
             </FrameLayout>
         </LinearLayout>
         <LinearLayout
@@ -326,7 +336,7 @@
         <LinearLayout android:id="@+id/notificationRows" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
     </LinearLayout>
     <LinearLayout android:id="@+id/notificationRowTemplate" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:padding="18dp">
-        <com.example.mobileproject.ui.GlyphView android:id="@+id/notificationGlyph" android:layout_width="38dp" android:layout_height="38dp" />
+        <ImageView android:id="@+id/notificationGlyph" android:layout_width="38dp" android:layout_height="38dp" android:src="@drawable/ic_notification" android:contentDescription="@null" />
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
             <TextView android:id="@+id/notificationTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#171719" android:textSize="17sp" />
             <TextView android:id="@+id/notificationBody" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:textColor="#73737B" android:textSize="12sp" />

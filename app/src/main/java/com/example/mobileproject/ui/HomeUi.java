@@ -236,15 +236,15 @@ public class HomeUi extends HomeViews {
     private String pageTitle() {
         switch (vm.page) {
             case "account":
-                return "Tài khoản";
+                return "";
             case "edit":
-                return "Chỉnh sửa thông tin";
+                return "";
             case "settings":
-                return "Cài đặt";
+                return "";
             case "about":
-                return "Thông tin ứng dụng";
+                return "";
             default:
-                return "Thông báo";
+                return "";
         }
     }
 
@@ -368,7 +368,7 @@ public class HomeUi extends HomeViews {
         boolean show = "home".equals(vm.page) && vm.online();
         filters.setVisibility(show ? View.VISIBLE : View.GONE);
         if (!show) return;
-        String[] labels = {"Tất cả", "Còn trống", "Được\nyêu thích"};
+        String[] labels = {"Tất cả", "Còn trống", "Yêu thích"};
         int[] ids = {R.id.btnFilterAll, R.id.btnFilterAvailable, R.id.btnFilterFavorites};
         for (int i = 0; i < labels.length; i++) {
             final int value = i;

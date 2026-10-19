@@ -58,8 +58,8 @@ public class PostCards extends HomeViews {
             txtSectionCount.setVisibility(View.VISIBLE);
         } else {
             arrow.setVisibility(View.VISIBLE);
-            GlyphView arrowGlyph = arrow.findViewById(R.id.postArrowGlyph);
-            arrowGlyph.setGlyph("next", INK);
+            ImageView arrowGlyph = arrow.findViewById(R.id.postArrowGlyph);
+            arrowGlyph.setImageTintList(android.content.res.ColorStateList.valueOf(INK));
             arrow.setContentDescription("Xem thêm chỗ ở");
             arrow.setOnClickListener(v -> {
                 RecyclerView list = section.findViewById(R.id.postSectionTrack);

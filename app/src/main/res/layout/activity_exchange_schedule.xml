@@ -221,8 +221,9 @@
 
             <FrameLayout
                 android:id="@+id/navExploreIcon"
-                android:layout_width="30dp"
-                android:layout_height="30dp" />
+                android:layout_width="24dp"
+                android:layout_height="30dp"
+                android:background="@drawable/ic_search" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -252,8 +253,9 @@
 
             <FrameLayout
                 android:id="@+id/navRequestIcon"
-                android:layout_width="30dp"
-                android:layout_height="30dp" />
+                android:layout_width="23dp"
+                android:layout_height="30dp"
+                android:background="@drawable/ic_exchange_black"/>
 
             <TextView
                 android:layout_width="wrap_content"
@@ -284,6 +286,7 @@
             <FrameLayout
                 android:id="@+id/navScheduleIcon"
                 android:layout_width="30dp"
+                android:background="@drawable/ic_calendar"
                 android:layout_height="30dp" />
 
             <TextView
@@ -315,8 +318,9 @@
 
             <FrameLayout
                 android:id="@+id/navMessagesIcon"
-                android:layout_width="30dp"
-                android:layout_height="30dp" />
+                android:layout_width="24dp"
+                android:layout_height="30dp"
+                android:background="@drawable/ic_message" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -347,6 +351,7 @@
             <FrameLayout
                 android:id="@+id/navAccountIcon"
                 android:layout_width="30dp"
+                android:background="@drawable/ic_profile"
                 android:layout_height="30dp" />
 
             <TextView
