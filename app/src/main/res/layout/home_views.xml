@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/homeViewsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" />
+    <LinearLayout
+        android:id="@+id/homeHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" />
+    <TextView
+        android:id="@+id/homePrimary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_black_blue"
+        android:fontFamily="@font/sx_fraunces"
+        android:gravity="center"
+        android:minHeight="48dp"
+        android:padding="12dp"
+        android:textColor="#FFFFFF"
+        android:textSize="17sp" />
+    <TextView
+        android:id="@+id/homeHeading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/sx_fraunces"
+        android:includeFontPadding="false"
+        android:letterSpacing="-0.015"
+        android:textColor="#171719" />
+    <TextView
+        android:id="@+id/homeBody"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/sx_noto_sans"
+        android:includeFontPadding="false"
+        android:lineSpacingExtra="2dp"
+        android:textColor="#73737B" />
+    <TextView
+        android:id="@+id/homeLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/sx_noto_sans"
+        android:letterSpacing="0.07"
+        android:paddingTop="11dp"
+        android:paddingBottom="4dp"
+        android:textColor="#85858E"
+        android:textSize="11sp" />
+
+    <LinearLayout
+        android:id="@+id/homeColumns"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <LinearLayout
+            android:id="@+id/homeColumnLeft"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical" />
+        <LinearLayout
+            android:id="@+id/homeColumnRight"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/homeMenuRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <LinearLayout
+            android:id="@+id/menuRowContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingVertical="17dp">
+        <com.example.mobileproject.ui.GlyphView
+            android:id="@+id/menuLeadingGlyph"
+            android:layout_width="23dp"
+            android:layout_height="23dp" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="13dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/menuTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/sx_fraunces"
+                android:textColor="#171719"
+                android:textSize="17sp" />
+            <TextView
+                android:id="@+id/menuSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:fontFamily="@font/sx_noto_sans"
+                android:textColor="#73737B"
+                android:textSize="11sp"
+                android:visibility="gone" />
+        </LinearLayout>
+        <com.example.mobileproject.ui.GlyphView
+            android:id="@+id/menuTrailingGlyph"
+            android:layout_width="17dp"
+            android:layout_height="17dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/homeEmptyState"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingHorizontal="25dp"
+        android:paddingVertical="35dp">
+        <com.example.mobileproject.ui.GlyphView
+            android:id="@+id/emptyGlyph"
+            android:layout_width="38dp"
+            android:layout_height="38dp" />
+        <TextView
+            android:id="@+id/emptyTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="17dp"
+            android:fontFamily="@font/sx_fraunces"
+            android:gravity="center"
+            android:textColor="#171719"
+            android:textSize="23sp" />
+        <TextView
+            android:id="@+id/emptyDescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:fontFamily="@font/sx_noto_sans"
+            android:gravity="center"
+            android:lineSpacingExtra="2dp"
+            android:textColor="#73737B"
+            android:textSize="13sp" />
+    </LinearLayout>
+    <FrameLayout
+        android:id="@+id/homeIconButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="true"
+        android:focusable="true">
+        <com.example.mobileproject.ui.GlyphView
+            android:id="@+id/iconGlyph"
+            android:layout_width="23dp"
+            android:layout_height="23dp"
+            android:layout_gravity="center" />
+    </FrameLayout>
+    <View
+        android:id="@+id/homeDivider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#E9E9ED" />
+    <Space
+        android:id="@+id/homeSpacer"
+        android:layout_width="1dp"
+        android:layout_height="1dp" />
+    <LinearLayout
+        android:id="@+id/homePostSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingBottom="22dp">
+        <LinearLayout
+            android:id="@+id/postSectionHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="22dp"
+            android:paddingTop="1dp"
+            android:paddingBottom="13dp">
+            <TextView
+                android:id="@+id/postSectionTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="@font/sx_fraunces"
+                android:textColor="#171719"
+                android:textSize="23sp" />
+            <TextView
+                android:id="@+id/postSectionCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/sx_noto_sans"
+                android:textColor="#73737B"
+                android:textSize="11sp"
+                android:visibility="gone" />
+            <FrameLayout
+                android:id="@+id/postSectionArrow"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="12dp"
+                android:background="#FFE8E8E4"
+                android:visibility="gone">
+                <com.example.mobileproject.ui.GlyphView
+                    android:id="@+id/postArrowGlyph"
+                    android:layout_width="23dp"
+                    android:layout_height="23dp"
+                    android:layout_gravity="center" />
+            </FrameLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/postCreateAction"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="22dp"
+            android:paddingBottom="18dp"
+            android:visibility="gone">
+            <TextView
+                android:id="@+id/postEmptyTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/sx_fraunces"
+                android:text="Bạn chưa có bài đăng"
+                android:textColor="#171719"
+                android:textSize="19sp" />
+            <TextView
+                android:id="@+id/postEmptyDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:fontFamily="@font/sx_noto_sans"
+                android:text="Chia sẻ chỗ ở của bạn để bắt đầu kết nối trao đổi."
+                android:textColor="#73737B"
+                android:textSize="13sp" />
+            <TextView
+                android:id="@+id/postCreateButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_black_blue"
+                android:fontFamily="@font/sx_fraunces"
+                android:gravity="center"
+                android:minHeight="48dp"
+                android:padding="12dp"
+                android:textColor="#FFFFFF"
+                android:textSize="17sp" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/postSectionEmpty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/sx_noto_sans"
+            android:paddingHorizontal="22dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="25dp"
+            android:text="Bạn chưa có bài đăng nào được tải về."
+            android:textColor="#73737B"
+            android:textSize="12sp"
+            android:visibility="gone" />
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/postSectionTrack"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clipToPadding="false"
+            android:nestedScrollingEnabled="false"
+            android:paddingHorizontal="22dp"
+            android:paddingBottom="12dp"
+            android:scrollbars="none"
+            android:visibility="gone" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/accountSignedOutTemplate" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp">
+        <Space android:layout_width="1dp" android:layout_height="25dp" />
+        <TextView android:id="@+id/signedOutTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="@font/sx_fraunces" android:text="Chào mừng đến StayExchange" android:textColor="#171719" android:textSize="27sp" />
+        <Space android:layout_width="1dp" android:layout_height="14dp" />
+        <TextView android:id="@+id/signedOutDescription" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Đăng nhập để quản lý hồ sơ và những bài đăng của bạn." android:textColor="#73737B" android:textSize="14sp" />
+        <Space android:layout_width="1dp" android:layout_height="24dp" />
+        <TextView android:id="@+id/signedOutLogin" android:layout_width="match_parent" android:layout_height="48dp" android:background="@drawable/bg_black_blue" android:gravity="center" android:text="Đăng nhập" android:textColor="#FFFFFF" android:textSize="17sp" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/accountEditTemplate" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingHorizontal="25dp" android:paddingTop="6dp" android:paddingBottom="24dp">
+        <LinearLayout android:id="@+id/editPortrait" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_horizontal" android:orientation="vertical">
+            <FrameLayout android:id="@+id/editAvatarFrame" android:layout_width="87dp" android:layout_height="87dp" android:background="@drawable/bg_register_avatar">
+                <TextView android:id="@+id/editAvatarLetters" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:textColor="#30268F" android:textSize="31sp" />
+                <ImageView android:id="@+id/editAvatarPhoto" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" />
+            </FrameLayout>
+            <TextView android:id="@+id/editChooseAvatar" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingVertical="10dp" android:text="Thay đổi ảnh đại diện" android:textColor="#3533CD" android:textSize="12sp" />
+        </LinearLayout>
+        <Space android:layout_width="1dp" android:layout_height="20dp" />
+        <EditText android:id="@+id/editName" android:layout_width="match_parent" android:layout_height="48dp" android:hint="Họ và tên" android:background="@drawable/bg_form_field" android:singleLine="true" android:textColor="#171719" android:textSize="14sp" />
+        <Space android:layout_width="1dp" android:layout_height="12dp" />
+        <EditText android:id="@+id/editEmail" android:layout_width="match_parent" android:layout_height="48dp" android:hint="Email" android:background="@drawable/bg_form_field_readonly" android:focusable="false" android:singleLine="true" android:textColor="#73737B" android:textSize="14sp" />
+        <Space android:layout_width="1dp" android:layout_height="12dp" />
+        <EditText android:id="@+id/editPhone" android:layout_width="match_parent" android:layout_height="48dp" android:hint="Số điện thoại" android:background="@drawable/bg_form_field" android:inputType="phone" android:singleLine="true" android:textColor="#171719" android:textSize="14sp" />
+        <Space android:layout_width="1dp" android:layout_height="20dp" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+            <TextView android:id="@+id/editCancel" android:layout_width="0dp" android:layout_height="48dp" android:layout_marginEnd="10dp" android:layout_weight="1" android:background="#FFF1F1F3" android:gravity="center" android:text="Hủy" android:textColor="#171719" />
+            <TextView android:id="@+id/editSave" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:background="@drawable/bg_black_blue" android:gravity="center" android:text="Lưu thay đổi" android:textColor="#FFFFFF" />
+        </LinearLayout>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/accountSettingsTemplate" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingHorizontal="24dp">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="11dp" android:paddingBottom="4dp" android:text="TÀI KHOẢN" android:textColor="#85858E" android:textSize="11sp" />
+        <LinearLayout android:id="@+id/settingsPersonal" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <Space android:layout_width="1dp" android:layout_height="18dp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="11dp" android:paddingBottom="4dp" android:text="DỮ LIỆU VÀ QUYỀN RIÊNG TƯ" android:textColor="#85858E" android:textSize="11sp" />
+        <LinearLayout android:id="@+id/settingsPrivacy" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <Space android:layout_width="1dp" android:layout_height="22dp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="11dp" android:paddingBottom="4dp" android:text="QUẢN LÝ TÀI KHOẢN" android:textColor="#85858E" android:textSize="11sp" />
+        <LinearLayout android:id="@+id/settingsDelete" android:layout_width="match_parent" android:layout_height="wrap_content" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/accountNotificationsTemplate" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal" android:paddingHorizontal="22dp" android:paddingTop="3dp" android:paddingBottom="17dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Cập nhật dành cho bạn" android:textColor="#73737B" android:textSize="12sp" />
+            <TextView android:id="@+id/notificationUnreadCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="#FFF0EDFF" android:paddingHorizontal="9dp" android:paddingVertical="5dp" android:textColor="#3533CD" android:textSize="11sp" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/notificationRows" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/notificationRowTemplate" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:padding="18dp">
+        <com.example.mobileproject.ui.GlyphView android:id="@+id/notificationGlyph" android:layout_width="38dp" android:layout_height="38dp" />
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
+            <TextView android:id="@+id/notificationTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#171719" android:textSize="17sp" />
+            <TextView android:id="@+id/notificationBody" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:textColor="#73737B" android:textSize="12sp" />
+            <TextView android:id="@+id/notificationDate" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:textColor="#73737B" android:textSize="10sp" android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/accountAboutTemplate" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_horizontal" android:orientation="vertical" android:padding="26dp">
+        <Space android:layout_width="1dp" android:layout_height="20dp" />
+        <ImageView android:id="@+id/aboutPageLogo" android:layout_width="83dp" android:layout_height="83dp" android:src="@drawable/logo_stageexchange" />
+        <Space android:layout_width="1dp" android:layout_height="18dp" />
+        <TextView android:id="@+id/aboutPageTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="StayExchange" android:textColor="#171719" android:textSize="29sp" />
+        <Space android:layout_width="1dp" android:layout_height="8dp" />
+        <TextView android:id="@+id/aboutPageTagline" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Một mái nhà mới. Một hành trình mới." android:textColor="#73737B" android:textSize="12sp" />
+        <Space android:layout_width="1dp" android:layout_height="27dp" />
+        <TextView android:id="@+id/aboutPageIntro" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Trao đổi một mái nhà, mở ra một trải nghiệm. StayExchange kết nối những người muốn khám phá điểm đến và trải nghiệm cuộc sống địa phương." android:textColor="#171719" android:textSize="18sp" />
+        <Space android:layout_width="1dp" android:layout_height="25dp" />
+        <LinearLayout android:id="@+id/aboutPrivacyRow" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <Space android:layout_width="1dp" android:layout_height="30dp" />
+        <TextView android:id="@+id/aboutVersion" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="Phiên bản 1.0&#10;Đồ án môn Lập trình ứng dụng Mobile" android:textColor="#73737B" android:textSize="11sp" />
+    </LinearLayout>
+</LinearLayout>
