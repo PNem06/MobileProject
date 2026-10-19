@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(saved);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_home);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.homeRoot), (view, insets) -> {
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.homeScreenContent), (view, insets) -> {
             Insets bars =
                     insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.ime());
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
