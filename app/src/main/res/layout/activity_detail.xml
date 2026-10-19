@@ -280,11 +280,11 @@
                     <TextView
                         android:id="@+id/txtLocation"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="17dp"
                         android:layout_marginTop="10dp"
+                        android:fontFamily="serif"
                         android:textColor="#333333"
-                        android:textSize="15sp"
-                        android:fontFamily="serif"/>
+                        android:textSize="15sp" />
 
                     <View
                         android:layout_width="match_parent"
@@ -298,6 +298,16 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:textColor="#222222"
+                        android:textSize="16sp"
+                        android:lineSpacingExtra="4dp"
+                        android:fontFamily="serif"/>
+                    <TextView
+                        android:id="@+id/txtPrice"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:textColor="#FF3035"
+                        android:textStyle="bold"
                         android:textSize="16sp"
                         android:lineSpacingExtra="4dp"
                         android:fontFamily="serif"/>
@@ -393,15 +403,6 @@
                         android:textSize="16sp"
                         android:fontFamily="serif"/>
 
-                    <TextView
-                        android:id="@+id/txtPrice"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
-                        android:textColor="#111111"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:fontFamily="serif"/>
                 </LinearLayout>
             </LinearLayout>
         </ScrollView>
@@ -416,21 +417,6 @@
             android:orientation="horizontal"
             android:paddingHorizontal="8dp"
             android:paddingVertical="10dp">
-
-            <TextView
-                android:id="@+id/btnAvailability"
-                android:layout_width="15dp"
-                android:layout_height="50dp"
-                android:layout_weight="1"
-                android:layout_marginHorizontal="4dp"
-                android:background="@drawable/bg_request_button_red"
-                android:gravity="center"
-                android:padding="4dp"
-                android:text="Kiểm tra tình trạng\ncòn phòng"
-                android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                android:textSize="12sp"
-                android:fontFamily="serif"/>
 
             <TextView
                 android:id="@+id/btnMessage"

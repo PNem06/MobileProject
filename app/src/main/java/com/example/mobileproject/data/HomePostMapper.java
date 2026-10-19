@@ -41,7 +41,7 @@ public final class HomePostMapper {
                             "maxGuests",
                             "bedroomCount",
                             "bathroomCount",
-                            "pricePerNight",
+                            "price",
                             "ratingAverage",
                             "reviewCount"
                     }) {
