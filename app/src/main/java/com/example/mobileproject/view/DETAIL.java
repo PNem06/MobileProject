@@ -14,8 +14,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.mobileproject.R;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -24,6 +27,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 
 import java.text.SimpleDateFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -45,6 +49,7 @@ public class DETAIL extends AppCompatActivity {
     private boolean isExpanded;
     private String fullDescription = "";
 
+    private ViewPager2 viewPagerImages;
     private TextView txtRoomName, txtAddress, txtBedInfo;
     private TextView txtRating, txtReviewCount, txtHostName, txtHostDescription;
     private TextView txtDescription, txtDates, txtRoomCounts;
@@ -115,6 +120,7 @@ public class DETAIL extends AppCompatActivity {
         btnFavorite = findViewById(R.id.btnFavorite);
         btnShowMore = findViewById(R.id.btnShowMore);
         btnAllReviews = findViewById(R.id.btnAllReviews);
+        viewPagerImages = findViewById(R.id.viewPagerImages);
     }
 
     private void listenToRoomRealtime() {
@@ -190,13 +196,7 @@ public class DETAIL extends AppCompatActivity {
         );
 
         List<String> amenityIds = stringList(doc, "amenityIds");
-
-        txtAmenities.setText(
-                amenityIds.isEmpty()
-                        ? "Chưa có thông tin tiện nghi."
-                        : "Mã tiện nghi:\n• "
-                          + TextUtils.join("\n• ", amenityIds)
-        );
+        loadAmenities(amenityIds);
 
         fullDescription = nonEmpty(
                 description,
@@ -205,15 +205,19 @@ public class DETAIL extends AppCompatActivity {
 
         updateDescription();
 
+        String accountId = stringValue(doc, "accountId");
+        if (accountId.isEmpty()) {
+            accountId = stringValue(doc, "ownerId");
+        }
+        loadHostInfo(accountId);
+
         txtRating.setText("—");
         txtReviewCount.setText("0");
-        txtHostName.setText("Chủ nhà");
-        txtHostDescription.setText("Thông tin chủ nhà chưa được cung cấp.");
-        txtPrice.setText("Giá phòng chưa được cung cấp.");
+        txtPrice.setText(priceLabel(doc.get("price")));
         txtReviews.setText("Chưa có dữ liệu đánh giá.");
         btnAllReviews.setText("Xem đánh giá");
 
-        txtImageCount.setVisibility(View.GONE);
+        loadRoomImages(postId);
     }
 
     private String stringValue(DocumentSnapshot doc, String field) {
@@ -223,6 +227,15 @@ public class DETAIL extends AppCompatActivity {
 
     private String nonEmpty(String value, String fallback) {
         return value == null || value.trim().isEmpty() ? fallback : value;
+    }
+
+    private String priceLabel(Object value) {
+        if (!(value instanceof Number)) return "Giá chuyến đi chưa được cung cấp.";
+        double amount = ((Number) value).doubleValue();
+        if (!Double.isFinite(amount) || amount <= 0) return "Giá chuyến đi chưa được cung cấp.";
+        NumberFormat format = NumberFormat.getNumberInstance(new Locale("vi", "VN"));
+        format.setMaximumFractionDigits(0);
+        return format.format(amount) + "VNĐ / chuyến";
     }
 
     private int intValue(DocumentSnapshot doc, String field, int fallback) {
@@ -276,6 +289,170 @@ public class DETAIL extends AppCompatActivity {
         }
 
         return result;
+    }
+
+    private void loadRoomImages(String postId) {
+        if (postId == null || postId.trim().isEmpty()) {
+            txtImageCount.setVisibility(View.GONE);
+            return;
+        }
+
+        db.collection("images")
+                .whereEqualTo("postId", postId)
+                .get()
+                .addOnSuccessListener(snap -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    List<String> urls = new ArrayList<>();
+                    if (snap != null && !snap.isEmpty()) {
+                        for (DocumentSnapshot doc : snap.getDocuments()) {
+                            String url = doc.getString("imgUrl");
+                            if (url == null || url.trim().isEmpty()) {
+                                url = doc.getString("imageUrl");
+                            }
+                            if (url != null && !url.trim().isEmpty()) {
+                                urls.add(url.trim());
+                            }
+                        }
+                    }
+
+                    if (urls.isEmpty()) {
+                        db.collection("postImages")
+                                .whereEqualTo("postId", postId)
+                                .get()
+                                .addOnSuccessListener(snap2 -> {
+                                    if (isFinishing() || isDestroyed()) return;
+                                    if (snap2 != null && !snap2.isEmpty()) {
+                                        for (DocumentSnapshot doc : snap2.getDocuments()) {
+                                            String url = doc.getString("imgUrl");
+                                            if (url == null || url.trim().isEmpty()) {
+                                                url = doc.getString("imageUrl");
+                                            }
+                                            if (url != null && !url.trim().isEmpty()) {
+                                                urls.add(url.trim());
+                                            }
+                                        }
+                                    }
+                                    setupImagesAdapter(urls);
+                                })
+                                .addOnFailureListener(e -> setupImagesAdapter(urls));
+                    } else {
+                        setupImagesAdapter(urls);
+                    }
+                })
+                .addOnFailureListener(e -> setupImagesAdapter(new ArrayList<>()));
+    }
+
+    private void setupImagesAdapter(List<String> urls) {
+        if (urls == null || urls.isEmpty()) {
+            txtImageCount.setVisibility(View.GONE);
+            return;
+        }
+
+        DETAILAdapter adapter = new DETAILAdapter(urls, true);
+        viewPagerImages.setAdapter(adapter);
+
+        txtImageCount.setVisibility(View.VISIBLE);
+        txtImageCount.setText("1/" + urls.size());
+
+        viewPagerImages.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                txtImageCount.setText((position + 1) + "/" + urls.size());
+            }
+        });
+    }
+
+    private void loadHostInfo(String hostId) {
+        if (hostId == null || hostId.trim().isEmpty()) {
+            txtHostName.setText("Chủ nhà");
+            txtHostDescription.setText("Thông tin chủ nhà chưa được cung cấp.");
+            return;
+        }
+
+        db.collection("accounts").document(hostId.trim()).get()
+                .addOnSuccessListener(doc -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    if (doc.exists()) {
+                        String name = doc.getString("fullName");
+                        if (name == null || name.trim().isEmpty()) {
+                            name = doc.getString("username");
+                        }
+                        if (name == null || name.trim().isEmpty()) {
+                            name = "Chủ nhà";
+                        }
+                        txtHostName.setText(name);
+
+                        String email = doc.getString("email");
+                        String phone = doc.getString("phone");
+                        StringBuilder desc = new StringBuilder();
+                        if (email != null && !email.trim().isEmpty()) {
+                            desc.append("Email: ").append(email.trim());
+                        }
+                        if (phone != null && !phone.trim().isEmpty()) {
+                            if (desc.length() > 0) desc.append("\n");
+                            desc.append("ĐT: ").append(phone.trim());
+                        }
+                        if (desc.length() == 0) {
+                            desc.append("Thành viên StayExchange");
+                        }
+                        txtHostDescription.setText(desc.toString());
+                    } else {
+                        txtHostName.setText("Chủ nhà");
+                        txtHostDescription.setText("Thông tin chủ nhà chưa được cung cấp.");
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    txtHostName.setText("Chủ nhà");
+                    txtHostDescription.setText("Thông tin chủ nhà chưa được cung cấp.");
+                });
+    }
+
+    private void loadAmenities(List<String> amenityIds) {
+        if (amenityIds == null || amenityIds.isEmpty()) {
+            txtAmenities.setText("Chưa có thông tin tiện nghi.");
+            return;
+        }
+
+        List<Task<DocumentSnapshot>> tasks = new ArrayList<>();
+        for (String id : amenityIds) {
+            if (id != null && !id.trim().isEmpty()) {
+                tasks.add(db.collection("amenities").document(id.trim()).get());
+            }
+        }
+
+        if (tasks.isEmpty()) {
+            txtAmenities.setText("Chưa có thông tin tiện nghi.");
+            return;
+        }
+
+        Tasks.whenAllSuccess(tasks)
+                .addOnSuccessListener(results -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    List<String> amenityNames = new ArrayList<>();
+                    for (Object res : results) {
+                        if (res instanceof DocumentSnapshot) {
+                            DocumentSnapshot doc = (DocumentSnapshot) res;
+                            if (doc.exists()) {
+                                String name = doc.getString("name");
+                                if (name != null && !name.trim().isEmpty()) {
+                                    amenityNames.add(name.trim());
+                                }
+                            }
+                        }
+                    }
+
+                    if (amenityNames.isEmpty()) {
+                        txtAmenities.setText("Mã tiện nghi:\n• " + TextUtils.join("\n• ", amenityIds));
+                    } else {
+                        txtAmenities.setText("Tiện nghi:\n• " + TextUtils.join("\n• ", amenityNames));
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    txtAmenities.setText("Mã tiện nghi:\n• " + TextUtils.join("\n• ", amenityIds));
+                });
     }
 
     private String formatDate(Date date) {
@@ -418,11 +595,6 @@ public class DETAIL extends AppCompatActivity {
             updateDescription();
         });
 
-        findViewById(R.id.btnAvailability).setOnClickListener(
-                v -> showMessage(
-                        "Cần kết nối nghiệp vụ để kiểm tra phòng trống."
-                )
-        );
 
         findViewById(R.id.btnMessage).setOnClickListener(
                 v -> showMessage(

@@ -60,39 +60,75 @@
 
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="145dp"
+                android:layout_height="142dp"
                 android:layout_marginTop="14dp"
                 android:background="@drawable/bg_form_field">
-                <ImageView
-                    android:id="@+id/imgPreview"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="centerCrop"
-                    android:visibility="gone"
-                    android:contentDescription="Ảnh xem trước"
-                    android:fontFamily="serif"/>
                 <LinearLayout
+                    android:id="@+id/imagePlaceholder"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:background="@drawable/bg_blank_canvas"
                     android:orientation="vertical">
-                    <TextView android:id="@+id/txtImageHint"
-                        android:layout_width="50dp"
-                        android:layout_height="50dp"
+                    <TextView
+                        android:layout_width="70dp"
+                        android:layout_height="70dp"
                         android:background="@drawable/ic_photo"
-                        android:textSize="36sp"
-                        android:textColor="#222222"/>
-                    <Button android:id="@+id/btnChooseImage"
-                        android:layout_width="wrap_content"
-                        android:layout_height="42dp"
-                        android:text="Thêm ảnh của bạn"
-                        android:fontFamily="serif"
-                        android:textAllCaps="false"
-                        android:textColor="#222222"
-                        android:backgroundTint="#FFFFFF"/>
+                        android:drawablePadding="6dp"
+                        android:textSize="13sp"
+                        android:textColor="#555555" />
                 </LinearLayout>
+                <HorizontalScrollView
+                    android:id="@+id/imagePreviewScroll"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:padding="8dp"
+                    android:scrollbars="none"
+                    android:visibility="gone">
+                    <LinearLayout
+                        android:id="@+id/imagePreviewList"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal" />
+                </HorizontalScrollView>
             </FrameLayout>
+            <TextView
+                android:id="@+id/txtImageHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:gravity="center"
+                android:text="Chọn ảnh hoặc chụp ảnh mới"
+                android:textColor="#555555"
+                android:textSize="12sp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <Button
+                    android:id="@+id/btnChooseImage"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="5dp"
+                    android:text="Chọn nhiều ảnh"
+                    android:fontFamily="serif"
+                    android:textAllCaps="false"
+                    android:textColor="#222222"
+                    android:backgroundTint="#FFFFFF" />
+                <Button
+                    android:id="@+id/btnTakePhoto"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="5dp"
+                    android:text="Chụp ảnh"
+                    android:fontFamily="serif"
+                    android:textAllCaps="false"
+                    android:textColor="#222222"
+                    android:backgroundTint="#FFFFFF" />
+            </LinearLayout>
 
             <TextView style="@style/FormLabel"
                 android:text="Tên chỗ ở"
@@ -141,6 +177,18 @@
                 android:background="@drawable/bg_blank_canvas" />
 
             <TextView style="@style/FormLabel"
+                android:text="Tiện nghi"
+                android:fontFamily="serif" />
+            <LinearLayout
+                android:id="@+id/amenitiesList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_form_field"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="4dp" />
+
+            <TextView style="@style/FormLabel"
                 android:text="Thông tin phòng"
                 android:fontFamily="serif"/>
             <LinearLayout
@@ -152,9 +200,8 @@
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_marginEnd="4dp"
-                    android:text="Phòng ngủ"
+                    android:hint="Phòng ngủ"
                     android:fontFamily="serif"
-                    android:hint="1"
                     android:inputType="number"
                     android:background="@drawable/bg_blank_canvas"
                     />
@@ -162,19 +209,17 @@
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_marginStart="4dp"
-                    android:text="Phòng tắm"
+                    android:hint="Phòng tắm"
                     android:fontFamily="serif"
                     android:inputType="number"
-                    android:background="@drawable/bg_blank_canvas"
-                    android:hint="1"/>
+                    android:background="@drawable/bg_blank_canvas" />
             </LinearLayout>
             <EditText
                 android:id="@+id/edtMaxGuests" style="@style/FormInput"
-                android:text="Số khách tối đa"
+                android:hint="Số khách tối đa"
                 android:fontFamily="serif"
                 android:inputType="number"
-                android:background="@drawable/bg_blank_canvas"
-                android:hint="2"/>
+                android:background="@drawable/bg_blank_canvas"/>
 
             <TextView style="@style/FormLabel"
                 android:text="Thời gian cho thuê (Bắt đầu - Kết thúc)"
@@ -206,6 +251,16 @@
             </LinearLayout>
 
             <TextView style="@style/FormLabel"
+                android:text="Giá phòng"
+                android:fontFamily="serif"/>
+            <EditText
+                android:id="@+id/edtPrice" style="@style/FormInput"
+                android:hint="Ví dụ: 1000000 VNĐ"
+                android:fontFamily="serif"
+                android:background="@drawable/bg_blank_canvas"
+                android:inputType="number" />
+
+            <TextView style="@style/FormLabel"
                 android:text="Mô tả chỗ ở"
                 android:fontFamily="serif"/>
             <EditText
@@ -217,7 +272,8 @@
                 android:fontFamily="serif"
                 android:inputType="textCapSentences|textMultiLine"/>
             <TextView style="@style/FormLabel"
-                android:text="Thông tin thêm"/>
+                android:text="Thông tin thêm"
+                android:fontFamily="serif"/>
             <EditText
                 android:id="@+id/edtAdditionalInfo" style="@style/FormInput"
                 android:minHeight="72dp"

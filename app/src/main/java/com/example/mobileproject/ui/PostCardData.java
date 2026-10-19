@@ -28,13 +28,13 @@ public final class PostCardData {
 
     public static String priceLabel(JSONObject post) {
         if (post == null) return "Chưa cập nhật giá";
-        Object value = post.opt("pricePerNight");
+        Object value = post.opt("price");
         if (!(value instanceof Number)) return "Chưa cập nhật giá";
         double amount = ((Number) value).doubleValue();
         if (!Double.isFinite(amount) || amount <= 0) return "Chưa cập nhật giá";
         NumberFormat format = NumberFormat.getNumberInstance(VI);
         format.setMaximumFractionDigits(0);
-        return format.format(amount) + "đ / đêm";
+        return format.format(amount) + "đ / chuyến";
     }
 
     public static String ratingLabel(JSONObject post) {
