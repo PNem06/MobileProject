@@ -141,6 +141,16 @@
                 android:inputType="textCapSentences"/>
 
             <TextView style="@style/FormLabel"
+                android:text="Điểm đến"
+                android:fontFamily="serif" />
+            <EditText
+                android:id="@+id/edtDestination" style="@style/FormInput"
+                android:hint="Ví dụ: Đà Lạt, Lâm Đồng"
+                android:fontFamily="serif"
+                android:background="@drawable/bg_blank_canvas"
+                android:inputType="textPostalAddress" />
+
+            <TextView style="@style/FormLabel"
                 android:text="Địa chỉ"
                 android:fontFamily="serif"/>
             <EditText

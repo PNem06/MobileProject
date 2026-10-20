@@ -30,6 +30,8 @@ import com.google.firebase.auth.*;
 import java.util.Arrays;
 
 public class MainActivity extends AppCompatActivity {
+    public static final String EXTRA_HOME_PAGE = "com.example.mobileproject.EXTRA_HOME_PAGE";
+
     private HomeViewModel vm;
     private HomeUi ui;
     private ConnectivityManager connectivity;
@@ -80,6 +82,7 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, message, Toast.LENGTH_LONG).show();
             vm.event.setValue(null);
         });
+        if (saved == null) openPageFromIntent(getIntent());
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -159,6 +162,20 @@ public class MainActivity extends AppCompatActivity {
 
     public void openPage(String page) {
         ui.openPage(page);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        openPageFromIntent(intent);
+    }
+
+    private void openPageFromIntent(Intent intent) {
+        if (intent == null || !intent.hasExtra(EXTRA_HOME_PAGE)) return;
+        String page = intent.getStringExtra(EXTRA_HOME_PAGE);
+        intent.removeExtra(EXTRA_HOME_PAGE);
+        if (page != null && !page.isEmpty()) ui.openPage(page);
     }
 
     public void chooseAvatar() {

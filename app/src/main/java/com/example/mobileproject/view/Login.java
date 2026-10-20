@@ -50,10 +50,12 @@ public class Login extends AppCompatActivity {
         googleClient = GoogleSignIn.getClient(this, options);
         googleLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             try {
+                if (result.getData() == null) { show("Đăng nhập Google bị hủy."); return; }
                 GoogleSignInAccount account = GoogleSignIn.getSignedInAccountFromIntent(result.getData()).getResult(ApiException.class);
-                if (account.getIdToken() == null) { show("Không nhận được Google ID Token."); return; }
+                if (account == null || account.getIdToken() == null) { show("Không nhận được Google ID Token."); return; }
                 service.signInWithGoogle(account.getIdToken(), callback());
-            } catch (ApiException e) { show("Google Sign-In lỗi: " + e.getStatusCode()); }
+            } catch (ApiException e) { show("Google Sign-In lỗi code " + e.getStatusCode() + ": " + e.getLocalizedMessage()); }
+            catch (Exception e) { show("Google Sign-In thất bại: " + e.getLocalizedMessage()); }
         });
         findViewById(R.id.btnLogin).setOnClickListener(v -> {
             String e = email.getText().toString().trim();
@@ -63,13 +65,28 @@ public class Login extends AppCompatActivity {
         });
 
         findViewById(R.id.btnGoogle).setOnClickListener(v -> {
-            googleClient.signOut().addOnCompleteListener(this, task -> {
-                if (task.isSuccessful()) {
+            int availability = com.google.android.gms.common.GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this);
+            if (availability != com.google.android.gms.common.ConnectionResult.SUCCESS) {
+                android.app.Dialog dialog = com.google.android.gms.common.GoogleApiAvailability.getInstance().getErrorDialog(this, availability, 9000);
+                if (dialog != null) dialog.show();
+                else show("Dịch vụ Google Play không khả dụng.");
+                return;
+            }
+            try {
+                googleClient.signOut().addOnCompleteListener(this, task -> {
+                    try {
+                        googleLauncher.launch(googleClient.getSignInIntent());
+                    } catch (Exception e) {
+                        show("Không thể khởi động Google Sign-In: " + e.getLocalizedMessage());
+                    }
+                });
+            } catch (Exception e) {
+                try {
                     googleLauncher.launch(googleClient.getSignInIntent());
-                } else {
-                    show("Không thể đặt lại phiên đăng nhập Google. Vui lòng thử lại.");
+                } catch (Exception ex) {
+                    show("Lỗi Google Sign-In: " + ex.getLocalizedMessage());
                 }
-            });
+            }
         });
 
         findViewById(R.id.btnRegister).setOnClickListener(v -> startActivity(new Intent(this, Register.class)));

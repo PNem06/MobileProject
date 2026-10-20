@@ -51,7 +51,7 @@ public class Detail extends AppCompatActivity {
     private String fullDescription = "";
 
     private ViewPager2 viewPagerImages;
-    private TextView txtRoomName, txtAddress, txtBedInfo;
+    private TextView txtRoomName, txtAddress, txtDestination, txtBedInfo;
     private TextView txtRating, txtReviewCount, txtHostName, txtHostDescription;
     private TextView txtDescription, txtDates, txtRoomCounts;
     private TextView txtAmenities, txtAdditionalInformation, txtLocation;
@@ -104,6 +104,7 @@ public class Detail extends AppCompatActivity {
     private void initViews() {
         txtRoomName = findViewById(R.id.txtRoomName);
         txtAddress = findViewById(R.id.txtAddress);
+        txtDestination = findViewById(R.id.txtDestination);
         txtBedInfo = findViewById(R.id.txtBedInfo);
         txtRating = findViewById(R.id.txtRating);
         txtReviewCount = findViewById(R.id.txtReviewCount);
@@ -157,11 +158,15 @@ public class Detail extends AppCompatActivity {
     private void renderRoom(DocumentSnapshot doc) {
         String title = stringValue(doc, "title");
         String address = stringValue(doc, "address");
+        String destination = stringValue(doc, "destination");
         String description = stringValue(doc, "description");
         String additionalInfo = stringValue(doc, "additionalInformation");
 
         txtRoomName.setText(nonEmpty(title, "Chi tiết chỗ ở"));
         txtAddress.setText(nonEmpty(address, "Chưa có địa chỉ"));
+        txtAddress.setText("Địa chỉ: " + nonEmpty(address, "Chưa cập nhật"));
+        txtDestination.setText(
+                "Điểm đến: " + nonEmpty(destination, nonEmpty(address, "Chưa cập nhật")));
 
         int bedrooms = intValue(doc, "bedroomCount", 0);
         int bathrooms = intValue(doc, "bathroomCount", 0);
@@ -604,9 +609,7 @@ public class Detail extends AppCompatActivity {
         );
 
         findViewById(R.id.btnBooking).setOnClickListener(
-                v -> showMessage(
-                        "Cần triển khai quy trình đặt phòng."
-                )
+                v -> showBookingOptions()
         );
 
         btnAllReviews.setOnClickListener(
@@ -633,5 +636,35 @@ public class Detail extends AppCompatActivity {
         }
 
         super.onDestroy();
+    }
+    private void showBookingOptions() {
+        String[] options = {
+                "Trao đổi phòng",
+                "Thuê phòng"
+        };
+
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Bạn muốn làm gì?")
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        openExchangePage();
+                    } else if (which == 1) {
+                        openRentalPage();
+                    }
+                })
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
+
+    private void openExchangePage() {
+        Intent intent = new Intent(this, ExchangeActivity.class);
+        intent.putExtra("targetPostId", postId);
+        startActivity(intent);
+    }
+
+    private void openRentalPage() {
+        Intent intent = new Intent(this, RentalActivity.class);
+        intent.putExtra("targetPostId", postId);
+        startActivity(intent);
     }
 }

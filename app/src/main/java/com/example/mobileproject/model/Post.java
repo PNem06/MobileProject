@@ -19,6 +19,7 @@ public class Post {
     private String title;
     private String description;
     private String addressText;
+    private String destination;
     private double latitude;
     private double longitude;
     private int maxGuests;
@@ -68,6 +69,12 @@ public class Post {
         this.title = title;
         this.description = description;
         this.addressText = addressText;
+    }
+
+    public void updateInfo(
+            String title, String description, String addressText, String destination) {
+        updateInfo(title, description, addressText);
+        this.destination = destination;
     }
 
     public void setAvailablePeriod(Date from, Date to) {
@@ -155,6 +162,14 @@ public class Post {
 
     public void setAddressText(String addressText) {
         this.addressText = addressText;
+    }
+
+    public String getDestination() {
+        return destination;
+    }
+
+    public void setDestination(String destination) {
+        this.destination = destination;
     }
 
     public double getLatitude() {

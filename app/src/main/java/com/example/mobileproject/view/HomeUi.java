@@ -16,6 +16,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import com.example.mobileproject.MainActivity;
 import com.example.mobileproject.R;
 import com.example.mobileproject.viewmodel.HomeViewModel;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
 
 import org.json.JSONArray;
@@ -25,7 +26,8 @@ import java.util.*;
 
 public class HomeUi extends HomeViews {
     private final FrameLayout header, filters;
-    private final LinearLayout content;
+    private final FrameLayout content;
+    private final LinearLayout pageContent;
     private final ScrollView scroll;
     private final ProgressBar progress;
     private final androidx.appcompat.widget.Toolbar toolbarHome;
@@ -36,6 +38,7 @@ public class HomeUi extends HomeViews {
     private final TextView subpageTitle;
     private final PostCards cards;
     private final AccountUi accountUi;
+    private final BottomNavigationView bottomNavigation;
     private final DrawerLayout drawerLayout;
     private final NavigationView drawerMenu;
     private LinearLayout homeSections;
@@ -47,6 +50,20 @@ public class HomeUi extends HomeViews {
         header = activity.findViewById(R.id.homeHeader);
         filters = activity.findViewById(R.id.homeFilters);
         content = activity.findViewById(R.id.homeContent);
+        drawerLayout = activity.findViewById(R.id.homeRoot);
+        drawerMenu = activity.findViewById(R.id.homeNavigationDrawer);
+        bottomNavigation = activity.findViewById(R.id.homeDrawerMenu);
+        drawerLayout.setBackgroundColor(Color.WHITE);
+        drawerLayout.setScrimColor(0x33000000);
+        activity.findViewById(R.id.homeScreenContent).setBackgroundColor(Color.WHITE);
+        header.setBackgroundColor(Color.WHITE);
+        filters.setBackgroundColor(Color.WHITE);
+        content.setBackgroundColor(Color.WHITE);
+        pageContent = new LinearLayout(activity);
+        pageContent.setOrientation(LinearLayout.VERTICAL);
+        pageContent.setBackgroundColor(Color.WHITE);
+        content.addView(pageContent, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT));
         scroll = activity.findViewById(R.id.homeScroll);
         progress = activity.findViewById(R.id.homeProgress);
         homeHeaderContent = activity.findViewById(R.id.headerHomeContent);
@@ -55,10 +72,8 @@ public class HomeUi extends HomeViews {
         unreadDot = activity.findViewById(R.id.viewUnreadDot);
         subpageTitle = activity.findViewById(R.id.txtHeaderTitle);
         toolbarHome = activity.findViewById(R.id.toolbarHome);
-        drawerLayout = activity.findViewById(R.id.homeRoot);
-        drawerMenu = activity.findViewById(R.id.homeDrawerMenu);
         cards = new PostCards(activity, vm);
-        accountUi = new AccountUi(activity, vm, content, cards, this::openNewPost);
+        accountUi = new AccountUi(activity, vm, pageContent, cards, this::openNewPost);
         setupToolbar();
         setupHeaderControls();
         restoreState(saved);
@@ -68,13 +83,40 @@ public class HomeUi extends HomeViews {
 
     private void setupToolbar() {
         activity.setSupportActionBar(toolbarHome);
-        ActionBarDrawerToggle drawerToggle = new ActionBarDrawerToggle(
-                activity, drawerLayout, toolbarHome, R.string.open, R.string.close);
-        drawerLayout.addDrawerListener(drawerToggle);
-        drawerToggle.syncState();
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                activity,
+                drawerLayout,
+                toolbarHome,
+                R.string.open,
+                R.string.close);
+        drawerLayout.addDrawerListener(toggle);
+        toggle.syncState();
         drawerMenu.setNavigationItemSelectedListener(item -> {
             drawerLayout.closeDrawer(GravityCompat.START);
             return handleDrawerItem(item);
+        });
+        bottomNavigation.setOnItemSelectedListener(item -> {
+            if (vm.busy) return false;
+            int id = item.getItemId();
+            if (id == R.id.menu_explore) {
+                selectedFilter = 0;
+                go("home");
+            } else if (id == R.id.menu_request) {
+                if (!requireLogin()) return false;
+                startDestination(Request.class);
+            } else if (id == R.id.menu_calendar) {
+                if (!requireLogin()) return false;
+                startDestination(ExchangeScheduleActivity.class);
+            } else if (id == R.id.menu_message) {
+                if (!requireLogin()) return false;
+                startDestination(Chat.class);
+            } else if (id == R.id.menu_settings) {
+                if (!requireLogin()) return false;
+                go("account");
+            } else {
+                return false;
+            }
+            return true;
         });
     }
 
@@ -183,15 +225,15 @@ public class HomeUi extends HomeViews {
         if (!vm.online() && !Arrays.asList("settings", "about").contains(vm.page)) {
             builtPage = "";
             homeSections = null;
-            content.removeAllViews();
+            pageContent.removeAllViews();
             empty(
-                    content,
+                    pageContent,
                     "Chưa có kết nối mạng",
                     "Kết nối Wi-Fi hoặc dữ liệu di động để tiếp tục.");
             return;
         }
         if ("edit".equals(vm.page) && "edit".equals(builtPage)) {
-            enable(content, !vm.busy);
+            enable(pageContent, !vm.busy);
             return;
         }
         int y = vm.scrollY;
@@ -200,7 +242,7 @@ public class HomeUi extends HomeViews {
             scroll.post(() -> scroll.scrollTo(0, y));
             return;
         }
-        content.removeAllViews();
+        pageContent.removeAllViews();
         builtPage = vm.page;
         switch (vm.page) {
             case "account":
@@ -234,6 +276,8 @@ public class HomeUi extends HomeViews {
         subpageTitle.setText(pageTitle());
         if (!vm.search.equals(searchInput.getText().toString())) searchInput.setText(vm.search);
         unreadDot.setVisibility(unread() > 0 ? View.VISIBLE : View.GONE);
+        logoutItem = drawerMenu.getMenu().findItem(R.id.menu_logout);
+        if (logoutItem != null) logoutItem.setTitle(vm.signedIn() ? "Đăng xuất" : "Đăng nhập");
     }
 
     private String pageTitle() {
@@ -252,119 +296,19 @@ public class HomeUi extends HomeViews {
     }
 
     private void buildNavigation() {
-        String[] labels = {
-                "Khám phá",
-                "Request",
-                "Lịch",
-                "Tin nhắn",
-                vm.signedIn() ? "Tài khoản" : "Đăng nhập"
-        };
-
-        int[] tabIds = {R.id.tabExplore, R.id.tabRequest, R.id.tabSchedule, R.id.tabChat, R.id.tabAccount};
-        int[] dotIds = {R.id.dotExplore, R.id.dotRequest, R.id.dotSchedule, R.id.dotChat, R.id.dotAccount};
-        int[] iconIds = {R.drawable.ic_search, R.drawable.ic_exchange, R.drawable.ic_trip,
-                R.drawable.ic_message, R.drawable.ic_profile};
-
-        for (int i = 0; i < labels.length; i++) {
-
-            final int index = i;
-
-            boolean selected =
-                    (index == 0 && "home".equals(vm.page))
-                            || (index == 4
-                            && !Arrays.asList(
-                            "home",
-                            "notifications"
-                    ).contains(vm.page));
-
-            LinearLayout tab = activity.findViewById(tabIds[index]);
-            ImageView icon = (ImageView) tab.getChildAt(0);
-            TextView label = (TextView) tab.getChildAt(1);
-            View dot = activity.findViewById(dotIds[index]);
-            icon.setImageResource(iconIds[index]);
-            icon.setColorFilter(selected ? PURPLE : INK);
-            label.setText(labels[index]);
-            label.setTextColor(selected ? PURPLE : INK);
-            dot.setBackgroundResource(selected ? R.drawable.bg_schedule_tab_selected
-                    : R.drawable.bg_schedule_tab_unselected);
-
-            tab.setContentDescription(labels[index]);
-
-            tab.setOnClickListener(v -> {
-
-                if (vm.busy) {
-                    return;
-                }
-
-                switch (index) {
-
-                    // KHÁM PHÁ
-                    case 0:
-                        go("home");
-                        break;
-
-                    // REQUEST
-                    case 1:
-
-                        if (!requireLogin()) {
-                            return;
-                        }
-
-                        startActivity(
-                                new Intent(
-                                        activity,
-                                        Request.class
-                                )
-                        );
-
-                        break;
-
-                    // LỊCH TRAO ĐỔI
-                    case 2:
-
-                        if (!requireLogin()) {
-                            return;
-                        }
-
-                        startActivity(
-                                new Intent(
-                                        activity,
-                                        ExchangeScheduleActivity.class
-                                )
-                        );
-
-                        break;
-
-
-                    // TIN NHẮN
-                    case 3:
-
-                        if (!requireLogin()) {
-                            return;
-                        }
-
-                        startActivity(
-                                new Intent(
-                                        activity,
-                                        Chat.class
-                                )
-                        );
-
-                        break;
-
-                    // TÀI KHOẢN / ĐĂNG NHẬP
-                    case 4:
-
-                        if (!requireLogin()) {
-                            return;
-                        }
-
-                        go("account");
-
-                        break;
-                }
-            });
+        int selected = "home".equals(vm.page)
+                ? R.id.menu_explore
+                : Arrays.asList("account", "edit", "settings", "about").contains(vm.page)
+                        ? R.id.menu_settings : 0;
+        if (selected != 0 && bottomNavigation.getSelectedItemId() != selected) {
+            bottomNavigation.getMenu().findItem(selected).setChecked(true);
         }
+    }
+
+    private void startDestination(Class<?> destination) {
+        Intent intent = new Intent(activity, destination);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        activity.startActivity(intent);
     }
 
     private void buildHomeFilters() {
@@ -394,7 +338,7 @@ public class HomeUi extends HomeViews {
     }
 
     private void home() {
-        homeSections = content;
+        homeSections = pageContent;
         renderHomeSections();
     }
 

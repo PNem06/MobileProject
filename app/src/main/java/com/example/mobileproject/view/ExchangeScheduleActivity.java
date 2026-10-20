@@ -1,6 +1,5 @@
 package com.example.mobileproject.view;
 
-import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
@@ -23,6 +22,7 @@ import com.example.mobileproject.MainActivity;
 import com.example.mobileproject.R;
 import com.example.mobileproject.adapter.ExchangeScheduleAdapter;
 import com.example.mobileproject.viewmodel.ExchangeScheduleViewModel;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -30,9 +30,6 @@ import java.util.List;
 import java.util.Locale;
 
 public class ExchangeScheduleActivity extends AppCompatActivity {
-
-    private static final int INK = 0xFF101828;
-    private static final int PURPLE = 0xFF2F35FF;
 
     private ExchangeScheduleViewModel vm;
     private ExchangeScheduleAdapter adapter;
@@ -61,13 +58,12 @@ public class ExchangeScheduleActivity extends AppCompatActivity {
         });
 
         bindViews();
-        setupNavigationIcons();
         setupList();
+        setupBottomNavigation();
 
         vm = new ViewModelProvider(this).get(ExchangeScheduleViewModel.class);
 
         setupTabs();
-        setupBottomNavigation();
 
         vm.getVisibleItems().observe(this, this::renderList);
         vm.getSelectedTab().observe(this, this::renderSelectedTab);
@@ -101,32 +97,6 @@ public class ExchangeScheduleActivity extends AppCompatActivity {
         reminderCard = findViewById(R.id.scheduleReminderCard);
     }
 
-    private void setupNavigationIcons() {
-        setNavigationIcon(R.id.navExploreIcon, "search", INK);
-        setNavigationIcon(R.id.navRequestIcon, "exchange", INK);
-        setNavigationIcon(R.id.navScheduleIcon, "calendar", PURPLE);
-        setNavigationIcon(R.id.navMessagesIcon, "chat", INK);
-        setNavigationIcon(R.id.navAccountIcon, "userCircle", INK);
-    }
-
-    private void setNavigationIcon(int containerId, String name, int color) {
-        FrameLayout container = findViewById(containerId);
-        container.removeAllViews();
-        android.widget.ImageView glyph = new android.widget.ImageView(this);
-        int icon = name.equals("search") ? R.drawable.ic_search
-                : name.equals("exchange") ? R.drawable.ic_exchange
-                : name.equals("calendar") ? R.drawable.ic_calendar
-                : name.equals("chat") ? R.drawable.ic_message : R.drawable.ic_account;
-        glyph.setImageResource(icon);
-        glyph.setColorFilter(color);
-        container.addView(
-                glyph,
-                new FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT
-                )
-        );
-    }
 
     private void setupList() {
         RecyclerView list = findViewById(R.id.recyclerExchangeSchedule);
@@ -166,6 +136,33 @@ public class ExchangeScheduleActivity extends AppCompatActivity {
         );
     }
 
+    private void setupBottomNavigation() {
+        BottomNavigationView navigation = findViewById(R.id.homeDrawerMenu);
+        navigation.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.menu_calendar) return true;
+
+            Intent intent;
+            if (id == R.id.menu_request) {
+                intent = new Intent(this, Request.class);
+            } else if (id == R.id.menu_message) {
+                intent = new Intent(this, Chat.class);
+            } else if (id == R.id.menu_explore
+                    || id == R.id.menu_settings) {
+                intent = new Intent(this, MainActivity.class);
+                intent.putExtra(MainActivity.EXTRA_HOME_PAGE,
+                        id == R.id.menu_settings ? "account" : "home");
+            } else {
+                return false;
+            }
+
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            return true;
+        });
+        navigation.getMenu().findItem(R.id.menu_calendar).setChecked(true);
+    }
+
     private void renderSelectedTab(Integer tabValue) {
         int tab = tabValue == null
                 ? ExchangeScheduleViewModel.TAB_UPCOMING
@@ -178,19 +175,7 @@ public class ExchangeScheduleActivity extends AppCompatActivity {
         };
 
         for (int i = 0; i < tabs.length; i++) {
-            boolean selected = i == tab;
-
-            tabs[i].setBackgroundResource(
-                    selected
-                            ? R.drawable.bg_schedule_tab_selected
-                            : R.drawable.bg_schedule_tab_unselected
-            );
-
-            tabs[i].setTextColor(
-                    selected
-                            ? 0xFFFFFFFF
-                            : 0xFF111827
-            );
+            tabs[i].setSelected(i == tab);
         }
     }
 
@@ -211,50 +196,6 @@ public class ExchangeScheduleActivity extends AppCompatActivity {
         } else {
             reminderCard.setVisibility(View.GONE);
         }
-    }
-
-    private void setupBottomNavigation() {
-        findViewById(R.id.navExplore).setOnClickListener(v -> {
-            Intent intent = new Intent(this, MainActivity.class);
-            intent.addFlags(
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP
-                            | Intent.FLAG_ACTIVITY_SINGLE_TOP
-            );
-            startActivity(intent);
-            finish();
-        });
-
-        findViewById(R.id.navRequest).setOnClickListener(v ->
-                startActivity(new Intent(this, Request.class))
-        );
-
-        findViewById(R.id.navSchedule).setOnClickListener(v -> {
-        });
-
-        findViewById(R.id.navMessages).setOnClickListener(v -> {
-            try {
-                Intent intent = new Intent().setClassName(
-                        this,
-                        getPackageName() + ".view.Chat"
-                );
-                startActivity(intent);
-            } catch (ActivityNotFoundException e) {
-                Toast.makeText(
-                        this,
-                        "Không mở được màn Tin nhắn.",
-                        Toast.LENGTH_SHORT
-                ).show();
-            }
-        });
-
-        findViewById(R.id.navAccount).setOnClickListener(v -> {
-            Intent intent = new Intent(this, MainActivity.class);
-            intent.addFlags(
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP
-                            | Intent.FLAG_ACTIVITY_SINGLE_TOP
-            );
-            startActivity(intent);
-        });
     }
 
     @Override

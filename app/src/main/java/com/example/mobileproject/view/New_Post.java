@@ -69,7 +69,7 @@ import java.util.TimeZone;
 public class New_Post extends AppCompatActivity {
     private FirebaseFirestore db;
     private FirebaseStorage storage;
-    private EditText title, address, description, extra, bedrooms, bathrooms, guests, start, end, price;
+    private EditText title, address, destination, description, extra, bedrooms, bathrooms, guests, start, end, price;
     private Spinner propertyType;
     private LinearLayout imagePreviewList, amenitiesList;
     private View imagePlaceholder;
@@ -109,6 +109,7 @@ public class New_Post extends AppCompatActivity {
     private void bindViews() {
         title = findViewById(R.id.edtTitle);
         address = findViewById(R.id.edtAddress);
+        destination = findViewById(R.id.edtDestination);
         description = findViewById(R.id.edtDescription);
         extra = findViewById(R.id.edtAdditionalInfo);
         bedrooms = findViewById(R.id.edtBedroomCount);
@@ -479,6 +480,8 @@ public class New_Post extends AppCompatActivity {
                     }).addOnFailureListener(e -> toast("Lỗi vị trí: " + e.getMessage()));
         } catch (SecurityException e) {
             toast("Không có quyền vị trí.");
+        } catch (Exception e) {
+            toast("Không thể kết nối dịch vụ vị trí Google Play: " + e.getLocalizedMessage());
         }
     }
 
@@ -513,6 +516,7 @@ public class New_Post extends AppCompatActivity {
         if (publishing) return;
         String t = title.getText().toString().trim();
         String a = address.getText().toString().trim();
+        String destinationValue = destination.getText().toString().trim();
         String d = description.getText().toString().trim();
         if (t.isEmpty()) {
             title.setError("Nhập tên chỗ ở");
@@ -520,6 +524,10 @@ public class New_Post extends AppCompatActivity {
         }
         if (a.isEmpty()) {
             address.setError("Nhập địa chỉ");
+            return;
+        }
+        if (destinationValue.isEmpty()) {
+            destination.setError("Nhập điểm đến");
             return;
         }
         if (d.isEmpty()) {
@@ -555,6 +563,7 @@ public class New_Post extends AppCompatActivity {
         post.put("accountId", uid);
         post.put("title", t);
         post.put("address", a);
+        post.put("destination", destinationValue);
         post.put("description", d);
         post.put("additionalInformation", extra.getText().toString().trim());
         post.put("bedroomCount", bed);
@@ -671,6 +680,7 @@ public class New_Post extends AppCompatActivity {
     private void clearForm() {
         title.setText("");
         address.setText("");
+        destination.setText("");
         description.setText("");
         extra.setText("");
         bedrooms.setText("1");

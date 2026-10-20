@@ -125,6 +125,16 @@
                         android:textSize="16sp"/>
 
                     <TextView
+                        android:id="@+id/txtDestination"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:fontFamily="serif"
+                        android:gravity="center"
+                        android:textColor="#333333"
+                        android:textSize="16sp" />
+
+                    <TextView
                         android:id="@+id/txtBedInfo"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

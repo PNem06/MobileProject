@@ -36,6 +36,7 @@ public final class HomePostMapper {
             }
             result.put("ownerId", text(fields, "accountId", "ownerId"));
             result.put("addressText", text(fields, "address", "addressText"));
+            result.put("destination", text(fields, "destination", "destination"));
             for (String key :
                     new String[] {
                             "maxGuests",

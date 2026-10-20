@@ -88,6 +88,7 @@ public class PostRepository {
 
         // Firestore dùng address, model dùng addressText
         post.setAddressText(doc.getString("address"));
+        post.setDestination(doc.getString("destination"));
 
         Double latitude = doc.getDouble("latitude");
         Double longitude = doc.getDouble("longitude");

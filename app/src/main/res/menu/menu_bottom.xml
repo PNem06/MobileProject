@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_explore"
+        android:icon="@drawable/ic_search"
+        android:title="Khám phá"
+        android:fontFamily="serif" />
+    <item
+        android:id="@+id/menu_request"
+        android:icon="@drawable/ic_exchange_black"
+        android:title="Yêu cầu"
+        android:fontFamily="serif" />
+    <item
+        android:id="@+id/menu_calendar"
+        android:icon="@drawable/ic_calendar"
+        android:title="Lịch"
+        android:fontFamily="serif" />
+    <item
+        android:id="@+id/menu_message"
+        android:icon="@drawable/ic_message"
+        android:title="Tín nhắn"
+        android:fontFamily="serif" />
+    <item
+        android:id="@+id/menu_settings"
+        android:icon="@drawable/ic_account"
+        android:title="Tài khoản"
+        android:fontFamily="serif" />
+</menu>

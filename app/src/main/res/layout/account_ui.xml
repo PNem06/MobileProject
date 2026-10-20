@@ -11,8 +11,7 @@
         android:id="@+id/accountContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingBottom="24dp">
+        android:orientation="vertical">
 
         <!-- Header Profile Section -->
         <LinearLayout
@@ -60,7 +59,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/sx_fraunces"
-                    android:text="Thành viên StayExchange"
+                    android:text="Thành viên"
                     android:textColor="#171719"
                     android:textSize="22sp"
                     android:textStyle="bold" />
@@ -276,6 +275,5 @@
                 app:tint="#D92D38"
                 android:importantForAccessibility="no" />
         </LinearLayout>
-
     </LinearLayout>
 </ScrollView>

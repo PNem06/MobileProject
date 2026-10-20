@@ -31,7 +31,8 @@
                     android:layout_height="match_parent"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="13dp">
+                    android:paddingStart="56dp"
+                    android:paddingEnd="13dp">
 
                     <!-- Search Input Box -->
                     <LinearLayout
@@ -123,6 +124,7 @@
                     android:layout_height="34dp"
                     android:layout_gravity="start|center_vertical"
                     android:layout_marginStart="12dp"
+                    android:translationY="6dp"
                     android:background="@drawable/bg_back_button"
                     android:clickable="true"
                     android:focusable="true">
@@ -226,231 +228,29 @@
             android:fillViewport="true"
             android:scrollbars="none">
 
-            <LinearLayout
+            <FrameLayout
                 android:id="@+id/homeContent"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                android:layout_height="wrap_content">
+            </FrameLayout>
         </ScrollView>
-
-        <View
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/homeDrawerMenu"
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="#EAEAEA" />
-
-        <!-- Bottom Navigation Bar -->
-        <LinearLayout
-            android:id="@+id/homeNavigation"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="68dp"
-            android:orientation="horizontal"
-            android:paddingHorizontal="6dp"
-            android:paddingTop="5dp"
-            android:paddingBottom="5dp"
-            android:background="#FFFFFF">
-
-            <!-- Tab 0: Khám phá -->
-            <LinearLayout
-                android:id="@+id/tabExplore"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:minHeight="49dp"
-                android:orientation="vertical"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="Khám phá">
-
-                <ImageView
-                    android:layout_width="25dp"
-                    android:layout_height="25dp"
-                    android:src="@drawable/ic_search"
-                    app:tint="#3533CD"
-                    android:importantForAccessibility="no" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="5dp"
-                    android:gravity="center"
-                    android:fontFamily="@font/sx_noto_sans"
-                    android:text="Khám phá"
-                    android:textColor="#3533CD"
-                    android:textSize="10sp" />
-
-                <View
-                    android:id="@+id/dotExplore"
-                    android:layout_width="4dp"
-                    android:layout_height="4dp"
-                    android:layout_marginTop="5dp"
-                    android:background="@drawable/bg_schedule_tab_selected" />
-            </LinearLayout>
-
-            <!-- Tab 1: Request -->
-            <LinearLayout
-                android:id="@+id/tabRequest"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:minHeight="49dp"
-                android:orientation="vertical"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="Request">
-
-                <ImageView
-                    android:layout_width="25dp"
-                    android:layout_height="25dp"
-                    android:src="@drawable/ic_exchange"
-                    app:tint="#171719"
-                    android:importantForAccessibility="no" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="5dp"
-                    android:gravity="center"
-                    android:fontFamily="@font/sx_noto_sans"
-                    android:text="Request"
-                    android:textColor="#171719"
-                    android:textSize="10sp" />
-
-                <View
-                    android:id="@+id/dotRequest"
-                    android:layout_width="4dp"
-                    android:layout_height="4dp"
-                    android:layout_marginTop="5dp"
-                    android:background="@drawable/bg_schedule_tab_unselected" />
-            </LinearLayout>
-
-            <!-- Tab 2: Lịch -->
-            <LinearLayout
-                android:id="@+id/tabSchedule"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:minHeight="49dp"
-                android:orientation="vertical"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="Lịch">
-
-                <ImageView
-                    android:layout_width="19dp"
-                    android:layout_height="25dp"
-                    android:importantForAccessibility="no"
-                    android:src="@drawable/ic_calendar"
-                    app:tint="#171719" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="5dp"
-                    android:gravity="center"
-                    android:fontFamily="@font/sx_noto_sans"
-                    android:text="Lịch"
-                    android:textColor="#171719"
-                    android:textSize="10sp" />
-
-                <View
-                    android:id="@+id/dotSchedule"
-                    android:layout_width="4dp"
-                    android:layout_height="4dp"
-                    android:layout_marginTop="5dp"
-                    android:background="@drawable/bg_schedule_tab_unselected" />
-            </LinearLayout>
-
-            <!-- Tab 3: Tin nhắn -->
-            <LinearLayout
-                android:id="@+id/tabChat"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:minHeight="49dp"
-                android:orientation="vertical"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="Tin nhắn">
-
-                <ImageView
-                    android:layout_width="25dp"
-                    android:layout_height="25dp"
-                    android:src="@drawable/ic_message"
-                    app:tint="#171719"
-                    android:importantForAccessibility="no" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="5dp"
-                    android:gravity="center"
-                    android:fontFamily="@font/sx_noto_sans"
-                    android:text="Tin nhắn"
-                    android:textColor="#171719"
-                    android:textSize="10sp" />
-
-                <View
-                    android:id="@+id/dotChat"
-                    android:layout_width="4dp"
-                    android:layout_height="4dp"
-                    android:layout_marginTop="5dp"
-                    android:background="@drawable/bg_schedule_tab_unselected" />
-            </LinearLayout>
-
-            <!-- Tab 4: Tài khoản -->
-            <LinearLayout
-                android:id="@+id/tabAccount"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:minHeight="49dp"
-                android:orientation="vertical"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="Tài khoản">
-
-                <ImageView
-                    android:layout_width="25dp"
-                    android:layout_height="25dp"
-                    android:src="@drawable/ic_profile"
-                    app:tint="#171719"
-                    android:importantForAccessibility="no" />
-
-                <TextView
-                    android:id="@+id/txtTabAccountLabel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="5dp"
-                    android:gravity="center"
-                    android:fontFamily="@font/sx_noto_sans"
-                    android:text="Tài khoản"
-                    android:textColor="#171719"
-                    android:textSize="10sp" />
-
-                <View
-                    android:id="@+id/dotAccount"
-                    android:layout_width="4dp"
-                    android:layout_height="4dp"
-                    android:layout_marginTop="5dp"
-                    android:background="@drawable/bg_schedule_tab_unselected" />
-            </LinearLayout>
-
-        </LinearLayout>
-
+            android:layout_height="100dp"
+            android:background="#FFFFFF"
+            app:menu="@menu/menu_bottom" />
     </LinearLayout>
 
     <com.google.android.material.navigation.NavigationView
-        android:id="@+id/homeDrawerMenu"
+        android:id="@+id/homeNavigationDrawer"
         android:layout_width="300dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:background="#FFFFFF"
+        android:elevation="16dp"
+        app:itemIconTint="#171719"
+        app:itemTextColor="#171719"
         app:menu="@menu/menu_home" />
 
 </androidx.drawerlayout.widget.DrawerLayout>
