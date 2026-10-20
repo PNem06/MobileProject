@@ -1,4 +1,4 @@
-package com.example.mobileproject.view;
+package com.example.mobileproject.adapter;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,16 +14,16 @@ import com.example.mobileproject.R;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DETAILAdapter extends RecyclerView.Adapter<DETAILAdapter.ImageViewHolder> {
+public class DetailAdapter extends RecyclerView.Adapter<DetailAdapter.ImageViewHolder> {
     private final List<String> imageUrls;
     private final List<Integer> imageResIds;
 
-    public DETAILAdapter(List<String> imageUrls, boolean isUrlList) {
+    public DetailAdapter(List<String> imageUrls, boolean isUrlList) {
         this.imageUrls = imageUrls != null ? imageUrls : new ArrayList<>();
         this.imageResIds = null;
     }
 
-    public DETAILAdapter(List<Integer> images) {
+    public DetailAdapter(List<Integer> images) {
         this.imageResIds = images != null ? images : new ArrayList<>();
         this.imageUrls = null;
     }

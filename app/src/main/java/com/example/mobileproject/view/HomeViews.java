@@ -1,4 +1,4 @@
-package com.example.mobileproject.ui;
+package com.example.mobileproject.view;
 
 import android.content.ContextWrapper;
 import android.content.res.ColorStateList;

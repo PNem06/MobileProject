@@ -20,7 +20,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
-import com.example.mobileproject.ui.HomeUi;
+import com.example.mobileproject.view.HomeUi;
 import com.example.mobileproject.view.Login;
 import com.example.mobileproject.viewmodel.HomeViewModel;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;

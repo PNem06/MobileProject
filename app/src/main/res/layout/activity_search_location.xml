@@ -91,6 +91,28 @@
                 android:singleLine="true" />
         </com.google.android.material.card.MaterialCardView>
 
+        <!--  Tiêu đề gợi ý địa điểm  -->
+        <TextView
+            android:id="@+id/txtSuggestionTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp"
+            android:text="Địa điểm phù hợp"
+            android:textColor="#000000"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:visibility="gone"/>
+
+        <!--  Danh sách gợi ý khi nhập  -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerLocationSuggestions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxHeight="220dp"
+            android:overScrollMode="never"
+            android:visibility="gone"/>
+
         <!-- Section Title: Tìm kiếm gần đây -->
         <TextView
             android:layout_width="wrap_content"

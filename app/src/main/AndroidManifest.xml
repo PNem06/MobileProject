@@ -14,7 +14,6 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MobileProject">
-
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -57,7 +56,6 @@
             android:name=".view.Login"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -76,12 +74,6 @@
             android:name=".view.Search.SearchLocationActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".view.Search.SearchActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
         <activity
             android:name=".view.Search.SearchTimeActivity"
             android:exported="false"
@@ -89,7 +81,7 @@
 
         <!-- Detail -->
         <activity
-            android:name=".view.DETAIL"
+            android:name=".view.Detail"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
@@ -98,7 +90,30 @@
             android:name=".view.New_Post"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
-
+        <activity
+            android:name=".view.SelectLocationMapActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".view.Search.SearchMapActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".view.Search.SearchGuestsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".view.Search.SearchResultsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".view.Search.BottomSheetFilterDialog"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".view.Search.BottomSheetSortDialog"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>

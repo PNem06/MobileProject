@@ -128,6 +128,7 @@
 
                     </LinearLayout>
 
+
                     <LinearLayout
                         android:id="@+id/cardTotalPost"
                         android:layout_width="0dp"
@@ -436,6 +437,17 @@
 
             </LinearLayout>
 
+            <Button
+                android:id="@+id/btnOpenManagePost"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Mở màn hình duyệt bài đăng"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#8B1E2D"
+                android:padding="12dp"/>
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -445,6 +457,7 @@
                 android:textColor="#555555"
                 android:textSize="14sp"
                 android:textStyle="italic" />
+
 
         </LinearLayout>
 

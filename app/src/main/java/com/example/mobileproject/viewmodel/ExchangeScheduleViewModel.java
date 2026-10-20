@@ -9,11 +9,10 @@ import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.example.mobileproject.repository.ExchangeScheduleRepository;
-import com.example.mobileproject.ui.ExchangeScheduleItem;
+import com.example.mobileproject.view.ExchangeScheduleItem;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 
 public class ExchangeScheduleViewModel extends AndroidViewModel {

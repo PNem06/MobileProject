@@ -1,4 +1,4 @@
-package com.example.mobileproject.ui.adapter;
+package com.example.mobileproject.adapter;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -74,9 +74,8 @@ public final class PostCardAdapter extends RecyclerView.Adapter<PostCardAdapter.
 
     public static final class PostViewHolder extends RecyclerView.ViewHolder {
         public final FrameLayout photoFrame, avatarFrame, favoriteButton;
-        public final ImageView photo, avatar;
+        public final ImageView photo, avatar, heart;
         public final TextView imageState, title, price, rating, badge, initials;
-        public final ImageView heart;
 
         public PostViewHolder(@NonNull View item) {
             super(item);
@@ -91,7 +90,7 @@ public final class PostCardAdapter extends RecyclerView.Adapter<PostCardAdapter.
             avatar = item.findViewById(R.id.postAvatar);
             initials = item.findViewById(R.id.postInitials);
             favoriteButton = item.findViewById(R.id.postFavoriteButton);
-            heart = favoriteButton.findViewById(R.id.favoriteGlyph);
+            heart = item.findViewById(R.id.favoriteGlyph);
         }
     }
 }

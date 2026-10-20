@@ -1,4 +1,4 @@
-package com.example.mobileproject.ui;
+package com.example.mobileproject.view;
 
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
@@ -15,10 +15,6 @@ import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.example.mobileproject.MainActivity;
 import com.example.mobileproject.R;
-import com.example.mobileproject.view.New_Post;
-import com.example.mobileproject.view.Request;
-import com.example.mobileproject.view.ExchangeScheduleActivity;
-import com.example.mobileproject.view.Chat;
 import com.example.mobileproject.viewmodel.HomeViewModel;
 import com.google.android.material.navigation.NavigationView;
 

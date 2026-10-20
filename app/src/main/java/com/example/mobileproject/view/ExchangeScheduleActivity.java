@@ -21,7 +21,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.mobileproject.MainActivity;
 import com.example.mobileproject.R;
-import com.example.mobileproject.ui.ExchangeScheduleItem;
+import com.example.mobileproject.adapter.ExchangeScheduleAdapter;
 import com.example.mobileproject.viewmodel.ExchangeScheduleViewModel;
 
 import java.text.SimpleDateFormat;
@@ -146,8 +146,8 @@ public class ExchangeScheduleActivity extends AppCompatActivity {
                 return;
             }
 
-            Intent intent = new Intent(this, DETAIL.class);
-            intent.putExtra(DETAIL.EXTRA_POST_ID, item.postId);
+            Intent intent = new Intent(this, Detail.class);
+            intent.putExtra(Detail.EXTRA_POST_ID, item.postId);
             startActivity(intent);
         });
 

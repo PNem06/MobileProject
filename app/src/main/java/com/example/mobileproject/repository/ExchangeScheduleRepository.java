@@ -7,7 +7,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.example.mobileproject.data.OfflineCache;
-import com.example.mobileproject.ui.ExchangeScheduleItem;
+import com.example.mobileproject.view.ExchangeScheduleItem;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;

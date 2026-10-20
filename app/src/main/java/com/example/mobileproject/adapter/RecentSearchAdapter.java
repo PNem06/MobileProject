@@ -1,4 +1,4 @@
-package com.example.mobileproject.view.Search;
+package com.example.mobileproject.adapter;
 
 import android.view.LayoutInflater;
 import android.view.View;

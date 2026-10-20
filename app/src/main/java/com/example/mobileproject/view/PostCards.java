@@ -1,4 +1,4 @@
-package com.example.mobileproject.ui;
+package com.example.mobileproject.view;
 
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
@@ -18,9 +18,8 @@ import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.example.mobileproject.MainActivity;
 import com.example.mobileproject.R;
-import com.example.mobileproject.ui.adapter.PostCardAdapter;
-import com.example.mobileproject.ui.adapter.PostCardAdapter.PostViewHolder;
-import com.example.mobileproject.view.DETAIL;
+import com.example.mobileproject.adapter.PostCardAdapter;
+import com.example.mobileproject.adapter.PostCardAdapter.PostViewHolder;
 import com.example.mobileproject.viewmodel.HomeViewModel;
 
 import org.json.JSONObject;
@@ -236,7 +235,7 @@ public class PostCards extends HomeViews {
         }
         try {
             activity.startActivity(
-                    new Intent(activity, DETAIL.class).putExtra(DETAIL.EXTRA_POST_ID, postId));
+                    new Intent(activity, Detail.class).putExtra(Detail.EXTRA_POST_ID, postId));
         } catch (ActivityNotFoundException error) {
             vm.tell("Chưa mở được trang chi tiết bài đăng.");
         }

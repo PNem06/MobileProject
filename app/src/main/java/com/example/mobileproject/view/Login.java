@@ -61,7 +61,17 @@ public class Login extends AppCompatActivity {
             if (e.isEmpty() || p.isEmpty()) { show("Vui lòng nhập email và mật khẩu."); return; }
             service.signInWithPassword(e, p, callback());
         });
-        findViewById(R.id.btnGoogle).setOnClickListener(v -> googleLauncher.launch(googleClient.getSignInIntent()));
+
+        findViewById(R.id.btnGoogle).setOnClickListener(v -> {
+            googleClient.signOut().addOnCompleteListener(this, task -> {
+                if (task.isSuccessful()) {
+                    googleLauncher.launch(googleClient.getSignInIntent());
+                } else {
+                    show("Không thể đặt lại phiên đăng nhập Google. Vui lòng thử lại.");
+                }
+            });
+        });
+
         findViewById(R.id.btnRegister).setOnClickListener(v -> startActivity(new Intent(this, Register.class)));
     }
     private AuthService.Callback callback() { return new AuthService.Callback() {

@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".view.New_Post">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="#FFFFFF"
+        android:elevation="4dp">
+
+        <TextView
+            android:id="@+id/btnBack"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="12dp"
+            android:background="@drawable/ic_arrow_back"
+            android:gravity="center"
+            android:textColor="#333333"
+            android:textSize="26sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:fontFamily="serif"
+            android:text="Bài Đăng Mới"
+            android:textColor="#111111"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+    </RelativeLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="10dp"
+        android:scrollbars="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="20dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="serif"
+                android:text="Hãy tạo một bài đăng mới"
+                android:textColor="#111111"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="serif"
+                android:text="Chia sẻ chỗ ở với những du khách đang cần"
+                android:textColor="#555555"
+                android:textSize="12sp" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="120dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_form_field">
+
+                <ImageView
+                    android:id="@+id/imgPreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="Ảnh xem trước"
+                    android:fontFamily="serif"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_blank_canvas"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/txtImageHint"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/ic_photo"
+                        android:textColor="#222222"
+                        android:textSize="30sp" />
+
+                    <Button
+                        android:id="@+id/btnChooseImage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:backgroundTint="#FFFFFF"
+                        android:fontFamily="serif"
+                        android:text="Thêm ảnh của bạn"
+                        android:textAllCaps="false"
+                        android:textColor="#222222" />
+
+                </LinearLayout>
+
+            </FrameLayout>
+
+            <TextView
+                style="@style/FormLabel"
+                android:fontFamily="serif"
+                android:text="Tên chỗ ở" />
+
+            <EditText
+                android:id="@+id/edtTitle"
+                style="@style/FormInput"
+                android:background="@drawable/bg_blank_canvas"
+                android:fontFamily="serif"
+                android:hint="Ví dụ: Căn hộ gần Quận 1"
+                android:inputType="textCapSentences" />
+
+            <TextView
+                style="@style/FormLabel"
+                android:fontFamily="serif"
+                android:text="Địa chỉ" />
+
+            <EditText
+                android:id="@+id/edtAddress"
+                style="@style/FormInput"
+                android:background="@drawable/bg_blank_canvas"
+                android:fontFamily="serif"
+                android:hint="Nhập địa chỉ chỗ ở"
+                android:inputType="textPostalAddress" />
+
+            <Button
+                android:id="@+id/btnGetLocation"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:backgroundTint="#FFFFFF"
+                android:fontFamily="serif"
+                android:text="Lấy vị trí hiện tại"
+                android:textAllCaps="false"
+                android:textColor="#222222" />
+
+            <Button
+                android:id="@+id/btnChooseMapLocation"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_marginTop="6dp"
+                android:backgroundTint="#E53935"
+                android:text="Chọn vị trí trên bản đồ"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF" />
+
+            <TextView
+                android:id="@+id/txtCoordinates"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="serif"
+                android:text="Chưa chọn vị trí"
+                android:textColor="#555555"
+                android:textSize="12sp" />
+
+            <TextView
+                style="@style/FormLabel"
+                android:fontFamily="serif"
+                android:text="Loại chỗ ở của bạn" />
+
+            <Spinner
+                android:id="@+id/spinnerPropertyType"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_blank_canvas" />
+
+            <TextView
+                style="@style/FormLabel"
+                android:fontFamily="serif"
+                android:text="Thông tin phòng" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/edtBedroomCount"
+                    style="@style/FormInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:background="@drawable/bg_blank_canvas"
+                    android:fontFamily="serif"
+                    android:hint="1"
+                    android:inputType="number"
+                    android:text="Phòng ngủ" />
+
+                <EditText
+                    android:id="@+id/edtBathroomCount"
+                    style="@style/FormInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/bg_blank_canvas"
+                    android:fontFamily="serif"
+                    android:hint="1"
+                    android:inputType="number"
+                    android:text="Phòng tắm" />
+
+            </LinearLayout>
+
+            <EditText
+                android:id="@+id/edtMaxGuests"
+                style="@style/FormInput"
+                android:background="@drawable/bg_blank_canvas"
+                android:fontFamily="serif"
+                android:hint="2"
+                android:inputType="number"
+                android:text="Số khách tối đa" />
+
+            <TextView
+                style="@style/FormLabel"
+                android:fontFamily="serif"
+                android:text="Thời gian cho thuê (Bắt đầu - Kết thúc)" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/edtStartDate"
+                    style="@style/FormInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:background="@drawable/bg_blank_canvas"
+                    android:clickable="true"
+                    android:focusable="false"
+                    android:fontFamily="serif"
+                    android:hint="Từ ngày" />
+
+                <EditText
+                    android:id="@+id/edtEndDate"
+                    style="@style/FormInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/bg_blank_canvas"
+                    android:clickable="true"
+                    android:focusable="false"
+                    android:fontFamily="serif"
+                    android:hint="Đến ngày" />
+
+            </LinearLayout>
+
+            <TextView
+                style="@style/FormLabel"
+                android:fontFamily="serif"
+                android:text="Mô tả chỗ ở" />
+
+            <EditText
+                android:id="@+id/edtDescription"
+                style="@style/FormInput"
+                android:layout_height="90dp"
+                android:background="@drawable/bg_blank_canvas"
+                android:fontFamily="serif"
+                android:gravity="top"
+                android:hint="Mô tả không gian, tiện ích, quy định..."
+                android:inputType="textCapSentences|textMultiLine" />
+
+            <TextView
+                style="@style/FormLabel"
+                android:text="Thông tin thêm" />
+
+            <EditText
+                android:id="@+id/edtAdditionalInfo"
+                style="@style/FormInput"
+                android:minHeight="64dp"
+                android:background="@drawable/bg_blank_canvas"
+                android:fontFamily="serif"
+                android:gravity="top"
+                android:hint="Ví dụ: Không hút thuốc..."
+                android:inputType="textCapSentences|textMultiLine" />
+
+        </LinearLayout>
+
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="#FFFFFF"
+        android:elevation="8dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingHorizontal="24dp">
+
+        <Button
+            android:id="@+id/btnCancel"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="16dp"
+            android:background="@drawable/bg_request_button_gray"
+            android:fontFamily="serif"
+            android:text="Hủy"
+            android:textAllCaps="false"
+            android:textColor="#E53935"
+            app:backgroundTint="@null" />
+
+        <Button
+            android:id="@+id/btnPublish"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_request_button_red"
+            android:fontFamily="serif"
+            android:text="Đăng"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            app:backgroundTint="@null" />
+
+    </LinearLayout>
+
+</LinearLayout>

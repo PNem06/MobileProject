@@ -1,4 +1,4 @@
-package com.example.mobileproject.view;
+package com.example.mobileproject.adapter;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.mobileproject.R;
-import com.example.mobileproject.ui.ExchangeScheduleItem;
+import com.example.mobileproject.view.ExchangeScheduleItem;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;

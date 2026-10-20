@@ -1,4 +1,4 @@
-package com.example.mobileproject.ui;
+package com.example.mobileproject.view;
 
 import android.app.AlertDialog;
 import android.graphics.Color;

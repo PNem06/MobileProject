@@ -17,6 +17,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.mobileproject.R;
+import com.example.mobileproject.adapter.DetailAdapter;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.Timestamp;
@@ -36,7 +37,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
-public class DETAIL extends AppCompatActivity {
+public class Detail extends AppCompatActivity {
     public static final String EXTRA_POST_ID = "postId";
 
     private FirebaseFirestore db;
@@ -348,7 +349,7 @@ public class DETAIL extends AppCompatActivity {
             return;
         }
 
-        DETAILAdapter adapter = new DETAILAdapter(urls, true);
+        DetailAdapter adapter = new DetailAdapter(urls, true);
         viewPagerImages.setAdapter(adapter);
 
         txtImageCount.setVisibility(View.VISIBLE);
