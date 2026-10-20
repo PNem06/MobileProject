@@ -358,7 +358,11 @@ public class SearchTimeActivity extends AppCompatActivity {
         txtCancelTime.setOnClickListener(v -> finish());
 
         btnNextTime.setOnClickListener(v -> {
-            Intent resultIntent = new Intent();
+            Intent resultIntent = new Intent(SearchTimeActivity.this, SearchResultsActivity.class);
+            String selectedLocation = getIntent().getStringExtra("SELECTED_LOCATION");
+            if (selectedLocation != null) {
+                resultIntent.putExtra("SELECTED_LOCATION", selectedLocation);
+            }
             if (isCustomTabActive) {
                 if (startDate == null) {
                     Toast.makeText(this, "Vui lòng chọn ngày bắt đầu", Toast.LENGTH_SHORT).show();
@@ -376,8 +380,7 @@ public class SearchTimeActivity extends AppCompatActivity {
                 resultIntent.putExtra("FLEX_DURATION", selectedFlexibleDuration);
                 resultIntent.putExtra("FLEX_MONTH", selectedFlexibleMonth);
             }
-            setResult(RESULT_OK, resultIntent);
-            finish();
+            startActivity(resultIntent);
         });
     }
 }

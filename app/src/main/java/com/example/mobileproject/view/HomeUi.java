@@ -113,6 +113,13 @@ public class HomeUi extends HomeViews {
             hideKeyboard();
             return true;
         });
+        searchInput.setOnClickListener(v -> {
+            Intent intent = new Intent(
+                    activity,
+                    com.example.mobileproject.view.Search.SearchLocationActivity.class
+            );
+            activity.startActivity(intent);
+        });
     }
 
     private void restoreState(Bundle saved) {
