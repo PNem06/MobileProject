@@ -67,6 +67,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-livedata:2.10.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel:2.10.0")
     implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation("com.google.android.libraries.places:places:4.3.1")
+    implementation("androidx.recyclerview:recyclerview:1.4.0")
 
     implementation("androidx.cardview:cardview:1.0.0")
 
