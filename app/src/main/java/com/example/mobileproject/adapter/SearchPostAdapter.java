@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.mobileproject.R;
 import com.example.mobileproject.model.ListingPost;
+import com.example.mobileproject.util.PostImageUtils;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
@@ -57,10 +58,16 @@ public class SearchPostAdapter extends RecyclerView.Adapter<SearchPostAdapter.Po
         holder.txtCurrentPrice.setText(formatter.format(post.getPricePerNight()));
 
         if (post.getCoverImageUrl() != null && !post.getCoverImageUrl().isEmpty()) {
-            Glide.with(context)
-                    .load(post.getCoverImageUrl())
-                    .placeholder(R.drawable.logo_stageexchange)
-                    .into(holder.imgPostCover);
+            Object imageModel = PostImageUtils.asGlideModel(post.getCoverImageUrl());
+            if (imageModel != null) {
+                Glide.with(context)
+                        .load(imageModel)
+                        .placeholder(R.drawable.logo_stageexchange)
+                        .error(R.drawable.logo_stageexchange)
+                        .into(holder.imgPostCover);
+            } else {
+                holder.imgPostCover.setImageResource(R.drawable.logo_stageexchange);
+            }
         } else {
             holder.imgPostCover.setImageResource(R.drawable.logo_stageexchange);
         }

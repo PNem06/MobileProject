@@ -95,6 +95,7 @@ public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCa
                         String title = normalize(post.getTitle());
                         if (query.isEmpty() || matchesLocation(query, address, title)) {
                             posts.add(post);
+                            loadCoverImage(post);
                         }
                     }
                     adapter.notifyDataSetChanged();
@@ -104,6 +105,40 @@ public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCa
                 .addOnFailureListener(error -> {
                     txtMapListHeader.setText("Không tải được danh sách chỗ ở");
                     Toast.makeText(this, "Lỗi tải bài đăng: " + error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                });
+    }
+
+
+    private void loadCoverImage(ListingPost post) {
+        if (post == null || post.getPostId() == null || post.getPostId().trim().isEmpty()) return;
+
+        FirebaseFirestore.getInstance().collection("images")
+                .whereEqualTo("postId", post.getPostId())
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    if (isFinishing() || isDestroyed() || snapshot == null || snapshot.isEmpty()) return;
+
+                    DocumentSnapshot first = null;
+                    long bestOrder = Long.MAX_VALUE;
+                    for (DocumentSnapshot imageDoc : snapshot.getDocuments()) {
+                        Object orderValue = imageDoc.get("orderIndex");
+                        long order = orderValue instanceof Number
+                                ? ((Number) orderValue).longValue()
+                                : Long.MAX_VALUE - 1;
+                        if (first == null || order < bestOrder) {
+                            first = imageDoc;
+                            bestOrder = order;
+                        }
+                    }
+
+                    if (first != null) {
+                        String image = first.getString("imgUrl");
+                        if (image == null || image.isEmpty()) image = first.getString("imageUrl");
+                        if (image != null && !image.isEmpty()) {
+                            post.setCoverImageUrl(image);
+                            if (adapter != null) adapter.notifyDataSetChanged();
+                        }
+                    }
                 });
     }
 

@@ -15,6 +15,7 @@
     </queries>
 
     <application
+        android:name=".MobileProjectApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -54,10 +55,18 @@
             android:name=".view.DashboardAdmin"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".view.AdminManagePostActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
 
         <!-- Request -->
         <activity
             android:name=".view.Request"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".view.ReceivedRequestsDetailActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 

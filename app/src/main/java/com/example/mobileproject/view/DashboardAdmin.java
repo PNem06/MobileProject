@@ -134,15 +134,14 @@ public class DashboardAdmin extends AppCompatActivity {
             showComingSoon("Quản lý tài khoản User");
         });
 
-        // QUAN LY BAI DANG
+        // QUAN LY BAI DANG -> Mở trang kiểm duyệt bài đăng (AdminManagePostActivity)
         findViewById(R.id.layoutManagePost).setOnClickListener(v -> {
-
-            showComingSoon("Quản lý bài đăng");
+            Intent intent = new Intent(DashboardAdmin.this, AdminManagePostActivity.class);
+            startActivity(intent);
         });
 
         // QUAN LY TRAO DOI
         findViewById(R.id.layoutManageExchange).setOnClickListener(v -> {
-
             showComingSoon("Quản lý các trao đổi");
         });
 

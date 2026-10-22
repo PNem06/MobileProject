@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.mobileproject.R;
+import com.example.mobileproject.util.PostImageUtils;
 import com.example.mobileproject.view.ExchangeScheduleItem;
 
 import java.text.SimpleDateFormat;
@@ -84,7 +85,7 @@ public class ExchangeScheduleAdapter
 
         if (item.imageUrl != null && !item.imageUrl.isEmpty()) {
             Glide.with(h.image)
-                    .load(item.imageUrl)
+                    .load(PostImageUtils.asGlideModel(item.imageUrl))
                     .placeholder(android.R.drawable.ic_menu_gallery)
                     .error(android.R.drawable.ic_menu_gallery)
                     .centerCrop()

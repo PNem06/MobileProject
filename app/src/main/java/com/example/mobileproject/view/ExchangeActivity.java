@@ -176,12 +176,16 @@ public class ExchangeActivity extends AppCompatActivity {
                             .add(request)
                             .addOnSuccessListener(ref -> {
                                 Map<String, Object> notification = new HashMap<>();
+                                notification.put("userId", recipientId);
                                 notification.put("recipientId", recipientId);
                                 notification.put("senderId", currentUid);
                                 notification.put("type", "exchange_request");
                                 notification.put("requestId", ref.getId());
                                 notification.put("targetPostId", targetPostId);
+                                notification.put("postId", targetPostId);
                                 notification.put("offeredPostId", selectedPostId);
+                                notification.put("title", "Đề nghị trao đổi phòng");
+                                notification.put("body", "Bạn nhận được một đề nghị trao đổi phòng.");
                                 notification.put("message",
                                         "Bạn nhận được một đề nghị trao đổi phòng.");
                                 notification.put("isRead", false);

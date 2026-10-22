@@ -117,6 +117,15 @@ public class Exchange {
         this.cancelReason = cancelReason;
         this.status = status;
     }
+
+    // Alias khớp tên field đang lưu trong Firestore: requester_accountId, host_accountId.
+    public String getRequester_accountId() { return requesterId; }
+    public void setRequester_accountId(String value) { this.requesterId = value; }
+    public String getHost_accountId() { return hostId; }
+    public void setHost_accountId(String value) { this.hostId = value; }
+
+    public Exchange() { }
+
     public void request(){
         this.status = ExchangeStatus.PENDING;
     }

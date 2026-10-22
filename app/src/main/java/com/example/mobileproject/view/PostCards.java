@@ -20,6 +20,7 @@ import com.example.mobileproject.MainActivity;
 import com.example.mobileproject.R;
 import com.example.mobileproject.adapter.PostCardAdapter;
 import com.example.mobileproject.adapter.PostCardAdapter.PostViewHolder;
+import com.example.mobileproject.util.PostImageUtils;
 import com.example.mobileproject.viewmodel.HomeViewModel;
 
 import org.json.JSONObject;
@@ -150,16 +151,32 @@ public class PostCards extends HomeViews {
         boolean favorite = vm.isFavorite(id);
         holder.heart.setImageResource(favorite ? R.drawable.ic_favorite : R.drawable.ic_heart_outline);
         holder.heart.setColorFilter(favorite ? 0xFFD92D38 : Color.WHITE);
-        String badge =
-                mine
-                        ? ""
-                        : vm.isFavorite(id)
-                          ? "Được bạn\nyêu thích"
-                          : PostCardData.isAvailable(post, System.currentTimeMillis())
-                            ? "Còn trống"
-                            : "";
+        String status = post.optString("status", "PENDING").trim().toUpperCase();
+        String badge = "";
+        if (mine) {
+            if ("APPROVED".equalsIgnoreCase(status) || "PUBLIC".equalsIgnoreCase(status) || "ACTIVE".equalsIgnoreCase(status)) {
+                badge = "Active";
+                holder.badge.setBackground(round(0xFFE8F5E9, 12));
+                holder.badge.setTextColor(0xFF2E7D32);
+            } else if ("REJECTED".equalsIgnoreCase(status) || "PRIVATE".equalsIgnoreCase(status)) {
+                badge = "Bị từ chối";
+                holder.badge.setBackground(round(0xFFFFEBEE, 12));
+                holder.badge.setTextColor(0xFFD32F2F);
+            } else {
+                badge = "Chờ duyệt";
+                holder.badge.setBackground(round(0xFFFFF3E0, 12));
+                holder.badge.setTextColor(0xFFE65100);
+            }
+        } else {
+            badge = vm.isFavorite(id)
+                    ? "Được bạn\nyêu thích"
+                    : PostCardData.isAvailable(post, System.currentTimeMillis())
+                    ? "Còn trống"
+                    : "";
+            holder.badge.setBackground(round(Color.WHITE, 12));
+            holder.badge.setTextColor(0xFF222222);
+        }
         holder.badge.setText(badge);
-        holder.badge.setBackground(round(Color.WHITE, 12));
         holder.badge.setVisibility(badge.isEmpty() ? View.GONE : View.VISIBLE);
         holder.itemView.setOnClickListener(v -> postDetails(post));
     }
@@ -171,8 +188,13 @@ public class PostCards extends HomeViews {
         holder.imageState.setVisibility(View.VISIBLE);
         holder.imageState.setText(url.isEmpty() ? "Chưa có ảnh" : "Đang tải ảnh…");
         if (url.isEmpty()) return;
+        Object imageModel = PostImageUtils.asGlideModel(url);
+        if (imageModel == null) {
+            holder.imageState.setText("Không tải được ảnh");
+            return;
+        }
         Glide.with(activity)
-                .load(url)
+                .load(imageModel)
                 .centerCrop()
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
                 .listener(

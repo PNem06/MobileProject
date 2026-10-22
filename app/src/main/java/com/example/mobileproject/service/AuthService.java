@@ -117,11 +117,14 @@ public class AuthService {
 
     // Hàm dùng chung cho cả Email và Username
     private void loginByEmail(String email, String password, Callback callback) {
-
         auth.signInWithEmailAndPassword(email.trim(), password)
                 .addOnSuccessListener(result -> loadProfile(callback))
                 .addOnFailureListener(e -> {
-                    callback.onError("Tên đăng nhập/email hoặc mật khẩu không chính xác.");
+                    callback.onError(
+                            "Lỗi đăng nhập Firebase: "
+                                    + e.getClass().getSimpleName()
+                                    + " - " + e.getMessage()
+                    );
                 });
     }
 

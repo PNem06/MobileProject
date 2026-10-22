@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.mobileproject.R;
+import com.example.mobileproject.util.PostImageUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,11 +42,17 @@ public class DetailAdapter extends RecyclerView.Adapter<DetailAdapter.ImageViewH
         if (imageUrls != null && position < imageUrls.size()) {
             String url = imageUrls.get(position);
             if (url != null && !url.trim().isEmpty()) {
-                Glide.with(holder.imageView.getContext())
-                        .load(url)
-                        .centerCrop()
-                        .placeholder(android.R.drawable.ic_menu_gallery)
-                        .into(holder.imageView);
+                Object model = PostImageUtils.asGlideModel(url);
+                if (model != null) {
+                    Glide.with(holder.imageView.getContext())
+                            .load(model)
+                            .centerCrop()
+                            .placeholder(android.R.drawable.ic_menu_gallery)
+                            .error(android.R.drawable.ic_menu_gallery)
+                            .into(holder.imageView);
+                } else {
+                    holder.imageView.setImageResource(android.R.drawable.ic_menu_gallery);
+                }
             } else {
                 holder.imageView.setImageResource(android.R.drawable.ic_menu_gallery);
             }

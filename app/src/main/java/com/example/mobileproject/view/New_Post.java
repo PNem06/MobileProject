@@ -4,6 +4,8 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.util.Base64;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.Matrix;
 import android.location.Address;
@@ -40,8 +42,6 @@ import androidx.core.view.WindowInsetsCompat;
 import com.bumptech.glide.Glide;
 import com.example.mobileproject.R;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.Task;
-import com.google.android.gms.tasks.Tasks;
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -49,12 +49,12 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.WriteBatch;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
 
 import java.io.IOException;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -68,7 +68,6 @@ import java.util.TimeZone;
 
 public class New_Post extends AppCompatActivity {
     private FirebaseFirestore db;
-    private FirebaseStorage storage;
     private EditText title, address, destination, description, extra, bedrooms, bathrooms, guests, start, end, price;
     private Spinner propertyType;
     private LinearLayout imagePreviewList, amenitiesList;
@@ -98,7 +97,6 @@ public class New_Post extends AppCompatActivity {
         });
 
         db = FirebaseFirestore.getInstance();
-        storage = FirebaseStorage.getInstance();
 
         bindViews();
         setupSpinner();
@@ -589,40 +587,120 @@ public class New_Post extends AppCompatActivity {
         return selected;
     }
 
-    private void uploadImagesAndSave(DocumentReference postRef, Map<String, Object> post, String postId) {
-        List<Task<Uri>> uploads = new ArrayList<>();
-        long timestamp = System.currentTimeMillis();
-        for (int i = 0; i < imageUris.size(); i++) {
-            Uri imageUri = imageUris.get(i);
-            StorageReference reference = storage.getReference()
-                    .child("post_images/" + postId + "/" + timestamp + "_" + i + ".jpg");
-            uploads.add(reference.putFile(imageUri).continueWithTask(task -> {
-                if (!task.isSuccessful() && task.getException() != null) throw task.getException();
-                return reference.getDownloadUrl();
-            }));
-        }
-        Task<List<Uri>> allUploads = uploads.isEmpty()
-                ? Tasks.<List<Uri>>forResult(Collections.emptyList())
-                : Tasks.<Uri>whenAllSuccess(uploads);
-        allUploads.addOnSuccessListener(downloadUrls -> {
-            WriteBatch batch = db.batch();
-            batch.set(postRef, post);
-            for (int i = 0; i < downloadUrls.size(); i++) {
-                Uri downloadUrl = downloadUrls.get(i);
-                DocumentReference imageRef = db.collection("images").document();
-                Map<String, Object> image = new HashMap<>();
-                image.put("ImgId", imageRef.getId());
-                image.put("imgUrl", downloadUrl.toString());
-                image.put("orderIndex", i);
-                image.put("postId", postId);
-                batch.set(imageRef, image);
+    /**
+     * Lưu ảnh bài đăng trực tiếp trong Firestore dưới dạng Base64.
+     * Mỗi ảnh nằm trong một document riêng của collection "images" để
+     * không làm document "posts" vượt giới hạn 1 MiB.
+     */
+    private void uploadImagesAndSave(DocumentReference postRef,
+                                     Map<String, Object> post,
+                                     String postId) {
+        final List<Uri> urisToSave = new ArrayList<>(imageUris);
+
+        new Thread(() -> {
+            List<String> encodedImages = new ArrayList<>();
+
+            try {
+                for (Uri uri : urisToSave) {
+                    encodedImages.add(encodePostImage(uri));
+                }
+            } catch (Exception e) {
+                runOnUiThread(() ->
+                        finishPublish(false,
+                                "Không xử lý được ảnh: " + e.getMessage()));
+                return;
             }
-            batch.commit().addOnSuccessListener(v -> {
-                finishPublish(true, "Đăng bài thành công!");
-                setResult(RESULT_OK);
-                finish();
-            }).addOnFailureListener(e -> finishPublish(false, "Đăng thất bại: " + e.getMessage()));
-        }).addOnFailureListener(e -> finishPublish(false, "Tải ảnh thất bại: " + e.getMessage()));
+
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) return;
+
+                WriteBatch batch = db.batch();
+                batch.set(postRef, post);
+
+                for (int i = 0; i < encodedImages.size(); i++) {
+                    DocumentReference imageRef = db.collection("images").document();
+                    Map<String, Object> image = new HashMap<>();
+                    image.put("ImgId", imageRef.getId());
+                    // Giữ tên trường mà các màn hình hiện tại đang đọc.
+                    // Giá trị giờ là Base64 thay vì URL Storage.
+                    image.put("imgUrl", encodedImages.get(i));
+                    image.put("orderIndex", i);
+                    image.put("postId", postId);
+                    batch.set(imageRef, image);
+                }
+
+                batch.commit()
+                        .addOnSuccessListener(v -> {
+                            finishPublish(true, "Đã gửi bài đăng! Vui lòng chờ Admin kiểm duyệt.");
+                            setResult(RESULT_OK);
+                            finish();
+                        })
+                        .addOnFailureListener(e ->
+                                finishPublish(false,
+                                        "Đăng thất bại: " + e.getMessage()));
+            });
+        }, "encode-post-images").start();
+    }
+
+    /**
+     * Đọc ảnh, thu nhỏ tối đa 900 px và nén JPEG.
+     * Giữ mỗi chuỗi Base64 dưới khoảng 700 KiB để chừa chỗ cho metadata
+     * trong giới hạn 1 MiB/document của Firestore.
+     */
+    private String encodePostImage(Uri uri) throws IOException {
+        Bitmap original;
+        try (InputStream input = getContentResolver().openInputStream(uri)) {
+            if (input == null) throw new IOException("Không mở được ảnh.");
+            original = BitmapFactory.decodeStream(input);
+        }
+
+        if (original == null) throw new IOException("Tệp ảnh không hợp lệ.");
+
+        Bitmap working = original;
+        int maxSide = 900;
+        int longest = Math.max(original.getWidth(), original.getHeight());
+
+        if (longest > maxSide) {
+            float scale = (float) maxSide / longest;
+            working = Bitmap.createScaledBitmap(
+                    original,
+                    Math.max(1, Math.round(original.getWidth() * scale)),
+                    Math.max(1, Math.round(original.getHeight() * scale)),
+                    true
+            );
+        }
+
+        String result = compressToBase64(working, 45);
+
+        if (result.length() > 700 * 1024) {
+            Bitmap smaller = working;
+            float scale = 700f / Math.max(working.getWidth(), working.getHeight());
+            smaller = Bitmap.createScaledBitmap(
+                    working,
+                    Math.max(1, Math.round(working.getWidth() * scale)),
+                    Math.max(1, Math.round(working.getHeight() * scale)),
+                    true
+            );
+            result = compressToBase64(smaller, 35);
+            if (smaller != working && smaller != original) smaller.recycle();
+        }
+
+        if (working != original) working.recycle();
+        original.recycle();
+
+        if (result.length() > 700 * 1024) {
+            throw new IOException(
+                    "Ảnh quá lớn sau khi nén. Vui lòng chọn ảnh khác.");
+        }
+
+        return result;
+    }
+
+    private String compressToBase64(Bitmap bitmap, int quality) throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        boolean success = bitmap.compress(Bitmap.CompressFormat.JPEG, quality, output);
+        if (!success) throw new IOException("Không thể nén ảnh.");
+        return Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP);
     }
 
     private int parsePositive(EditText field, String label, int fallback) {

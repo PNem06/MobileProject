@@ -19,6 +19,11 @@ public final class HomePostMapper {
         if (fields == null) fields = java.util.Collections.emptyMap();
         try {
             result.put("id", id);
+            for (Map.Entry<String, Object> entry : fields.entrySet()) {
+                if (entry.getValue() != null) {
+                    result.put(entry.getKey(), entry.getValue().toString());
+                }
+            }
             for (String key :
                     new String[] {
                             "fullName",
@@ -30,7 +35,11 @@ public final class HomePostMapper {
                             "description",
                             "status",
                             "body",
-                            "type"
+                            "type",
+                            "postId",
+                            "targetPostId",
+                            "offeredPostId",
+                            "requestId"
                     }) {
                 result.put(key, text(fields, key, ""));
             }

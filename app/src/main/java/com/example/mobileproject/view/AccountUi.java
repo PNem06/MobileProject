@@ -1,6 +1,7 @@
 package com.example.mobileproject.view;
 
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.graphics.Color;
 import android.view.View;
 import android.widget.*;
@@ -171,12 +172,29 @@ public class AccountUi extends HomeViews {
                 txtNotificationDate.setVisibility(View.VISIBLE);
             }
             row.setOnClickListener(v -> {
-                new AlertDialog.Builder(this)
-                        .setTitle(notice.optString("title"))
-                        .setMessage(notice.optString("body"))
-                        .setPositiveButton("Đóng", null)
-                        .show();
                 if (!notice.optBoolean("read")) vm.markRead(notice);
+                String postId = notice.optString("postId");
+                if (postId.isEmpty()) postId = notice.optString("targetPostId");
+                if (postId.isEmpty()) postId = notice.optString("requestId");
+                if (!postId.isEmpty()) {
+                    try {
+                        Intent intent = new Intent(activity, Detail.class);
+                        intent.putExtra(Detail.EXTRA_POST_ID, postId);
+                        activity.startActivity(intent);
+                    } catch (Exception e) {
+                        new AlertDialog.Builder(this)
+                                .setTitle(notice.optString("title"))
+                                .setMessage(notice.optString("body"))
+                                .setPositiveButton("Đóng", null)
+                                .show();
+                    }
+                } else {
+                    new AlertDialog.Builder(this)
+                            .setTitle(notice.optString("title"))
+                            .setMessage(notice.optString("body"))
+                            .setPositiveButton("Đóng", null)
+                            .show();
+                }
             });
             rows.addView(row);
             divider(rows);

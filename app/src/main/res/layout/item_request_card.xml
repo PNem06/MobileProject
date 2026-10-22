@@ -143,6 +143,36 @@
 
         </LinearLayout>
 
+        <!-- Received Sub Stats Row -->
+        <LinearLayout
+            android:id="@+id/layoutReceivedSubStats"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/txtSubRequestsCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 yêu cầu"
+                android:textColor="#1565C0"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/txtRejectedCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="0 đã từ chối"
+                android:textColor="#D32F2F"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
         <!-- Bottom Action Buttons Row -->
         <LinearLayout
             android:layout_width="match_parent"

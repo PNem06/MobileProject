@@ -1,27 +1,32 @@
 package com.example.mobileproject.adapter;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.mobileproject.R;
 import com.example.mobileproject.model.RequestItem;
+import com.example.mobileproject.util.PostImageUtils;
 
 import java.util.List;
+import java.util.Locale;
 
 public class RequestAdapter extends RecyclerView.Adapter<RequestAdapter.ViewHolder> {
 
     public interface OnRequestListener {
-        void onCardClick(RequestItem item);
-        void onLeftActionClick(RequestItem item);
-        void onRightActionClick(RequestItem item);
+        void onItemClick(RequestItem item);
+        void onLeftButtonClick(RequestItem item);
+        void onRightButtonClick(RequestItem item);
     }
 
     private final Context context;
@@ -45,75 +50,126 @@ public class RequestAdapter extends RecyclerView.Adapter<RequestAdapter.ViewHold
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         RequestItem item = items.get(position);
 
-        holder.txtPostTitle.setText(valueOrDefault(item.postTitle, "Chi tiết chỗ ở"));
-        holder.txtDates.setText(valueOrDefault(item.dateRangeText, "Thời gian trao đổi chưa xác định"));
-        holder.txtPriceOrPoints.setText(valueOrDefault(item.priceOrPointsText, "Thỏa thuận"));
-        holder.txtRating.setText("★ " + String.format(java.util.Locale.US, "%.1f", item.rating));
+        holder.txtPostTitle.setText(valueOrDefault(item.postTitle, "Căn hộ chỗ ở"));
+        holder.txtDates.setText(valueOrDefault(item.dateRangeText, "31/02/2026 - 4/03/2026"));
+        holder.txtRating.setText(String.format(Locale.US, "%.1f", item.rating));
 
-        // Tải ảnh Glide
+        // Tải ảnh bài đăng
         if (item.postImageUrl != null && !item.postImageUrl.trim().isEmpty()) {
-            Glide.with(context)
-                    .load(item.postImageUrl)
-                    .placeholder(R.drawable.bg_blank_canvas)
-                    .error(R.drawable.bg_blank_canvas)
-                    .into(holder.imgPostThumbnail);
+            Object imageModel = PostImageUtils.asGlideModel(item.postImageUrl);
+            if (imageModel != null) {
+                Glide.with(context)
+                        .load(imageModel)
+                        .placeholder(R.drawable.bg_blank_canvas)
+                        .error(R.drawable.bg_blank_canvas)
+                        .into(holder.imgPostThumbnail);
+            } else {
+                holder.imgPostThumbnail.setImageResource(R.drawable.bg_blank_canvas);
+            }
         } else {
             holder.imgPostThumbnail.setImageResource(R.drawable.bg_blank_canvas);
         }
 
-        // Cấu hình trạng thái & nút bấm dựa trên Tab ("Đã Gửi" hay "Đã Nhận")
         String status = item.status == null ? "PENDING" : item.status.toUpperCase();
 
-        if ("ACCEPTED".equals(status)) {
-            holder.txtStatusBadge.setText("Đã chấp nhận");
-            holder.txtStatusBadge.setBackgroundResource(R.drawable.bg_status_accepted);
-            holder.txtStatusBadge.setTextColor(0xFFFFFFFF);
+        if (item.isSentTab) {
+            // TAB "ĐÃ GỬI"
+            holder.layoutReceivedSubStats.setVisibility(View.GONE);
 
-            if (item.isSentTab) {
-                holder.btnActionLeft.setText("Liên hệ chủ");
+            if ("ACCEPTED".equals(status)) {
+                holder.txtStatusBadge.setText("Đã chấp nhận");
+                holder.txtStatusBadge.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_badge_accepted));
+                holder.txtStatusBadge.setTextColor(Color.parseColor("#1565C0"));
+
+                holder.btnActionLeft.setVisibility(View.VISIBLE);
+                holder.btnActionLeft.setText("Liên hệ");
+                holder.btnActionLeft.setTextColor(Color.parseColor("#D32F2F"));
+
+                holder.btnActionRight.setVisibility(View.VISIBLE);
                 holder.btnActionRight.setText("Tiếp tục");
+                holder.btnActionRight.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_btn_primary_blue));
+
+            } else if ("CANCELLED".equals(status) || "REJECTED".equals(status)) {
+                holder.txtStatusBadge.setText("CANCELLED".equals(status) ? "Đã hủy" : "Đã từ chối");
+                holder.txtStatusBadge.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_badge_pending));
+                holder.txtStatusBadge.setTextColor(Color.parseColor("#D32F2F"));
+
+                holder.btnActionLeft.setVisibility(View.VISIBLE);
+                holder.btnActionLeft.setText("Liên hệ");
+                holder.btnActionLeft.setTextColor(Color.parseColor("#D32F2F"));
+
+                holder.btnActionRight.setVisibility(View.GONE);
+
             } else {
-                holder.btnActionLeft.setText("Report");
-                holder.btnActionRight.setText("Tiếp tục");
-            }
-        } else if ("CANCELLED".equals(status) || "REJECTED".equals(status)) {
-            holder.txtStatusBadge.setText("Đã hủy");
-            holder.txtStatusBadge.setBackgroundResource(R.drawable.bg_status_cancelled);
-            holder.txtStatusBadge.setTextColor(0xFFFFFFFF);
+                // PENDING - Đang chờ
+                holder.txtStatusBadge.setText("Đang chờ");
+                holder.txtStatusBadge.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_badge_pending));
+                holder.txtStatusBadge.setTextColor(Color.parseColor("#E65100"));
 
-            holder.btnActionLeft.setText("Report");
-            holder.btnActionRight.setText("Block");
-        } else {
-            // PENDING - Đang chờ
-            holder.txtStatusBadge.setText("Đang chờ");
-            holder.txtStatusBadge.setBackgroundResource(R.drawable.bg_status_waiting);
-            holder.txtStatusBadge.setTextColor(0xFF222222);
-
-            if (item.isSentTab) {
+                holder.btnActionLeft.setVisibility(View.VISIBLE);
                 holder.btnActionLeft.setText("Hủy");
-                holder.btnActionRight.setText("Chỉnh sửa");
+                holder.btnActionLeft.setTextColor(Color.parseColor("#D32F2F"));
+
+                holder.btnActionRight.setVisibility(View.VISIBLE);
+                if (item.hasMoneyAlternativePending) {
+                    holder.btnActionRight.setText("Thanh toán");
+                } else {
+                    holder.btnActionRight.setText("Chỉnh sửa");
+                }
+                holder.btnActionRight.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_btn_primary_blue));
+            }
+
+        } else {
+            // TAB "ĐÃ NHẬN"
+            holder.layoutReceivedSubStats.setVisibility(View.VISIBLE);
+            holder.txtSubRequestsCount.setText(item.subRequestsCount + " yêu cầu");
+            holder.txtRejectedCount.setText(item.rejectedSubRequestsCount + " đã từ chối");
+
+            if ("ACCEPTED".equals(status)) {
+                holder.txtStatusBadge.setText("Đã chấp nhận");
+                holder.txtStatusBadge.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_badge_accepted));
+                holder.txtStatusBadge.setTextColor(Color.parseColor("#1565C0"));
+
+                holder.btnActionLeft.setVisibility(View.VISIBLE);
+                holder.btnActionLeft.setText("Xem");
+                holder.btnActionLeft.setTextColor(Color.parseColor("#D32F2F"));
+
+                holder.btnActionRight.setVisibility(View.VISIBLE);
+                holder.btnActionRight.setText("Tiếp tục");
+                holder.btnActionRight.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_btn_primary_blue));
+
             } else {
-                holder.btnActionLeft.setText("Từ chối");
-                holder.btnActionRight.setText("Đồng ý");
+                // PENDING - Đang chờ
+                holder.txtStatusBadge.setText("Đang chờ");
+                holder.txtStatusBadge.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_badge_pending));
+                holder.txtStatusBadge.setTextColor(Color.parseColor("#E65100"));
+
+                holder.btnActionLeft.setVisibility(View.VISIBLE);
+                holder.btnActionLeft.setText("Xem");
+                holder.btnActionLeft.setTextColor(Color.parseColor("#D32F2F"));
+
+                holder.btnActionRight.setVisibility(View.VISIBLE);
+                holder.btnActionRight.setText("Chấp nhận");
+                holder.btnActionRight.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_btn_primary_blue));
             }
         }
 
         holder.itemView.setOnClickListener(v -> {
-            if (listener != null) listener.onCardClick(item);
+            if (listener != null) listener.onItemClick(item);
         });
 
         holder.btnActionLeft.setOnClickListener(v -> {
-            if (listener != null) listener.onLeftActionClick(item);
+            if (listener != null) listener.onLeftButtonClick(item);
         });
 
         holder.btnActionRight.setOnClickListener(v -> {
-            if (listener != null) listener.onRightActionClick(item);
+            if (listener != null) listener.onRightButtonClick(item);
         });
     }
 
     @Override
     public int getItemCount() {
-        return items.size();
+        return items != null ? items.size() : 0;
     }
 
     private String valueOrDefault(String val, String fallback) {
@@ -122,20 +178,23 @@ public class RequestAdapter extends RecyclerView.Adapter<RequestAdapter.ViewHold
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         ImageView imgPostThumbnail, btnHeart;
-        TextView txtBadgeFavorite, txtStatusBadge, txtRating;
-        TextView txtPostTitle, txtDates, txtPriceOrPoints;
+        TextView txtStatusBadge, txtRating;
+        TextView txtPostTitle, txtDates;
+        LinearLayout layoutReceivedSubStats;
+        TextView txtSubRequestsCount, txtRejectedCount;
         TextView btnActionLeft, btnActionRight;
 
         ViewHolder(@NonNull View itemView) {
             super(itemView);
             imgPostThumbnail = itemView.findViewById(R.id.imgPostThumbnail);
             btnHeart = itemView.findViewById(R.id.btnHeart);
-            txtBadgeFavorite = itemView.findViewById(R.id.txtBadgeFavorite);
             txtStatusBadge = itemView.findViewById(R.id.txtStatusBadge);
             txtRating = itemView.findViewById(R.id.txtRating);
             txtPostTitle = itemView.findViewById(R.id.txtPostTitle);
             txtDates = itemView.findViewById(R.id.txtDates);
-            txtPriceOrPoints = itemView.findViewById(R.id.txtPriceOrPoints);
+            layoutReceivedSubStats = itemView.findViewById(R.id.layoutReceivedSubStats);
+            txtSubRequestsCount = itemView.findViewById(R.id.txtSubRequestsCount);
+            txtRejectedCount = itemView.findViewById(R.id.txtRejectedCount);
             btnActionLeft = itemView.findViewById(R.id.btnActionLeft);
             btnActionRight = itemView.findViewById(R.id.btnActionRight);
         }
