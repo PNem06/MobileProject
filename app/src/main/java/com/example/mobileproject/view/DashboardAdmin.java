@@ -131,7 +131,7 @@ public class DashboardAdmin extends AppCompatActivity {
         // QUAN LY TAI KHOAN USER
         findViewById(R.id.layoutManageUser).setOnClickListener(v -> {
 
-            showComingSoon("Quản lý tài khoản User");
+            startActivity(new Intent(this, AdminUsersActivity.class));
         });
 
         // QUAN LY BAI DANG

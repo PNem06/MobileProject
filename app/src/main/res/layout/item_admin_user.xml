@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="4dp"
+    android:layout_marginEnd="4dp"
+    android:layout_marginBottom="16dp"
+    android:foreground="?android:attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardBackgroundColor="@android:color/white"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp"
+    app:strokeColor="#E2E7EF"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <ImageView
+            android:id="@+id/adminUserAvatar"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:contentDescription="@string/admin_user_avatar_description"
+            android:src="@drawable/ic_profile" />
+
+        <TextView
+            android:id="@+id/adminUserName"
+            style="@style/AdminUserText"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            tools:text="Người dùng kiểm thử" />
+
+        <TextView
+            android:id="@+id/adminUserEmail"
+            style="@style/AdminUserTextMuted"
+            tools:text="user@example.com" />
+
+        <TextView
+            android:id="@+id/adminUserStatus"
+            style="@style/AdminUserText"
+            android:textColor="@color/admin_user_status_text"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            tools:text="Đã khóa" />
+
+        <TextView
+            android:id="@+id/adminUserPostCount"
+            style="@style/AdminUserTextMuted"
+            android:textSize="13sp"
+            tools:text="3 bài đăng · Mã tài khoản" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>
