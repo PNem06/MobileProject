@@ -34,6 +34,7 @@ public class ExchangeActivity extends AppCompatActivity {
 
     private String targetPostId;
     private String selectedPostId;
+    private String existingExchangeId;
     private String currentUid;
 
     @Override
@@ -45,6 +46,7 @@ public class ExchangeActivity extends AppCompatActivity {
         currentUid = FirebaseAuth.getInstance().getUid();
 
         targetPostId = getIntent().getStringExtra("targetPostId");
+        existingExchangeId = getIntent().getStringExtra("existingExchangeId");
 
         listPosts = findViewById(R.id.listPosts);
         btnSend = findViewById(R.id.btnSend);
@@ -87,6 +89,14 @@ public class ExchangeActivity extends AppCompatActivity {
                         // Do not recommend the same post being viewed.
                         if (doc.getId().equals(targetPostId)) continue;
 
+                        // Chỉ hiển thị các bài đăng đã được duyệt (APPROVED, PUBLIC, ACTIVE)
+                        String status = doc.getString("status");
+                        if (status == null) status = "";
+                        status = status.trim().toUpperCase();
+                        if (!"APPROVED".equals(status) && !"PUBLIC".equals(status) && !"ACTIVE".equals(status)) {
+                            continue;
+                        }
+
                         posts.add(doc);
                         String title = doc.getString("title");
 
@@ -124,6 +134,26 @@ public class ExchangeActivity extends AppCompatActivity {
         }
 
         btnSend.setEnabled(false);
+
+        if (existingExchangeId != null && !existingExchangeId.isEmpty()) {
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("offeredPostId", selectedPostId);
+            updates.put("proposedPostId", selectedPostId);
+            updates.put("status", "PENDING");
+            updates.put("createdAt", FieldValue.serverTimestamp());
+
+            db.collection("exchanges").document(existingExchangeId)
+                    .update(updates)
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(this, "Đã cập nhật bài đăng đề xuất!", Toast.LENGTH_SHORT).show();
+                        finish();
+                    })
+                    .addOnFailureListener(e -> {
+                        btnSend.setEnabled(true);
+                        Toast.makeText(this, "Cập nhật thất bại: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    });
+            return;
+        }
 
         // Read the target post to find its owner.
         db.collection("posts")
@@ -165,14 +195,21 @@ public class ExchangeActivity extends AppCompatActivity {
                     }
 
                     Map<String, Object> request = new HashMap<>();
+                    request.put("requester_accountId", currentUid);
+                    request.put("requesterId", currentUid);
                     request.put("senderId", currentUid);
+                    request.put("host_accountId", recipientId);
+                    request.put("hostId", recipientId);
                     request.put("recipientId", recipientId);
+                    request.put("postId", targetPostId);
                     request.put("targetPostId", targetPostId);
                     request.put("offeredPostId", selectedPostId);
-                    request.put("status", "pending");
+                    request.put("proposedPostId", selectedPostId);
+                    request.put("status", "PENDING");
+                    request.put("exchangeType", "RECIPROCAL");
                     request.put("createdAt", FieldValue.serverTimestamp());
 
-                    db.collection("exchangeRequests")
+                    db.collection("exchanges")
                             .add(request)
                             .addOnSuccessListener(ref -> {
                                 Map<String, Object> notification = new HashMap<>();
@@ -181,6 +218,7 @@ public class ExchangeActivity extends AppCompatActivity {
                                 notification.put("senderId", currentUid);
                                 notification.put("type", "exchange_request");
                                 notification.put("requestId", ref.getId());
+                                notification.put("exchangeId", ref.getId());
                                 notification.put("targetPostId", targetPostId);
                                 notification.put("postId", targetPostId);
                                 notification.put("offeredPostId", selectedPostId);
@@ -197,12 +235,14 @@ public class ExchangeActivity extends AppCompatActivity {
                                             Toast.makeText(this,
                                                     "Đã gửi đề nghị trao đổi!",
                                                     Toast.LENGTH_SHORT).show();
+                                            setResult(RESULT_OK);
                                             finish();
                                         })
                                         .addOnFailureListener(e -> {
                                             Toast.makeText(this,
                                                     "Đề nghị đã lưu nhưng chưa tạo được thông báo.",
                                                     Toast.LENGTH_LONG).show();
+                                            setResult(RESULT_OK);
                                             finish();
                                         });
                             })

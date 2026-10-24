@@ -4,37 +4,121 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
-    android:background="#F5F6FA">
+    android:background="#F5F6FA"
+    android:padding="16dp">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Quản lý bài đăng"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="#222222"
-        android:layout_marginBottom="8dp"/>
+        android:textColor="#111827"
+        android:textSize="25sp"
+        android:textStyle="bold" />
 
     <TextView
-        android:id="@+id/txtPendingCount"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Đang tải bài đăng..."
+        android:text="Kiểm duyệt và quản lý trạng thái bài viết"
+        android:textColor="#6B7280"
         android:textSize="14sp"
-        android:textColor="#666666"
-        android:layout_marginBottom="12dp"/>
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="16dp" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardBackgroundColor="#FFFFFF"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="1dp"
+        app:strokeColor="#E5E7EB"
+        app:strokeWidth="1dp"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+
+        <TextView
+            android:id="@+id/txtPendingCount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="14dp"
+            android:text="Đang tải bài đăng..."
+            android:textColor="#374151"
+            android:textSize="13sp"
+            android:lineSpacingExtra="4dp" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Thanh lọc 3 tab -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#FFFFFF"
+        android:padding="4dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="14dp"
+        android:elevation="1dp">
+
+        <TextView
+            android:id="@+id/btnPendingTab"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="Chờ duyệt"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_tab_selected"
+            android:layout_marginEnd="3dp" />
+
+        <TextView
+            android:id="@+id/btnPublicTab"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="Public"
+            android:textColor="#4B5563"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_tab_unselected"
+            android:layout_marginHorizontal="3dp" />
+
+        <TextView
+            android:id="@+id/btnUnpublicTab"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="Unpublic"
+            android:textColor="#4B5563"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_tab_unselected"
+            android:layout_marginStart="3dp" />
+
+    </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:clipToPadding="false"
+        android:scrollbars="vertical">
 
         <LinearLayout
             android:id="@+id/layoutPendingPosts"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"/>
+            android:orientation="vertical"
+            android:paddingBottom="12dp" />
 
     </ScrollView>
 

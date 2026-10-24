@@ -1,5 +1,6 @@
 package com.example.mobileproject.view;
 
+import com.google.firebase.firestore.SetOptions;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
@@ -76,6 +77,7 @@ public class New_Post extends AppCompatActivity {
     private TextView imageHint, coordinates;
     private Button publish, cancel;
     private final List<Uri> imageUris = new ArrayList<>();
+    private final List<String> existingImageDocIds = new ArrayList<>();
     private final Map<String, CheckBox> amenityChoices = new LinkedHashMap<>();
     private Uri pendingCameraUri;
     private double latitude = 10.75, longitude = 106.68;
@@ -84,6 +86,9 @@ public class New_Post extends AppCompatActivity {
     private ActivityResultLauncher<String> imagePicker;
     private ActivityResultLauncher<Uri> cameraCapture;
     private static final int MAX_IMAGES = 8;
+    private String editPostId = null;
+    private boolean isEditMode = false;
+    private List<String> existingAmenityIds = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,8 +105,189 @@ public class New_Post extends AppCompatActivity {
 
         bindViews();
         setupSpinner();
+
+        editPostId = getIntent().getStringExtra("editPostId");
+        isEditMode = editPostId != null && !editPostId.trim().isEmpty();
+
         setupLaunchers();
         setupClickListeners();
+
+        if (isEditMode) {
+            setEditScreenTitle();
+            loadPostForEditing();
+        }
+    }
+    private void loadPostForEditing() {
+        db.collection("posts").document(editPostId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) {
+                        toast("Bài đăng không tồn tại.");
+                        finish();
+                        return;
+                    }
+
+                    String uid = FirebaseAuth.getInstance().getUid();
+                    String ownerId = doc.getString("accountId");
+
+                    if (uid == null || !uid.equals(ownerId)) {
+                        toast("Bạn không có quyền chỉnh sửa bài đăng này.");
+                        finish();
+                        return;
+                    }
+
+                    title.setText(doc.getString("title"));
+                    address.setText(doc.getString("address"));
+                    destination.setText(doc.getString("destination"));
+                    description.setText(doc.getString("description"));
+                    extra.setText(doc.getString("additionalInformation"));
+
+                    bedrooms.setText(String.valueOf(
+                            doc.getLong("bedroomCount") == null ? 1 :
+                                    doc.getLong("bedroomCount")));
+
+                    bathrooms.setText(String.valueOf(
+                            doc.getLong("bathroomCount") == null ? 1 :
+                                    doc.getLong("bathroomCount")));
+
+                    guests.setText(String.valueOf(
+                            doc.getLong("maxGuests") == null ? 2 :
+                                    doc.getLong("maxGuests")));
+
+                    price.setText(String.valueOf(
+                            doc.get("price") == null ? "" : doc.get("price")));
+
+                    latitude = doc.getDouble("latitude") == null
+                            ? 10.75 : doc.getDouble("latitude");
+
+                    longitude = doc.getDouble("longitude") == null
+                            ? 106.68 : doc.getDouble("longitude");
+
+                    coordinates.setText(String.format(
+                            Locale.getDefault(),
+                            "Vị trí: %.5f, %.5f", latitude, longitude));
+
+                    existingAmenityIds.clear();
+                    Object ids = doc.get("amenityIds");
+
+                    if (ids instanceof List<?>) {
+                        for (Object id : (List<?>) ids) {
+                            if (id != null) {
+                                existingAmenityIds.add(String.valueOf(id));
+                            }
+                        }
+                    }
+
+                    selectPropertyType(doc.getString("propertyType"));
+
+                    // Tải ảnh hiện có và hiển thị sau khi hoàn thiện
+                    // phần xử lý ảnh ở mục E bên dưới.
+                    loadExistingImages();
+                })
+                .addOnFailureListener(e ->
+                        toast("Không tải được bài đăng: " + e.getMessage()));
+    }
+
+    private void selectPropertyType(String value) {
+        if (value == null || propertyType.getAdapter() == null) return;
+
+        for (int i = 0; i < propertyType.getAdapter().getCount(); i++) {
+            Object item = propertyType.getAdapter().getItem(i);
+
+            if (item != null && value.equals(item.toString())) {
+                propertyType.setSelection(i);
+                return;
+            }
+        }
+
+    }
+
+    private void loadExistingImages() {
+        db.collection("images")
+                .whereEqualTo("postId", editPostId)
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    imageUris.clear();
+
+                    List<com.google.firebase.firestore.DocumentSnapshot> docs =
+                            new ArrayList<>(snapshot.getDocuments());
+
+                    Collections.sort(docs, (a, b) -> {
+                        Long orderA = a.getLong("orderIndex");
+                        Long orderB = b.getLong("orderIndex");
+
+                        return Long.compare(
+                                orderA == null ? 0 : orderA,
+                                orderB == null ? 0 : orderB
+                        );
+                    });
+
+                    File directory = new File(
+                            getCacheDir(), "existing_post_images"
+                    );
+
+                    if (!directory.exists() && !directory.mkdirs()) {
+                        toast("Không tạo được thư mục ảnh.");
+                        return;
+                    }
+
+                    try {
+                        for (com.google.firebase.firestore.DocumentSnapshot doc : docs) {
+                            String base64 = doc.getString("imgUrl");
+
+                            if (base64 == null || base64.isEmpty()) {
+                                continue;
+                            }
+
+                            // Hỗ trợ chuỗi Base64 có hoặc không có tiền tố data:image.
+                            int commaIndex = base64.indexOf(",");
+                            if (base64.startsWith("data:image/")
+                                    && commaIndex >= 0) {
+                                base64 = base64.substring(commaIndex + 1);
+                            }
+
+                            byte[] imageBytes = Base64.decode(
+                                    base64, Base64.DEFAULT
+                            );
+
+                            File imageFile = File.createTempFile(
+                                    "existing_", ".jpg", directory
+                            );
+
+                            try (FileOutputStream output =
+                                         new FileOutputStream(imageFile)) {
+                                output.write(imageBytes);
+                            }
+
+                            imageUris.add(Uri.fromFile(imageFile));
+                        }
+
+                        refreshImages();
+
+                    } catch (Exception e) {
+                        toast("Không tải được ảnh cũ: " + e.getMessage());
+                    }
+                })
+                .addOnFailureListener(e ->
+                        toast("Lỗi tải ảnh: " + e.getMessage())
+                );
+    }
+
+    private void setEditScreenTitle() {
+        TextView titleView = findViewById(R.id.txtScreenTitle);
+        TextView subtitleView = findViewById(R.id.txtScreenSubtitle);
+
+        if (titleView != null) {
+            titleView.setText("Chỉnh sửa bài đăng");
+        }
+
+        if (subtitleView != null) {
+            subtitleView.setText("Cập nhật thông tin chỗ ở của bạn");
+        }
+
+        if (publish != null) {
+            publish.setText("Lưu thay đổi");
+        }
     }
 
     private void bindViews() {
@@ -446,6 +632,10 @@ public class New_Post extends AppCompatActivity {
                 choice.setText(amenityName(document));
                 choice.setTag(document.getId());
                 choice.setTextColor(0xFF171719);
+
+// Khi sửa bài đăng, đánh dấu các tiện nghi đã chọn trước đó.
+                choice.setChecked(existingAmenityIds.contains(document.getId()));
+
                 amenitiesList.addView(choice);
                 amenityChoices.put(document.getId(), choice);
             }
@@ -554,8 +744,19 @@ public class New_Post extends AppCompatActivity {
         publishing = true;
         publish.setEnabled(false);
         publish.setText("Đang đăng...");
-        DocumentReference postRef = db.collection("posts").document();
-        String postId = postRef.getId();
+        String postId;
+
+        DocumentReference postRef;
+
+        if (isEditMode && editPostId != null) {
+            // Sửa bài cũ: giữ nguyên ID.
+            postId = editPostId;
+            postRef = db.collection("posts").document(postId);
+        } else {
+            // Đăng bài mới: tạo ID mới.
+            postRef = db.collection("posts").document();
+            postId = postRef.getId();
+        }
         Map<String, Object> post = new HashMap<>();
         post.put("postId", postId);
         post.put("accountId", uid);
@@ -572,8 +773,16 @@ public class New_Post extends AppCompatActivity {
         post.put("latitude", latitude);
         post.put("longitude", longitude);
         post.put("amenityIds", selectedAmenityIds());
+        // Cả bài mới và bài chỉnh sửa đều cần Admin duyệt.
         post.put("status", "PENDING");
-        post.put("createdAt", FieldValue.serverTimestamp());
+
+// Chỉ tạo createdAt khi tạo bài mới.
+// Khi sửa, giữ nguyên thời gian tạo ban đầu.
+        if (!isEditMode) {
+            post.put("createdAt", FieldValue.serverTimestamp());
+        } else {
+            post.put("updatedAt", FieldValue.serverTimestamp());
+        }
         if (sd != null) post.put("startDate", new Timestamp(sd));
         if (ed != null) post.put("endDate", new Timestamp(ed));
         uploadImagesAndSave(postRef, post, postId);
@@ -615,7 +824,7 @@ public class New_Post extends AppCompatActivity {
                 if (isFinishing() || isDestroyed()) return;
 
                 WriteBatch batch = db.batch();
-                batch.set(postRef, post);
+                batch.set(postRef, post, SetOptions.merge());
 
                 for (int i = 0; i < encodedImages.size(); i++) {
                     DocumentReference imageRef = db.collection("images").document();

@@ -12,6 +12,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -41,6 +43,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import android.graphics.Typeface;
+import android.view.Gravity;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+
+import java.text.ParseException;
 
 public class Detail extends AppCompatActivity {
     public static final String EXTRA_POST_ID = "postId";
@@ -70,11 +79,21 @@ public class Detail extends AppCompatActivity {
     private TextView btnDeletePost, btnEditPost, btnCancelEdit, btnSubmitEdit;
     private EditText edtRoomName, edtAddress, edtDestination, edtDescription, edtPrice;
 
+    private ActivityResultLauncher<Intent> exchangeLauncher;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_detail);
+
+        exchangeLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    String uid = FirebaseAuth.getInstance().getUid();
+                    checkExistingSentRequest(uid, postId);
+                }
+        );
 
         ViewCompat.setOnApplyWindowInsetsListener(
                 findViewById(R.id.main),
@@ -284,6 +303,7 @@ public class Detail extends AppCompatActivity {
             if (layoutOwnerActions != null) layoutOwnerActions.setVisibility(View.GONE);
             if (layoutEditActions != null) layoutEditActions.setVisibility(View.GONE);
             loadHostInfo(postOwnerId);
+            checkExistingSentRequest(currentUid, postId);
         }
 
         txtRating.setText("—");
@@ -293,6 +313,43 @@ public class Detail extends AppCompatActivity {
         btnAllReviews.setText("Xem đánh giá");
 
         loadRoomImages(postId);
+    }
+
+    private void checkExistingSentRequest(String currentUid, String postId) {
+        if (currentUid == null || currentUid.isEmpty() || postId == null || postId.isEmpty()) return;
+
+        db.collection("exchanges")
+                .whereEqualTo("requester_accountId", currentUid)
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    boolean foundActiveRequest = false;
+                    if (snapshot != null && !snapshot.isEmpty()) {
+                        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                            String targetId = doc.getString("postId");
+                            if (targetId == null || targetId.isEmpty()) targetId = doc.getString("targetPostId");
+                            if (postId.equals(targetId)) {
+                                String st = doc.getString("status");
+                                if (st == null) st = "";
+                                if (!"CANCELLED".equalsIgnoreCase(st) && !"REJECTED".equalsIgnoreCase(st)) {
+                                    foundActiveRequest = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (foundActiveRequest) {
+                        TextView btnBooking = findViewById(R.id.btnBooking);
+                        if (btnBooking != null) {
+                            btnBooking.setText("Xem yêu cầu đã gửi");
+                            btnBooking.setOnClickListener(v -> {
+                                Intent intent = new Intent(Detail.this, Request.class);
+                                intent.putExtra("selectReceivedTab", false);
+                                startActivity(intent);
+                            });
+                        }
+                    }
+                });
     }
 
     private String stringValue(DocumentSnapshot doc, String field) {
@@ -663,9 +720,13 @@ public class Detail extends AppCompatActivity {
             updateDescription();
         });
 
-        findViewById(R.id.btnMessage).setOnClickListener(
-                v -> showMessage("Cần triển khai chức năng nhắn tin với chủ nhà.")
-        );
+        findViewById(R.id.btnMessage).setOnClickListener(v -> {
+            Intent intent = new Intent(Detail.this, Chat.class);
+            if (postOwnerId != null && !postOwnerId.isEmpty()) {
+                intent.putExtra("recipientId", postOwnerId);
+            }
+            startActivity(intent);
+        });
 
         findViewById(R.id.btnBooking).setOnClickListener(
                 v -> showBookingOptions()
@@ -680,7 +741,11 @@ public class Detail extends AppCompatActivity {
         }
 
         if (btnEditPost != null) {
-            btnEditPost.setOnClickListener(v -> enterEditMode());
+            btnEditPost.setOnClickListener(v -> {
+                Intent intent = new Intent(Detail.this, New_Post.class);
+                intent.putExtra("editPostId", postId);
+                startActivity(intent);
+            });
         }
 
         if (btnCancelEdit != null) {
@@ -726,34 +791,290 @@ public class Detail extends AppCompatActivity {
                 });
     }
 
+
     private void enterEditMode() {
-        edtRoomName.setText(txtRoomName.getText());
+        if (postId == null || postId.trim().isEmpty()) {
+            showMessage("Không tìm thấy mã bài đăng.");
+            return;
+        }
 
-        String rawAddress = txtAddress.getText().toString();
-        if (rawAddress.startsWith("Địa chỉ: ")) rawAddress = rawAddress.substring(9);
-        edtAddress.setText(rawAddress);
+        db.collection("posts").document(postId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (isFinishing() || isDestroyed()) return;
 
-        String rawDest = txtDestination.getText().toString();
-        if (rawDest.startsWith("Điểm đến: ")) rawDest = rawDest.substring(10);
-        edtDestination.setText(rawDest);
+                    if (doc == null || !doc.exists()) {
+                        showMessage("Bài đăng không tồn tại.");
+                        return;
+                    }
 
-        edtDescription.setText(fullDescription);
+                    // Chỉ chủ bài đăng mới được chỉnh sửa.
+                    String uid = FirebaseAuth.getInstance().getUid();
+                    String owner = doc.getString("accountId");
+                    if (owner == null || owner.isEmpty()) {
+                        owner = doc.getString("ownerId");
+                    }
 
-        txtRoomName.setVisibility(View.GONE);
-        txtAddress.setVisibility(View.GONE);
-        txtDestination.setVisibility(View.GONE);
-        txtDescription.setVisibility(View.GONE);
-        txtPrice.setVisibility(View.GONE);
+                    if (uid == null || !uid.equals(owner)) {
+                        showMessage("Bạn không có quyền sửa bài đăng này.");
+                        return;
+                    }
 
-        edtRoomName.setVisibility(View.VISIBLE);
-        edtAddress.setVisibility(View.VISIBLE);
-        edtDestination.setVisibility(View.VISIBLE);
-        edtDescription.setVisibility(View.VISIBLE);
-        edtPrice.setVisibility(View.VISIBLE);
-
-        if (layoutOwnerActions != null) layoutOwnerActions.setVisibility(View.GONE);
-        if (layoutEditActions != null) layoutEditActions.setVisibility(View.VISIBLE);
+                    showFullEditDialog(doc);
+                })
+                .addOnFailureListener(e ->
+                        showMessage("Không tải được bài đăng: " + e.getMessage()));
     }
+
+    private void showFullEditDialog(DocumentSnapshot doc) {
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        int pad = dpEdit(16);
+        form.setPadding(pad, pad, pad, pad);
+        scroll.addView(form);
+
+        Map<String, EditText> fields = new HashMap<>();
+
+        addEditField(form, fields, "title", "Tên chỗ ở",
+                stringValue(doc, "title"), false);
+        addEditField(form, fields, "address", "Địa chỉ",
+                stringValue(doc, "address"), false);
+        addEditField(form, fields, "destination", "Điểm đến",
+                stringValue(doc, "destination"), false);
+        addEditField(form, fields, "description", "Mô tả",
+                stringValue(doc, "description"), true);
+        addEditField(form, fields, "additionalInformation",
+                "Thông tin bổ sung",
+                stringValue(doc, "additionalInformation"), true);
+
+        addEditField(form, fields, "propertyType", "Loại chỗ ở",
+                stringValue(doc, "propertyType"), false);
+
+        addEditField(form, fields, "bedroomCount", "Số phòng ngủ",
+                String.valueOf(intValue(doc, "bedroomCount", 0)), false);
+        addEditField(form, fields, "bathroomCount", "Số phòng tắm",
+                String.valueOf(intValue(doc, "bathroomCount", 0)), false);
+        addEditField(form, fields, "maxGuests", "Số khách tối đa",
+                String.valueOf(intValue(doc, "maxGuests", 1)), false);
+
+        Object priceValue = doc.get("price");
+        addEditField(form, fields, "price", "Giá (VNĐ)",
+                priceValue == null ? "" : String.valueOf(priceValue), false);
+
+        addEditField(form, fields, "startDate", "Ngày bắt đầu (dd/MM/yyyy HH:mm)",
+                dateForEdit(dateValue(doc, "startDate")), false);
+        addEditField(form, fields, "endDate", "Ngày kết thúc (dd/MM/yyyy HH:mm)",
+                dateForEdit(dateValue(doc, "endDate")), false);
+
+        addEditField(form, fields, "latitude", "Vĩ độ",
+                String.valueOf(doubleValue(doc, "latitude", 0)), false);
+        addEditField(form, fields, "longitude", "Kinh độ",
+                String.valueOf(doubleValue(doc, "longitude", 0)), false);
+
+        List<String> amenityIds = stringList(doc, "amenityIds");
+        addEditField(form, fields, "amenityIds",
+                "Mã tiện nghi (các mã cách nhau bằng dấu phẩy)",
+                TextUtils.join(", ", amenityIds), true);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Chỉnh sửa toàn bộ bài đăng")
+                .setView(scroll)
+                .setNegativeButton("Hủy", null)
+                .setPositiveButton("Lưu thay đổi", null)
+                .create();
+
+        dialog.setOnShowListener(v -> {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(
+                    button -> saveFullEdit(doc, fields, dialog));
+        });
+
+        dialog.show();
+    }
+
+    private void addEditField(
+            LinearLayout parent,
+            Map<String, EditText> fields,
+            String key,
+            String label,
+            String value,
+            boolean multiline) {
+
+        TextView title = new TextView(this);
+        title.setText(label);
+        title.setTextSize(14);
+        title.setTypeface(null, Typeface.BOLD);
+
+        LinearLayout.LayoutParams titleParams =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT);
+        titleParams.topMargin = dpEdit(8);
+        parent.addView(title, titleParams);
+
+        EditText input = new EditText(this);
+        input.setSingleLine(!multiline);
+        input.setText(value == null ? "" : value);
+        input.setTextSize(15);
+        input.setPadding(dpEdit(10), dpEdit(8), dpEdit(10), dpEdit(8));
+
+        if (multiline) {
+            input.setMinLines(2);
+            input.setGravity(Gravity.TOP | Gravity.START);
+        }
+
+        parent.addView(input, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        fields.put(key, input);
+    }
+
+    private String dateForEdit(Date date) {
+        if (date == null) return "";
+
+        SimpleDateFormat format = new SimpleDateFormat(
+                "dd/MM/yyyy HH:mm", new Locale("vi", "VN"));
+        format.setTimeZone(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
+        return format.format(date);
+    }
+
+    private Date parseEditDate(String value) throws ParseException {
+        if (value == null || value.trim().isEmpty()) return null;
+
+        SimpleDateFormat format = new SimpleDateFormat(
+                "dd/MM/yyyy HH:mm", new Locale("vi", "VN"));
+        format.setLenient(false);
+        format.setTimeZone(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
+
+        return format.parse(value.trim());
+    }
+
+    private int dpEdit(int value) {
+        return Math.round(value * getResources()
+                .getDisplayMetrics().density);
+    }
+
+    private void saveFullEdit(
+            DocumentSnapshot original,
+            Map<String, EditText> fields,
+            AlertDialog dialog) {
+
+        try {
+            String title = editValue(fields, "title");
+            String address = editValue(fields, "address");
+            String destination = editValue(fields, "destination");
+            String description = editValue(fields, "description");
+
+            if (title.isEmpty() || address.isEmpty()
+                    || destination.isEmpty() || description.isEmpty()) {
+                showMessage("Tên chỗ ở, địa chỉ, điểm đến và mô tả không được để trống.");
+                return;
+            }
+
+            int bedrooms = Integer.parseInt(editValue(fields, "bedroomCount"));
+            int bathrooms = Integer.parseInt(editValue(fields, "bathroomCount"));
+            int guests = Integer.parseInt(editValue(fields, "maxGuests"));
+
+            if (bedrooms < 0 || bathrooms < 0 || guests <= 0) {
+                showMessage("Số phòng không được âm và số khách phải lớn hơn 0.");
+                return;
+            }
+
+            String priceText = editValue(fields, "price");
+            long price = priceText.isEmpty() ? 0L : Long.parseLong(priceText);
+            if (price < 0) {
+                showMessage("Giá không được âm.");
+                return;
+            }
+
+            double latitude = Double.parseDouble(editValue(fields, "latitude"));
+            double longitude = Double.parseDouble(editValue(fields, "longitude"));
+
+            if (latitude < -90 || latitude > 90
+                    || longitude < -180 || longitude > 180) {
+                showMessage("Vĩ độ hoặc kinh độ không hợp lệ.");
+                return;
+            }
+
+            Date startDate = parseEditDate(editValue(fields, "startDate"));
+            Date endDate = parseEditDate(editValue(fields, "endDate"));
+
+            if ((startDate == null) != (endDate == null)) {
+                showMessage("Hãy nhập cả ngày bắt đầu và ngày kết thúc.");
+                return;
+            }
+
+            if (startDate != null && !endDate.after(startDate)) {
+                showMessage("Ngày kết thúc phải sau ngày bắt đầu.");
+                return;
+            }
+
+            List<String> amenities = new ArrayList<>();
+            String amenityText = editValue(fields, "amenityIds");
+            if (!amenityText.isEmpty()) {
+                for (String id : amenityText.split(",")) {
+                    String trimmed = id.trim();
+                    if (!trimmed.isEmpty() && !amenities.contains(trimmed)) {
+                        amenities.add(trimmed);
+                    }
+                }
+            }
+
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("title", title);
+            updates.put("address", address);
+            updates.put("destination", destination);
+            updates.put("description", description);
+            updates.put("additionalInformation",
+                    editValue(fields, "additionalInformation"));
+            updates.put("propertyType", editValue(fields, "propertyType"));
+            updates.put("bedroomCount", bedrooms);
+            updates.put("bathroomCount", bathrooms);
+            updates.put("maxGuests", guests);
+            updates.put("price", price);
+            updates.put("latitude", latitude);
+            updates.put("longitude", longitude);
+            updates.put("amenityIds", amenities);
+
+            // Không thay đổi các trường chủ sở hữu và thời điểm tạo.
+            updates.put("status", "PENDING");
+
+            if (startDate != null) {
+                updates.put("startDate", new Timestamp(startDate));
+                updates.put("endDate", new Timestamp(endDate));
+            } else {
+                updates.put("startDate", FieldValue.delete());
+                updates.put("endDate", FieldValue.delete());
+            }
+
+            db.collection("posts").document(postId)
+                    .update(updates)
+                    .addOnSuccessListener(unused -> {
+                        if (isFinishing() || isDestroyed()) return;
+
+                        Toast.makeText(this,
+                                "Đã lưu toàn bộ thông tin. Bài đăng được chuyển về trạng thái chờ duyệt.",
+                                Toast.LENGTH_LONG).show();
+                        dialog.dismiss();
+                    })
+                    .addOnFailureListener(e -> {
+                        if (isFinishing() || isDestroyed()) return;
+                        showMessage("Lưu thất bại: " + e.getLocalizedMessage());
+                    });
+
+        } catch (NumberFormatException e) {
+            showMessage("Số phòng, số khách, giá hoặc tọa độ không hợp lệ.");
+        } catch (ParseException e) {
+            showMessage("Ngày phải đúng định dạng dd/MM/yyyy HH:mm, ví dụ 25/10/2026 14:00.");
+        }
+    }
+
+    private String editValue(Map<String, EditText> fields, String key) {
+        EditText input = fields.get(key);
+        return input == null ? "" : input.getText().toString().trim();
+    }
+
 
     private void exitEditMode() {
         txtRoomName.setVisibility(View.VISIBLE);
@@ -861,10 +1182,21 @@ public class Detail extends AppCompatActivity {
                 .show();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        String uid = FirebaseAuth.getInstance().getUid();
+        checkExistingSentRequest(uid, postId);
+    }
+
     private void openExchangePage() {
         Intent intent = new Intent(this, ExchangeActivity.class);
         intent.putExtra("targetPostId", postId);
-        startActivity(intent);
+        if (exchangeLauncher != null) {
+            exchangeLauncher.launch(intent);
+        } else {
+            startActivity(intent);
+        }
     }
 
     private void openRentalPage() {

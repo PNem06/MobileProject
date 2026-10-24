@@ -111,12 +111,40 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
                             sub.exchangeType = "NON_RECIPROCAL".equals(type) ? "MONEY" : "RECIPROCAL";
                             sub.requestDateText = "Yêu cầu " + sub.status;
                             sub.isPaid = false;
+                            String offeredPostId = doc.getString("offeredPostId");
+                            if (offeredPostId == null || offeredPostId.isEmpty()) offeredPostId = doc.getString("proposedPostId");
+                            sub.proposedPostId = offeredPostId;
                             allSubRequests.add(sub);
                             loadSenderInfo(sub);
+                            loadProposedPostInfo(sub);
                         }
                         updateFilterCountsAndList("ALL");
                     }).addOnFailureListener(e -> Toast.makeText(this, "Không tải được yêu cầu: " + e.getMessage(), Toast.LENGTH_LONG).show());
         });
+    }
+
+    private void loadProposedPostInfo(RequestItem item) {
+        if (item.proposedPostId == null || item.proposedPostId.isEmpty()) return;
+        FirebaseFirestore.getInstance().collection("posts").document(item.proposedPostId).get()
+                .addOnSuccessListener(post -> {
+                    if (post.exists()) {
+                        item.proposedPostTitle = post.getString("title");
+                        Object rating = post.get("rating");
+                        if (rating instanceof Number) item.proposedPostRating = ((Number) rating).doubleValue();
+                        String img = post.getString("imageUrl");
+                        if (img != null && !img.isEmpty()) item.proposedPostImageUrl = img;
+                    }
+                    FirebaseFirestore.getInstance().collection("images")
+                            .whereEqualTo("postId", item.proposedPostId).limit(1).get()
+                            .addOnSuccessListener(images -> {
+                                if (images != null && !images.isEmpty()) {
+                                    String url = images.getDocuments().get(0).getString("imgUrl");
+                                    if (url == null || url.isEmpty()) url = images.getDocuments().get(0).getString("imageUrl");
+                                    if (url != null && !url.isEmpty()) item.proposedPostImageUrl = url;
+                                }
+                                adapter.notifyDataSetChanged();
+                            }).addOnFailureListener(e -> adapter.notifyDataSetChanged());
+                });
     }
 
     private void loadSenderInfo(RequestItem item) {
