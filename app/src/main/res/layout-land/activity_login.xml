@@ -11,6 +11,30 @@
         android:layout_height="760dp"
         tools:context=".view.Login">
 
+        <!-- ImageView nề sẽ chứa ảnh nội thất khi bạn cung cấp -->
+        <ImageView
+            android:id="@+id/imgLoginBackground"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:scaleType="centerCrop"
+            android:importantForAccessibility="no"
+            android:src="@drawable/bg_login_room_blurred"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Lớp phủ trắng/tím nhạt mờ để form dễ đọc -->
+        <View
+            android:id="@+id/viewLoginOverlay"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="#D9F2F0FF"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/guideLeft"
             android:layout_width="wrap_content"

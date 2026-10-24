@@ -92,7 +92,7 @@
                     android:layout_height="130dp"
                     android:layout_weight="1"
                     android:layout_marginEnd="6dp"
-                    android:background="@drawable/bg_black_blue"
+                    android:background="@drawable/bg_admin_dashboard_card"
                     android:orientation="vertical"
                     android:padding="12dp">
 
@@ -100,14 +100,15 @@
                         android:layout_width="26dp"
                         android:layout_height="26dp"
                         android:contentDescription="User"
-                        android:src="@drawable/ic_user" />
+                        android:src="@drawable/ic_user"
+                        app:tint="#52628A" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="7dp"
                         android:text="Tổng số User"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#35436B"
                         android:textSize="13sp"
                         android:textStyle="bold" />
 
@@ -117,7 +118,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="3dp"
                         android:text="--"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#35436B"
                         android:textSize="25sp"
                         android:textStyle="bold" />
 
@@ -130,7 +131,7 @@
                     android:layout_weight="1"
                     android:layout_marginStart="6dp"
                     android:layout_marginEnd="6dp"
-                    android:background="@drawable/bg_black_blue"
+                    android:background="@drawable/bg_admin_dashboard_card"
                     android:orientation="vertical"
                     android:padding="12dp">
 
@@ -138,14 +139,15 @@
                         android:layout_width="26dp"
                         android:layout_height="26dp"
                         android:contentDescription="Bài đăng"
-                        android:src="@drawable/ic_post" />
+                        android:src="@drawable/ic_post"
+                        app:tint="#52628A" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="7dp"
                         android:text="Tổng số bài đăng"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#35436B"
                         android:textSize="13sp"
                         android:textStyle="bold" />
 
@@ -155,7 +157,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="3dp"
                         android:text="--"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#35436B"
                         android:textSize="25sp"
                         android:textStyle="bold" />
 
@@ -168,7 +170,7 @@
                     android:layout_weight="1"
                     android:layout_marginStart="6dp"
                     android:layout_marginEnd="6dp"
-                    android:background="@drawable/bg_black_blue"
+                    android:background="@drawable/bg_admin_dashboard_card"
                     android:orientation="vertical"
                     android:padding="12dp">
 
@@ -176,14 +178,15 @@
                         android:layout_width="26dp"
                         android:layout_height="26dp"
                         android:contentDescription="Trao đổi"
-                        android:src="@drawable/ic_exchange" />
+                        android:src="@drawable/ic_exchange"
+                        app:tint="#52628A" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="7dp"
                         android:text="Yêu cầu trao đổi"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#35436B"
                         android:textSize="13sp"
                         android:textStyle="bold" />
 
@@ -193,7 +196,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="3dp"
                         android:text="--"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#35436B"
                         android:textSize="25sp"
                         android:textStyle="bold" />
 
@@ -205,7 +208,7 @@
                     android:layout_height="130dp"
                     android:layout_weight="1"
                     android:layout_marginStart="6dp"
-                    android:background="@drawable/bg_black_blue"
+                    android:background="@drawable/bg_admin_dashboard_card"
                     android:orientation="vertical"
                     android:padding="12dp">
 
@@ -213,14 +216,15 @@
                         android:layout_width="26dp"
                         android:layout_height="26dp"
                         android:contentDescription="Report"
-                        android:src="@drawable/ic_report" />
+                        android:src="@drawable/ic_report"
+                        app:tint="#52628A" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="7dp"
                         android:text="Report chờ xử lý"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#35436B"
                         android:textSize="13sp"
                         android:textStyle="bold" />
 
@@ -230,7 +234,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="3dp"
                         android:text="--"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#35436B"
                         android:textSize="25sp"
                         android:textStyle="bold" />
 
@@ -259,7 +263,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginEnd="6dp"
-                    android:background="@drawable/bg_black_blue"
+                    android:background="@drawable/bg_admin_dashboard_card"
                     android:clickable="true"
                     android:focusable="true"
                     android:gravity="center_vertical"
@@ -270,7 +274,8 @@
                         android:layout_width="36dp"
                         android:layout_height="36dp"
                         android:contentDescription="Quản lý User"
-                        android:src="@drawable/ic_user" />
+                        android:src="@drawable/ic_user"
+                        app:tint="#52628A" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -283,7 +288,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Quản lý tài khoản User"
-                            android:textColor="#FFFFFF"
+                            android:textColor="#35436B"
                             android:textSize="16sp"
                             android:textStyle="bold" />
 
@@ -292,7 +297,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="Xem và quản lý các tài khoản User."
-                            android:textColor="#FFFFFF"
+                            android:textColor="#35436B"
                             android:textSize="12sp" />
 
                     </LinearLayout>
@@ -305,7 +310,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginStart="6dp"
-                    android:background="@drawable/bg_black_blue"
+                    android:background="@drawable/bg_admin_dashboard_card"
                     android:clickable="true"
                     android:focusable="true"
                     android:gravity="center_vertical"
@@ -316,7 +321,8 @@
                         android:layout_width="36dp"
                         android:layout_height="36dp"
                         android:contentDescription="Quản lý bài đăng"
-                        android:src="@drawable/ic_post" />
+                        android:src="@drawable/ic_post"
+                        app:tint="#52628A" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -329,7 +335,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Quản lý bài đăng"
-                            android:textColor="#FFFFFF"
+                            android:textColor="#35436B"
                             android:textSize="16sp"
                             android:textStyle="bold" />
 
@@ -338,7 +344,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="Duyệt, xem và quản lý các bài đăng."
-                            android:textColor="#FFFFFF"
+                            android:textColor="#35436B"
                             android:textSize="12sp" />
 
                     </LinearLayout>
@@ -359,7 +365,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginEnd="6dp"
-                    android:background="@drawable/bg_black_blue"
+                    android:background="@drawable/bg_admin_dashboard_card"
                     android:clickable="true"
                     android:focusable="true"
                     android:gravity="center_vertical"
@@ -370,7 +376,8 @@
                         android:layout_width="36dp"
                         android:layout_height="36dp"
                         android:contentDescription="Quản lý trao đổi"
-                        android:src="@drawable/ic_exchange" />
+                        android:src="@drawable/ic_exchange"
+                        app:tint="#52628A" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -383,7 +390,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Quản lý các trao đổi"
-                            android:textColor="#FFFFFF"
+                            android:textColor="#35436B"
                             android:textSize="16sp"
                             android:textStyle="bold" />
 
@@ -392,7 +399,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="Theo dõi và quản lý các giao dịch trao đổi."
-                            android:textColor="#FFFFFF"
+                            android:textColor="#35436B"
                             android:textSize="12sp" />
 
                     </LinearLayout>
@@ -405,7 +412,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginStart="6dp"
-                    android:background="@drawable/bg_black_blue"
+                    android:background="@drawable/bg_admin_dashboard_card"
                     android:clickable="true"
                     android:focusable="true"
                     android:gravity="center_vertical"
@@ -416,7 +423,8 @@
                         android:layout_width="36dp"
                         android:layout_height="36dp"
                         android:contentDescription="Report"
-                        android:src="@drawable/ic_report" />
+                        android:src="@drawable/ic_report"
+                        app:tint="#52628A" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -429,7 +437,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Tiếp nhận / Xử lý Report"
-                            android:textColor="#FFFFFF"
+                            android:textColor="#35436B"
                             android:textSize="16sp"
                             android:textStyle="bold" />
 
@@ -438,7 +446,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="Xem và xử lý các Report từ người dùng."
-                            android:textColor="#FFFFFF"
+                            android:textColor="#35436B"
                             android:textSize="12sp" />
 
                     </LinearLayout>

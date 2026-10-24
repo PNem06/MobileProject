@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="admin_user_navy">#192740</color>
+    <color name="admin_user_red">#8B1E2D</color>
+    <color name="admin_user_muted">#5E6979</color>
+    <color name="admin_user_green">#19744E</color>
+    <color name="admin_user_background">#F6F7FA</color>
+
+    <integer name="admin_user_columns">1</integer>
+
+    <string name="admin_users_title">Quản lý tài khoản</string>
+    <string name="admin_users_back">‹ Dashboard</string>
+    <string name="admin_users_search_hint">Tìm tên, email, mã tài khoản…</string>
+    <string name="admin_users_filter_description">Lọc trạng thái tài khoản</string>
+    <string name="admin_users_reload">Tải lại</string>
+    <string name="admin_users_only">Chỉ dành cho quản trị viên</string>
+    <string name="admin_users_verifying">Đang xác minh tài khoản…</string>
+    <string name="admin_users_not_synced">Chưa có dữ liệu đã đồng bộ. Hãy kết nối mạng và tải lại.</string>
+    <string name="admin_users_no_match">Không có tài khoản phù hợp.</string>
+
+    <string name="admin_user_avatar_description">Ảnh tài khoản</string>
+    <string name="admin_user_open_description">Xem tài khoản %1$s</string>
+    <string name="admin_user_count_unknown">Chưa đồng bộ</string>
+    <string name="admin_user_post_count">%1$s bài đăng · %2$s</string>
+
+    <string name="admin_user_detail_title">Thông tin tài khoản</string>
+    <string name="admin_user_detail_content">%1$s\n\nMã tài khoản: %2$s\nTên đăng nhập: %3$s\nEmail: %4$s\nĐiện thoại: %5$s\nTrạng thái: %6$s\nTổng bài đăng (mọi trạng thái): %7$s</string>
+
+    <string name="admin_user_close">Đóng</string>
+    <string name="admin_user_saving">Đang lưu…</string>
+    <string name="admin_user_lock">Khóa tài khoản</string>
+    <string name="admin_user_unlock">Mở khóa tài khoản</string>
+    <string name="admin_user_lock_title">Khóa tài khoản?</string>
+    <string name="admin_user_unlock_title">Mở khóa tài khoản?</string>
+    <string name="admin_user_lock_message">%1$s\nTài khoản sẽ chuyển sang INACTIVE. Không xóa hồ sơ hoặc bài đăng.</string>
+    <string name="admin_user_unlock_message">%1$s\nTài khoản sẽ chuyển sang ACTIVE và có thể đăng nhập lại.</string>
+    <string name="admin_user_cancel">Hủy</string>
+    <string name="admin_user_confirm">Xác nhận</string>
+
+    <string-array name="admin_user_filter_labels">
+        <item>Tất cả tài khoản User</item>
+        <item>Đang hoạt động</item>
+        <item>Đã khóa</item>
+    </string-array>
+
+    <style name="AdminUserText" parent="@android:style/Widget.TextView">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingBottom">4dp</item>
+        <item name="android:textColor">@color/admin_user_navy</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="AdminUserTextMuted" parent="AdminUserText">
+        <item name="android:textColor">@color/admin_user_muted</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="AdminUserButton" parent="Widget.Material3.Button">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="backgroundTint">@color/admin_user_navy</item>
+    </style>
+
+    <style name="AdminUserStatusButton" parent="AdminUserButton">
+        <item name="backgroundTint">@color/admin_user_action_tint</item>
+    </style>
+
+    <string name="admin_user_profile_title">Chi tiết tài khoản User</string>
+    <string name="admin_user_profile_back">‹ Danh sách User</string>
+    <string name="admin_user_profile_missing">Tài khoản không còn trong danh sách User hoặc chưa được đồng bộ.</string>
+    <string name="admin_user_profile_info">Mã tài khoản: %1$s\nTên đăng nhập: %2$s\nEmail: %3$s\nĐiện thoại: %4$s\nVai trò: User\nTổng bài đăng: %5$s</string>
+    <string name="admin_user_profile_posts">Bài đăng của tài khoản</string>
+    <string name="admin_user_profile_posts_count">Bài đăng của tài khoản (%1$s)</string>
+    <string name="admin_user_profile_posts_hint">Danh sách gồm các bài đăng ở mọi trạng thái. Bạn có thể mở thông tin từng bài bên dưới.</string>
+    <string name="admin_user_profile_no_posts">Tài khoản này chưa có bài đăng.</string>
+    <string name="admin_user_profile_posts_loading">Chưa có danh sách bài đăng đã đồng bộ. Kết nối mạng và nhấn Tải lại.</string>
+
+    <string name="admin_user_post_more">Xem đầy đủ thông tin</string>
+    <string name="admin_user_post_less">Thu gọn thông tin</string>
+    <string name="admin_user_post_details">Mã bài đăng: %1$s\nLoại chỗ ở: %2$s\nPhòng ngủ: %3$s\nPhòng tắm: %4$s\nSố khách tối đa: %5$s\n\nThông tin bổ sung\n%6$s</string>
+    <string name="admin_user_post_image_description">Ảnh chỗ ở</string>
+
+    <style name="AdminUserProfileButton" parent="AdminUserButton">
+        <item name="android:textColor">#35436B</item>
+        <item name="backgroundTint">#E9EDFA</item>
+    </style>
+
+</resources>

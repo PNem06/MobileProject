@@ -8,10 +8,33 @@
     android:layout_height="match_parent"
     tools:context=".view.Register">
 
+    <!-- Nền đứng yên -->
+    <ImageView
+        android:id="@+id/imgRegisterBackground"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:scaleType="centerCrop"
+        android:importantForAccessibility="no"
+        android:src="@drawable/bg_login_room_blurred"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <View
+        android:id="@+id/viewRegisterOverlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#D9F2F0FF"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <ScrollView
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:background="#FFFFFF"
+        android:background="@android:color/transparent"
         android:fillViewport="true"
         android:clipToPadding="false"
         app:layout_constraintTop_toTopOf="parent"
