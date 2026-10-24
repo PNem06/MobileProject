@@ -71,6 +71,7 @@ dependencies {
     implementation("androidx.recyclerview:recyclerview:1.4.0")
 
     implementation("androidx.cardview:cardview:1.0.0")
+    implementation("androidx.core:core-splashscreen:1.2.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
