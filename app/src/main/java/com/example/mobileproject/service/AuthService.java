@@ -20,9 +20,7 @@ public class AuthService {
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     public AuthService() {
     }
-
-    public void registerWithPassword(String username, String password, String email,
-                                     String fullName, String phone, Callback callback) {
+    public void registerWithPassword(String username, String password, String email, String fullName, String phone, Callback callback) {
         username = username.trim().toLowerCase(Locale.ROOT);
         email = email.trim();
         fullName = fullName.trim();
@@ -66,56 +64,41 @@ public class AuthService {
                             }).addOnFailureListener(e -> callback.onError("Đăng ký thất bại: " + e.getMessage()));
                 }).addOnFailureListener(e -> callback.onError("Không kiểm tra được username: " + e.getMessage()));
     }
-
-
     public void signInWithPassword(String usernameOrEmail, String password, Callback callback) {
-
         String input = usernameOrEmail.trim();
-
         if (input.isEmpty() || password.isEmpty()) {
             callback.onError("Vui lòng nhập tên đăng nhập hoặc email và mật khẩu.");
             return;
         }
-
         // Trường hợp 1: Người dùng nhập Email
         if (android.util.Patterns.EMAIL_ADDRESS.matcher(input).matches()) {
             loginByEmail(input, password, callback);
             return;
         }
-
         // Trường hợp 2: Người dùng nhập Username
         String username = input.toLowerCase(Locale.ROOT);
-
         db.collection("accounts")
                 .whereEqualTo("username", username)
                 .limit(1)
                 .get()
                 .addOnSuccessListener(query -> {
-
                     if (query.isEmpty()) {
                         callback.onError("Tên đăng nhập hoặc mật khẩu không chính xác.");
                         return;
                     }
-
                     DocumentSnapshot document = query.getDocuments().get(0);
-
                     String email = document.getString("email");
-
                     if (email == null || email.trim().isEmpty()) {
                         callback.onError("Tài khoản chưa có email đăng nhập hợp lệ.");
                         return;
                     }
-
                     // Dùng email tìm được để Firebase kiểm tra mật khẩu
                     loginByEmail(email, password, callback);
-
                 })
                 .addOnFailureListener(e -> {
                     callback.onError("Không thể tra cứu tên đăng nhập: " + e.getMessage());
                 });
     }
-
-    // Hàm dùng chung cho cả Email và Username
     private void loginByEmail(String email, String password, Callback callback) {
         auth.signInWithEmailAndPassword(email.trim(), password)
                 .addOnSuccessListener(result -> loadProfile(callback))
@@ -127,8 +110,6 @@ public class AuthService {
                     );
                 });
     }
-
-
     public void signInWithGoogle(String idToken, Callback callback) {
         AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
         auth.signInWithCredential(credential)
@@ -160,7 +141,6 @@ public class AuthService {
                             }).addOnFailureListener(e -> { auth.signOut(); callback.onError(e.getMessage()); });
                 }).addOnFailureListener(e -> callback.onError("Google Sign-In thất bại: " + e.getMessage()));
     }
-
     public void loadProfile(Callback callback) {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) { callback.onError("Bạn chưa đăng nhập."); return; }
@@ -172,11 +152,18 @@ public class AuthService {
         if (!doc.exists()) { auth.signOut(); callback.onError("Tài khoản chưa có hồ sơ accounts tương ứng."); return; }
         String status = doc.getString("status");
         String role = doc.getString("role");
-        if (!"ACTIVE".equals(status)) { auth.signOut(); callback.onError("Tài khoản đã bị khóa hoặc chưa kích hoạt."); return; }
+        if (!"ACTIVE".equals(status)) {
+            auth.signOut();
+            if ("LOCKED".equals(status)) {
+                callback.onError("Tài khoản bạn đã bị khóa.");
+            } else {
+                callback.onError("Tài khoản chưa được kích hoạt hoặc không hoạt động.");
+            }
+            return;
+        }
         if (!"USER".equals(role) && !"ADMIN".equals(role)) { auth.signOut(); callback.onError("Vai trò tài khoản không hợp lệ."); return; }
         callback.onSuccess(role);
     }
-
     public void signOut() {
         auth.signOut();
     }

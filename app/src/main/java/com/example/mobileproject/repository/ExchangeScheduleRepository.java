@@ -6,7 +6,7 @@ import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import com.example.mobileproject.data.OfflineCache;
+import com.example.mobileproject.data.ReportCacheEntity;
 import com.example.mobileproject.view.ExchangeScheduleItem;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -38,7 +38,7 @@ public class ExchangeScheduleRepository {
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final FirebaseAuth auth = FirebaseAuth.getInstance();
-    private final OfflineCache cache;
+    private final ReportCacheEntity cache;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
 
     private final MutableLiveData<List<ExchangeScheduleItem>> items =
@@ -55,7 +55,7 @@ public class ExchangeScheduleRepository {
     private String uid = "";
 
     public ExchangeScheduleRepository(Application application) {
-        cache = new OfflineCache(application);
+        cache = new ReportCacheEntity(application);
     }
 
     public LiveData<List<ExchangeScheduleItem>> getItems() {

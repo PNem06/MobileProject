@@ -9,6 +9,8 @@ import android.text.TextWatcher;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
+import android.app.Activity;
+import android.graphics.Color;
 import com.example.mobileproject.MainActivity;
 import com.example.mobileproject.R;
 import com.example.mobileproject.viewmodel.HomeViewModel;
@@ -18,25 +20,65 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class HomeViews extends ContextWrapper {
-    protected static final int INK = 0xFF171719, MUTED = 0xFF73737B, PURPLE = 0xFF3533CD;
-    protected static final int RED = 0xFFD92D38;
+    protected final Activity hostActivity;
     protected final MainActivity activity;
     protected final HomeViewModel vm;
+    protected static final int INK = Color.rgb(31, 41, 55);
+    protected static final int MUTED = Color.rgb(107, 114, 128);
+    protected static final int PURPLE = Color.rgb(91, 76, 219);
+    protected static final int RED = Color.rgb(185, 28, 28);
+    public interface AccountHost {
+        void openAccountPage(String page);
+
+        boolean requireAccountLogin();
+
+        void chooseAccountAvatar();
+
+        void confirmAccountDeletion();
+    }
+
+    protected final AccountHost accountHost;
 
     public HomeViews(MainActivity activity, HomeViewModel vm) {
         super(activity);
+
+        this.hostActivity = activity;
         this.activity = activity;
         this.vm = vm;
+        this.accountHost = null;
+    }
+
+    public HomeViews(
+            Activity activity,
+            HomeViewModel vm,
+            AccountHost accountHost
+    ) {
+        super(activity);
+
+        this.hostActivity = activity;
+        this.activity = activity instanceof MainActivity
+                ? (MainActivity) activity : null;
+        this.vm = vm;
+        this.accountHost = accountHost;
     }
 
     protected void go(String page) {
-        activity.openPage(page);
+        if (accountHost != null) {
+            accountHost.openAccountPage(page);
+        } else if (activity != null) {
+            activity.openPage(page);
+        }
     }
 
     protected boolean requireLogin() {
-        return activity.requireLogin();
+        if (accountHost != null) {
+            return accountHost.requireAccountLogin();
+        }
+        if (activity != null) {
+            return activity.requireLogin();
+        }
+        return false;
     }
-
     protected LinearLayout menuRow(
         String icon, String title, String subtitle, boolean danger, Runnable action) {
         LinearLayout wrapper = template(R.id.homeMenuRow);

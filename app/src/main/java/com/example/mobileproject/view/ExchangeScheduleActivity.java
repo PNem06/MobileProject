@@ -56,7 +56,13 @@ public class ExchangeScheduleActivity extends AppCompatActivity {
             v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
             return insets;
         });
-
+        BottomNavigationView bottomNavigationView = findViewById(R.id.homeDrawerMenu);
+        if (bottomNavigationView != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(bottomNavigationView, (v, insets) -> {
+                v.setPadding(0, 0, 0, 0);
+                return insets;
+            });
+        }
         bindViews();
         setupList();
         setupBottomNavigation();
@@ -160,7 +166,7 @@ public class ExchangeScheduleActivity extends AppCompatActivity {
             startActivity(intent);
             return true;
         });
-        navigation.getMenu().findItem(R.id.menu_calendar).setChecked(true);
+        navigation.setSelectedItemId(R.id.menu_calendar);
     }
 
     private void renderSelectedTab(Integer tabValue) {

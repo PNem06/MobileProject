@@ -25,7 +25,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MobileProject">
 
-        <!-- Google Play Services & Maps configuration -->
+        <!-- Google Play Services và Google Maps -->
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
@@ -39,6 +39,7 @@
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
+
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
@@ -55,8 +56,29 @@
             android:name=".view.DashboardAdmin"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.AdminManagePostActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.AdminUsersActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.AdminUserDetailActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.AdminManageReportActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.AdminManageExchangeActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
@@ -65,30 +87,34 @@
             android:name=".view.Request"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.ReceivedRequestsDetailActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
-        <!-- Exchange and rental layouts opened from the detail page. -->
+        <!-- Exchange và Rental -->
         <activity
             android:name=".view.ExchangeActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.RentalActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
-        <!-- Exchange Schedule / Lịch trao đổi -->
+        <!-- Exchange Schedule và Chat -->
         <activity
             android:name=".view.ExchangeScheduleActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.Chat"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <!-- Login: Launcher -->
         <activity
             android:name=".view.Login"
@@ -98,7 +124,6 @@
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -152,17 +177,6 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
-        <activity
-            android:name=".view.AdminUsersActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".view.AdminUserDetailActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
     </application>
-
 
 </manifest>

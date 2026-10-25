@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.view.View;
 import android.widget.*;
+import android.app.Activity;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.example.mobileproject.MainActivity;
@@ -26,6 +27,18 @@ public class AccountUi extends HomeViews {
         this.content = content;
         this.cards = cards;
         this.createPost = createPost;
+    }
+
+    public AccountUi(
+            Activity activity,
+            HomeViewModel vm,
+            LinearLayout content,
+            HomeViews.AccountHost accountHost
+    ) {
+        super(activity, vm, accountHost);
+        this.content = content;
+        this.cards = null;
+        this.createPost = null;
     }
 
     void account() {
@@ -75,9 +88,18 @@ public class AccountUi extends HomeViews {
             if (p != null) mine.add(p);
         }
         LinearLayout myPosts = root.findViewById(R.id.myPostsContainer);
-        cards.section(myPosts, "Bài đăng của tôi", mine, "mine", true, createPost);
+        if (cards != null) {
+            mine = new ArrayList<>();
+            array = vm.rows("mine");
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject post = array.optJSONObject(i);
+                if (post != null) {mine.add(post);}
+            }
+            cards.section(myPosts, "Bài đăng của tôi", mine, "mine", true, createPost);
+        } else {
+            myPosts.setVisibility(View.GONE);
+        }
     }
-
     void edit() {
         if (vm.draftName == null) vm.draftName = vm.profile().optString("fullName");
         if (vm.draftPhone == null) vm.draftPhone = vm.profile().optString("phone");
@@ -90,7 +112,13 @@ public class AccountUi extends HomeViews {
         if (!source.isEmpty()) Glide.with(this).load(source).circleCrop()
                 .diskCacheStrategy(DiskCacheStrategy.ALL).into(photo);
         form.findViewById(R.id.editChooseAvatar).setOnClickListener(v -> {
-            if (!vm.busy) activity.chooseAvatar();
+            if (!vm.busy) {
+                if (accountHost != null) {
+                    accountHost.chooseAccountAvatar();
+                } else if (activity != null) {
+                    activity.chooseAvatar();
+                }
+            };
         });
         EditText txtFullName = form.findViewById(R.id.editName);
         EditText txtEmail = form.findViewById(R.id.editEmail);
@@ -123,15 +151,29 @@ public class AccountUi extends HomeViews {
                 }));
         ((LinearLayout) box.findViewById(R.id.settingsPrivacy)).addView(
                 menuRow("info", "Chính sách dữ liệu", "Tìm hiểu dữ liệu ứng dụng sử dụng", false, this::privacy));
-        ((LinearLayout) box.findViewById(R.id.settingsDelete)).addView(menuRow("trash", "Xóa tài khoản", "Thao tác này không thể hoàn tác", true,
-                ()
-                        -> new AlertDialog.Builder(this)
-                        .setTitle("Xóa tài khoản?")
-                        .setMessage("Bạn sẽ mất quyền đăng nhập bằng tài khoản này. Hãy"
-                                + " xác minh lại danh tính để tiếp tục.")
-                        .setNegativeButton("Hủy", null)
-                        .setPositiveButton("Tiếp tục", (d, w) -> activity.confirmAccountDeletion())
-                        .show()));
+        ((LinearLayout) box.findViewById(R.id.settingsDelete)).addView(
+                menuRow(
+                        "trash",
+                        "Xóa tài khoản",
+                        "Thao tác này không thể hoàn tác",
+                        true,
+                        () -> new AlertDialog.Builder(this)
+                                .setTitle("Xóa tài khoản?")
+                                .setMessage(
+                                        "Bạn sẽ mất quyền đăng nhập bằng tài khoản này. "
+                                                + "Hãy xác minh lại danh tính để tiếp tục."
+                                )
+                                .setNegativeButton("Hủy", null)
+                                .setPositiveButton("Tiếp tục", (d, w) -> {
+                                    if (accountHost != null) {
+                                        accountHost.confirmAccountDeletion();
+                                    } else if (activity != null) {
+                                        activity.confirmAccountDeletion();
+                                    }
+                                })
+                                .show()
+                )
+        );
     }
 
     private void privacy() {

@@ -17,10 +17,10 @@ import java.util.Map;
 
 public final class AdminUserCache {
 
-    private final OfflineCache cache;
+    private final ReportCacheEntity cache;
 
     public AdminUserCache(Context context) {
-        cache = new OfflineCache(context.getApplicationContext());
+        cache = new ReportCacheEntity(context.getApplicationContext());
     }
 
     public List<AdminUserItem> read(String uid) throws JSONException {

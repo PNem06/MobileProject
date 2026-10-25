@@ -79,6 +79,10 @@ public class HomeUi extends HomeViews {
         restoreState(saved);
         scroll.setOnScrollChangeListener(
                 (View.OnScrollChangeListener) (v, x, y, oldX, oldY) -> vm.scrollY = y);
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(bottomNavigation, (v, insets) -> {
+            v.setPadding(0, 0, 0, 0);
+            return insets;
+        });
     }
 
     private void setupToolbar() {

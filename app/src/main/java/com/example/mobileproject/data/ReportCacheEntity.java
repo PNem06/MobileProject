@@ -6,19 +6,17 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import androidx.annotation.NonNull;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * SQLite cache riêng cho các màn Lịch trao đổi / Tin nhắn.
- * Không dùng long_home_cache.db vì HomeViewModel hiện đang xóa DB đó khi khởi tạo.
- */
-public class OfflineCache extends SQLiteOpenHelper {
-
+public class ReportCacheEntity extends SQLiteOpenHelper {
     private static final String DB_NAME = "stayexchange_offline.db";
     private static final int DB_VERSION = 1;
-
-    public OfflineCache(Context context) {
+    public ReportCacheEntity(Context context) {
         super(context.getApplicationContext(), DB_NAME, null, DB_VERSION);
     }
 
@@ -30,15 +28,12 @@ public class OfflineCache extends SQLiteOpenHelper {
                         "item_key TEXT NOT NULL," +
                         "payload TEXT NOT NULL," +
                         "updated_at INTEGER NOT NULL," +
-                        "PRIMARY KEY(scope, item_key))"
-        );
+                        "PRIMARY KEY(scope, item_key))");
     }
-
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // Thêm migration khi tăng DB_VERSION.
     }
-
     public Map<String, String> readScope(String scope) {
         Map<String, String> result = new LinkedHashMap<>();
         try (Cursor cursor = getReadableDatabase().query(
@@ -49,11 +44,7 @@ public class OfflineCache extends SQLiteOpenHelper {
                 null,
                 null,
                 "updated_at DESC"
-        )) {
-            while (cursor.moveToNext()) {
-                result.put(cursor.getString(0), cursor.getString(1));
-            }
-        }
+        )) { while (cursor.moveToNext()) {result.put(cursor.getString(0), cursor.getString(1));}}
         return result;
     }
 
@@ -75,5 +66,19 @@ public class OfflineCache extends SQLiteOpenHelper {
         } finally {
             db.endTransaction();
         }
+    }
+    @Entity(tableName = "admin_report_cache")
+    public static class AdminReportCacheEntity {
+        @PrimaryKey
+        @NonNull
+        public String reportId = "";
+        public String reporterId = "";
+        public String targetType = "";
+        public String targetId = "";
+        public String targetName = "";
+        public String reason = "";
+        public String description = "";
+        public String status = "PENDING";
+        public long updatedAt = 0L;
     }
 }

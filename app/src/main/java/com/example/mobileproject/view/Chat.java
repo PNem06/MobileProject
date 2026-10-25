@@ -87,6 +87,12 @@ public class Chat extends AppCompatActivity {
         });
         setupBottomNavigation();
         BottomNavigationView navigation = findViewById(R.id.chatBottomMenu);
+        if (navigation != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(navigation, (v, insets) -> {
+                v.setPadding(0, 0, 0, 0);
+                return insets;
+            });
+        }
         navigation.getMenu().findItem(R.id.menu_message).setChecked(true);
     }
 

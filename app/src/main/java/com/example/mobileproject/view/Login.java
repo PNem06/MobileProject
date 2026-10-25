@@ -2,6 +2,7 @@ package com.example.mobileproject.view;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -57,6 +58,21 @@ public class Login extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+        Button btnLogin = findViewById(R.id.btnLogin);
+        Button btnRegister = findViewById(R.id.btnRegister);
+
+        View.OnTouchListener pressEffect = (v, event) -> {
+            if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+                v.setAlpha(0.7f);
+            } else if (event.getAction() == android.view.MotionEvent.ACTION_UP
+                    || event.getAction() == android.view.MotionEvent.ACTION_CANCEL) {
+                v.setAlpha(1.0f);
+            }
+            return false;
+        };
+
+        btnLogin.setOnTouchListener(pressEffect);
+        btnRegister.setOnTouchListener(pressEffect);
         service = new AuthService();
         email = findViewById(R.id.edtEmail);
         password = findViewById(R.id.edtPassword);
@@ -105,7 +121,7 @@ public class Login extends AppCompatActivity {
         });
 
         findViewById(R.id.btnRegister).setOnClickListener(v -> startActivity(new Intent(this, Register.class)));
-    }
+}
 
     private void showCustomIntroAnimation() {
         android.view.ViewGroup rootView = findViewById(android.R.id.content);
@@ -116,7 +132,6 @@ public class Login extends AppCompatActivity {
         View appName = introView.findViewById(R.id.introAppName);
         View appDesc = introView.findViewById(R.id.introAppDesc);
 
-        // Khởi tạo trạng thái ban đầu
         logo.setAlpha(0f);
         logo.setScaleX(0.9f);
         logo.setScaleY(0.9f);
@@ -124,7 +139,6 @@ public class Login extends AppCompatActivity {
         appName.setAlpha(0f);
         appDesc.setAlpha(0f);
 
-        // 0-700ms: Logo hiện, dịch lên và phóng to
         ObjectAnimator logoAlpha = ObjectAnimator.ofFloat(logo, View.ALPHA, 0f, 1f);
         ObjectAnimator logoScaleX = ObjectAnimator.ofFloat(logo, View.SCALE_X, 0.9f, 1f);
         ObjectAnimator logoScaleY = ObjectAnimator.ofFloat(logo, View.SCALE_Y, 0.9f, 1f);
@@ -135,18 +149,15 @@ public class Login extends AppCompatActivity {
         logoSet.setDuration(700);
         logoSet.setInterpolator(new DecelerateInterpolator());
 
-        // 700-1100ms: Tên ứng dụng hiện lên
         ObjectAnimator textAlpha = ObjectAnimator.ofFloat(appName, View.ALPHA, 0f, 1f);
         textAlpha.setDuration(400);
 
-        // 1100-1500ms: Mô tả ứng dụng hiện lên
         ObjectAnimator descAlpha = ObjectAnimator.ofFloat(appDesc, View.ALPHA, 0f, 1f);
         descAlpha.setDuration(400);
 
         AnimatorSet introSet = new AnimatorSet();
         introSet.playSequentially(logoSet, textAlpha, descAlpha);
 
-        // 2100-2500ms: Màn intro mờ dần và gỡ bỏ (Sau khi introSet chạy 1500ms + 600ms giữ = 2100ms)
         ObjectAnimator fadeOutOverlay = ObjectAnimator.ofFloat(introView, View.ALPHA, 1f, 0f);
         fadeOutOverlay.setStartDelay(600);
         fadeOutOverlay.setDuration(400);
@@ -164,7 +175,6 @@ public class Login extends AppCompatActivity {
 
         fullSet.start();
     }
-
     private AuthService.Callback callback() { return new AuthService.Callback() {
         @Override public void onSuccess(String role) {
             if (isFinishing() || isDestroyed()) return;

@@ -1,10 +1,19 @@
-
 package com.example.mobileproject.view;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.view.View;
+import android.widget.FrameLayout;
+import android.net.Uri;
+import android.app.Activity;
+import android.widget.ScrollView;
+import android.widget.LinearLayout;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import com.example.mobileproject.viewmodel.HomeViewModel;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -21,12 +30,27 @@ import com.example.mobileproject.viewmodel.DashboardViewModel;
 import com.google.firebase.auth.FirebaseAuth;
 
 public class DashboardAdmin extends AppCompatActivity {
+    private HomeViewModel homeViewModel;
+    private AccountUi accountUi;
+    private FrameLayout accountContainer;
     private TextView tvTotalUser;
     private TextView tvTotalPost;
     private TextView tvTotalExchange;
     private TextView tvPendingReport;
     private DashboardViewModel viewModel;
     private boolean isAuthorized = false;
+    private LinearLayout accountContent;
+    private String accountPage = "account";
+    private final ActivityResultLauncher<String> avatarPicker =
+            registerForActivityResult(
+                    new ActivityResultContracts.GetContent(),
+                    uri -> {
+                        if (uri != null && homeViewModel != null) {
+                            homeViewModel.draftAvatar = uri.toString();
+                            showAccountPage("edit");
+                        }
+                    }
+            );
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -39,8 +63,61 @@ public class DashboardAdmin extends AppCompatActivity {
                     return insets;
                 }
         );
+        accountContainer = findViewById(R.id.accountContainer);
         initViews();
         checkAdminAccess();
+    }
+    private void setupAdminAccount() {
+        homeViewModel = new HomeViewModel(getApplication());
+        accountContainer = findViewById(R.id.accountContainer);
+        accountContent = new LinearLayout(this);
+        accountContent.setOrientation(LinearLayout.VERTICAL);
+        accountContent.setBackgroundColor(android.graphics.Color.WHITE);
+        ScrollView accountScroll = new ScrollView(this);
+        accountScroll.setFillViewport(true);
+        accountScroll.addView(accountContent, new ScrollView.LayoutParams(ScrollView.LayoutParams.MATCH_PARENT, ScrollView.LayoutParams.WRAP_CONTENT));
+        accountContainer.removeAllViews();
+        accountContainer.addView(accountScroll, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        HomeViews.AccountHost host = new HomeViews.AccountHost() {
+            @Override
+            public void openAccountPage(String page) {
+                showAccountPage(page);
+            }
+
+            @Override
+            public boolean requireAccountLogin() {
+                if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+                    return true;
+                }
+                returnToLogin();
+                return false;
+            }
+
+            @Override
+            public void chooseAccountAvatar() {
+                avatarPicker.launch("image/*");
+            }
+
+            @Override
+            public void confirmAccountDeletion() {
+                showMessage(
+                        "Chức năng xóa tài khoản cần xác minh lại danh tính."
+                );
+            }
+        };
+        accountUi = new AccountUi(this, homeViewModel, accountContent, host);
+        homeViewModel.changed.observe(this, changed -> {
+            if (changed == null || !isAuthorized) {return;}
+            if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+                returnToLogin();
+                return;
+            }
+            if (accountContainer.getVisibility() == View.VISIBLE) {showAccountPage(accountPage);}
+        });
+        homeViewModel.event.observe(this, message -> {
+            if (message != null && !message.isEmpty()) {showMessage(message);}
+        });
+        homeViewModel.setActive(true);
     }
     private void initViews() {
         tvTotalUser = findViewById(R.id.tvTotalUser);
@@ -72,6 +149,7 @@ public class DashboardAdmin extends AppCompatActivity {
                 }
                 isAuthorized = true;
                 setupViewModel();
+                setupAdminAccount();
                 setupClickListeners();
                 if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) {
                     viewModel.startListening();
@@ -111,26 +189,20 @@ public class DashboardAdmin extends AppCompatActivity {
         });
     }
     private void setupClickListeners() {
-        findViewById(R.id.navHome).setOnClickListener(v -> {
-
-            // TODO: Chuyen sang Home khi hoan thien.
-
-            showComingSoon("Trang chủ");
-        });
         findViewById(R.id.navDashboard).setOnClickListener(v -> {
-            // Dang o Dashboard nen khong can chuyen trang.
+            accountContainer.setVisibility(View.GONE);
+            findViewById(R.id.scrollDashboard).setVisibility(View.VISIBLE);
 
-        });
+            updateBottomNavigation(false);});
         findViewById(R.id.navAccount).setOnClickListener(v -> {
-
-            // TODO: Chuyen sang trang Tai khoan.
-
-            showComingSoon("Tài khoản");
+            findViewById(R.id.scrollDashboard).setVisibility(View.GONE);
+            accountContainer.setVisibility(View.VISIBLE);
+            showAccountPage("account");
+            updateBottomNavigation(true);
         });
 
         // QUAN LY TAI KHOAN USER
         findViewById(R.id.layoutManageUser).setOnClickListener(v -> {
-
             startActivity(new Intent(this, AdminUsersActivity.class));
         });
 
@@ -142,13 +214,12 @@ public class DashboardAdmin extends AppCompatActivity {
 
         // QUAN LY TRAO DOI
         findViewById(R.id.layoutManageExchange).setOnClickListener(v -> {
-            showComingSoon("Quản lý các trao đổi");
+            startActivity(new Intent(DashboardAdmin.this, AdminManageExchangeActivity.class));
         });
 
         // TIEP NHAN / XU LY REPORT
         findViewById(R.id.layoutReport).setOnClickListener(v -> {
-
-            showComingSoon("Tiếp nhận / Xử lý Report");
+            startActivity(new Intent(DashboardAdmin.this, AdminManageReportActivity.class));
         });
     }
     private void showComingSoon(String featureName) {
@@ -184,5 +255,65 @@ public class DashboardAdmin extends AppCompatActivity {
             viewModel.stopListening();
         }
         super.onStop();
+    }
+    private void updateBottomNavigation(boolean isAccountSelected) {
+        updateNavigationItem(R.id.navDashboard, !isAccountSelected);
+        updateNavigationItem(R.id.navAccount, isAccountSelected);
+    }
+
+    private void updateNavigationItem(int viewId, boolean isSelected) {
+        View item = findViewById(viewId);
+        if (item == null) {return;}
+        if (item instanceof TextView) {
+            ((TextView) item).setTextColor(
+                    isSelected
+                            ? android.graphics.Color.RED
+                            : android.graphics.Color.BLACK
+            );
+        } else if (item instanceof LinearLayout) {
+            LinearLayout layout = (LinearLayout) item;
+            for (int i = 0; i < layout.getChildCount(); i++) {
+                View child = layout.getChildAt(i);
+                if (child instanceof TextView) {
+                    ((TextView) child).setTextColor(
+                            isSelected
+                                    ? android.graphics.Color.RED
+                                    : android.graphics.Color.BLACK
+                    );
+                }
+                if (child instanceof android.widget.ImageView) {
+                    ((android.widget.ImageView) child).setColorFilter(
+                            isSelected
+                                    ? android.graphics.Color.RED
+                                    : android.graphics.Color.BLACK
+                    );
+                }
+            }
+        }
+    }
+    private void showAccountPage(String page) {
+        if (accountUi == null || homeViewModel == null) {
+            return;
+        }
+        accountPage = page;
+        accountContent.removeAllViews();
+        switch (page) {
+            case "account":
+                accountUi.account();
+                break;
+            case "edit":
+                accountUi.edit();
+                break;
+            case "settings":
+                accountUi.settings();
+                break;
+            case "about":
+                accountUi.about();
+                break;
+            default:
+                accountPage = "account";
+                accountUi.account();
+                break;
+        }
     }
 }
