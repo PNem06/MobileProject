@@ -40,9 +40,15 @@ public class ExchangeRepository {
             callback.onComplete(new Exception("Thiếu exchangeId.")); return;
         }
         updates.put("updatedAt", com.google.firebase.firestore.FieldValue.serverTimestamp());
-        db.collection("exchanges").document(exchangeId).update(updates)
-                .addOnSuccessListener(unused -> callback.onComplete(null))
-                .addOnFailureListener(callback::onComplete);
+        db.collection("exchanges").document(exchangeId).get().addOnSuccessListener(doc -> {
+            if (Boolean.TRUE.equals(doc.getBoolean("walletManaged"))) {
+                callback.onComplete(new Exception("Giao dịch đã thanh toán bằng ví phải xử lý tại màn chi tiết thanh toán."));
+                return;
+            }
+            db.collection("exchanges").document(exchangeId).update(updates)
+                    .addOnSuccessListener(unused -> callback.onComplete(null))
+                    .addOnFailureListener(callback::onComplete);
+        }).addOnFailureListener(callback::onComplete);
     }
 
     public Map<String, Object> statusUpdate(String status) {

@@ -19,6 +19,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.example.mobileproject.view.Detail;
+import com.example.mobileproject.view.WalletActivity;
 import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -93,7 +94,7 @@ public class GlobalNotificationListener {
                                 }
 
                                 if (title != null && !title.isEmpty()) {
-                                    showSlideDownBannerOnCurrentActivity(title, body, postId);
+                                    showSlideDownBannerOnCurrentActivity(title, body, postId, Boolean.TRUE.equals(doc.getBoolean("walletManaged")), doc.getString("exchangeId"), doc.getId());
                                 }
                             }
                         }
@@ -108,7 +109,7 @@ public class GlobalNotificationListener {
         }
     }
 
-    private static void showSlideDownBannerOnCurrentActivity(String title, String body, String postId) {
+    private static void showSlideDownBannerOnCurrentActivity(String title, String body, String postId, boolean walletManaged, String exchangeId, String notificationId) {
         Activity act = currentActivityRef.get();
         if (act == null || act.isFinishing() || act.isDestroyed()) return;
 
@@ -167,7 +168,12 @@ public class GlobalNotificationListener {
 
                 // Bấm vào banner để mở thẳng bài viết detail.xml
                 card.setOnClickListener(v -> {
-                    if (postId != null && !postId.trim().isEmpty()) {
+                    if (walletManaged) {
+                        Intent intent = new Intent(act, WalletActivity.class);
+                        if (exchangeId != null && !exchangeId.isEmpty()) intent.putExtra(WalletActivity.EXTRA_BOOKING_ID, exchangeId);
+                        act.startActivity(intent);
+                        FirebaseFirestore.getInstance().collection("notifications").document(notificationId).update("isRead", true);
+                    } else if (postId != null && !postId.trim().isEmpty()) {
                         try {
                             Intent intent = new Intent(act, Detail.class);
                             intent.putExtra(Detail.EXTRA_POST_ID, postId);

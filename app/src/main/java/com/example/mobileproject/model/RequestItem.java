@@ -39,6 +39,7 @@ public class RequestItem implements Serializable {
     public double proposedPostRating = 4.8;
     public String proposedPostDates = "";
     public boolean isPaid = false;
+    public boolean walletManaged = false;
 
     public List<RequestItem> subRequestsList = new ArrayList<>();
 

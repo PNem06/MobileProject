@@ -14,3 +14,11 @@
 .cxx
 local.properties
 firebase-import/
+
+# Local wallet configuration
+wallet-backend/.env
+wallet-backend/.env.*
+!wallet-backend/.env.example
+wallet-backend/private/
+**/node_modules/
+app.zip

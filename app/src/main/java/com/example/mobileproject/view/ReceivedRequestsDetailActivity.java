@@ -1,6 +1,7 @@
 package com.example.mobileproject.view;
 
 import android.app.Dialog;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
@@ -93,7 +94,8 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
         repository.resolveCurrentAccountId((accountId, error) -> {
             if (error != null) { Toast.makeText(this, error.getMessage(), Toast.LENGTH_LONG).show(); return; }
             FirebaseFirestore.getInstance().collection("exchanges")
-                    .whereEqualTo("postId", mainRequestItem.postId).get()
+                    .whereEqualTo("postId", mainRequestItem.postId)
+                    .whereEqualTo("host_accountId", accountId).get()
                     .addOnSuccessListener(snapshot -> {
                         allSubRequests.clear();
                         for (DocumentSnapshot doc : snapshot.getDocuments()) {
@@ -110,7 +112,10 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
                             String type = doc.getString("exchangeType");
                             sub.exchangeType = "NON_RECIPROCAL".equals(type) ? "MONEY" : "RECIPROCAL";
                             sub.requestDateText = "Yêu cầu " + sub.status;
-                            sub.isPaid = false;
+                            sub.walletManaged = Boolean.TRUE.equals(doc.getBoolean("walletManaged"));
+                            sub.paymentStatus = doc.getString("paymentStatus") == null ? "" : doc.getString("paymentStatus");
+                            sub.paymentId = doc.getString("paymentId") == null ? "" : doc.getString("paymentId");
+                            sub.isPaid = "PAID".equals(sub.paymentStatus) || "RELEASED".equals(sub.paymentStatus);
                             allSubRequests.add(sub);
                             loadSenderInfo(sub);
                         }
@@ -191,7 +196,18 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
         }
     }
 
+    @Override protected void onResume() {
+        super.onResume();
+        if (mainRequestItem != null) loadIntentData();
+    }
+
     private void showDetailDialog(RequestItem subRequest) {
+        if (subRequest.walletManaged) {
+            Intent next = new Intent(this, WalletActivity.class);
+            next.putExtra(WalletActivity.EXTRA_BOOKING_ID, subRequest.exchangeId);
+            startActivity(next);
+            return;
+        }
         if ("MONEY".equalsIgnoreCase(subRequest.exchangeType)) {
             showMoneyDialog(subRequest);
         } else {
@@ -292,6 +308,8 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
         }
 
         btnClose.setOnClickListener(v -> dialog.dismiss());
+        btnAccept.setEnabled(subRequest.isPaid);
+        if (!subRequest.isPaid) btnAccept.setText("Chờ khách thanh toán ví");
 
         btnReject.setOnClickListener(v -> updateStatus(subRequest, "REJECTED", dialog));
         btnAccept.setOnClickListener(v -> updateStatus(subRequest, "ACCEPTED", dialog));

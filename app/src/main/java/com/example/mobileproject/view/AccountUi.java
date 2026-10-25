@@ -52,6 +52,7 @@ public class AccountUi extends HomeViews {
         String avatarUrl = profile.optString("avatarUrl");
         if (!avatarUrl.isEmpty()) Glide.with(this).load(avatarUrl).circleCrop()
                 .diskCacheStrategy(DiskCacheStrategy.ALL).into(avatarPhoto);
+        root.findViewById(R.id.btnWallet).setOnClickListener(v -> activity.startActivity(new Intent(activity, WalletActivity.class)));
         root.findViewById(R.id.btnPersonalInfo).setOnClickListener(v -> {
             if (vm.busy) return;
             vm.draftName = vm.profile().optString("fullName");

@@ -1,0 +1,155 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signed() { return request.auth != null; }
+    function myId() {
+      return exists(/databases/$(database)/documents/accounts/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/accounts/$(request.auth.uid)).data.get('accountId', request.auth.uid)
+        : request.auth.uid;
+    }
+    function admin() {
+      return signed() && exists(/databases/$(database)/documents/accounts/$(request.auth.uid))
+        && get(/databases/$(database)/documents/accounts/$(request.auth.uid)).data.get('role', '') == 'ADMIN';
+    }
+    function ownsPost(postId) {
+      let post = get(/databases/$(database)/documents/posts/$(postId)).data;
+      return post.get('accountId', post.get('ownerId', '')) in [request.auth.uid, myId()];
+    }
+    function exchangeMember(data) {
+      return signed() && (data.get('requesterUid', '') == request.auth.uid
+        || data.get('hostUid', '') == request.auth.uid
+        || data.get('requesterId', '') == request.auth.uid
+        || data.get('hostId', '') == request.auth.uid
+        || data.get('requester_accountId', '') == myId()
+        || data.get('host_accountId', '') == myId());
+    }
+    function noFinancialFields(data) {
+      return !data.keys().hasAny(['walletManaged','paymentSource','paymentStatus','paymentId',
+        'settlementState','paidAt','cancelUntil','releaseAt','releasedAt','refundedAt',
+        'refundedAmount','cancellationFee','adminUid','amount','requesterUid','hostUid']);
+    }
+
+    // All money writes are made by the authenticated backend Admin SDK.
+    match /wallets/{uid} {
+      allow read: if signed() && request.auth.uid == uid;
+      allow write: if false;
+    }
+    match /walletTopups/{id} {
+      allow read: if signed() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+    match /walletLedger/{id} {
+      allow read: if signed() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+    match /walletBankEvents/{id} { allow read, write: if false; }
+    match /walletOperations/{id} { allow read, write: if false; }
+    match /walletTopupLocks/{id} { allow read, write: if false; }
+    match /walletBookingLocks/{id} { allow read, write: if false; }
+
+    match /exchanges/{id} {
+      allow read: if admin() || exchangeMember(resource.data);
+      // Legacy requests have no authority to move money or create a paid record.
+      allow create: if signed() && noFinancialFields(request.resource.data)
+        && request.resource.data.get('requester_accountId', request.resource.data.get('requesterId', '')) in [request.auth.uid, myId()]
+        && request.resource.data.status == 'PENDING'
+        && request.resource.data.exchangeType in ['RECIPROCAL', 'NON_RECIPROCAL']
+        && request.resource.data.get('host_accountId', request.resource.data.get('hostId', ''))
+          == get(/databases/$(database)/documents/posts/$(request.resource.data.postId)).data.get('accountId', '');
+      allow update: if signed() && !resource.data.get('walletManaged', false)
+        && !request.resource.data.get('walletManaged', false)
+        && exchangeMember(resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status','exchangeType','updatedAt','note','cancelReason'])
+        && request.resource.data.get('status', '') in ['PENDING','ACCEPTED','REJECTED','CANCELLED','ONGOING','COMPLETED'];
+      allow delete: if admin() && !resource.data.get('walletManaged', false);
+    }
+
+    match /accounts/{uid} {
+      // Profile lookups are already used by chat, host info and request lists.
+      allow read: if signed();
+      allow create: if signed() && request.auth.uid == uid
+        && request.resource.data.accountId == request.auth.uid
+        && request.resource.data.role == 'USER'
+        && request.resource.data.status == 'ACTIVE'
+        && request.resource.data.get('googleUid', null) in [null, request.auth.uid]
+        && !request.resource.data.keys().hasAny(['authUid','balance','available','held']);
+      allow update: if signed() && (request.auth.uid == uid || admin())
+        && request.resource.data.accountId == resource.data.accountId
+        && request.resource.data.get('authUid', null) == resource.data.get('authUid', null)
+        && (request.resource.data.get('googleUid', null) == resource.data.get('googleUid', null)
+          || (request.auth.uid == uid && resource.data.get('googleUid', null) == null
+            && request.resource.data.get('googleUid', null) == request.auth.uid))
+        && (admin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'fullName','phone','avatarUrl','email','googleUid','updatedAt']))
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['balance','available','held']);
+      allow delete: if signed() && (request.auth.uid == uid || admin())
+        && (!exists(/databases/$(database)/documents/wallets/$(uid))
+          || (get(/databases/$(database)/documents/wallets/$(uid)).data.available == 0
+            && get(/databases/$(database)/documents/wallets/$(uid)).data.held == 0));
+    }
+    match /posts/{id} {
+      allow read: if signed();
+      allow create: if signed() && request.resource.data.get('accountId', '') in [request.auth.uid, myId()]
+        && request.resource.data.status == 'PENDING';
+      allow update: if admin() || (signed() && ownsPost(id)
+        && request.resource.data.get('accountId', '') == resource.data.get('accountId', '')
+        && request.resource.data.get('ownerId', '') == resource.data.get('ownerId', '')
+        && request.resource.data.status == resource.data.status);
+      allow delete: if admin() || (signed() && ownsPost(id));
+    }
+    match /images/{id} {
+      allow read: if signed();
+      allow create: if signed() && ownsPost(request.resource.data.postId);
+      allow update: if signed() && ownsPost(resource.data.postId) && request.resource.data.postId == resource.data.postId;
+      allow delete: if admin() || (signed() && ownsPost(resource.data.postId));
+    }
+    match /postImages/{id} {
+      allow read: if signed();
+      allow create: if signed() && ownsPost(request.resource.data.postId);
+      allow update: if signed() && ownsPost(resource.data.postId) && request.resource.data.postId == resource.data.postId;
+      allow delete: if admin() || (signed() && ownsPost(resource.data.postId));
+    }
+    match /amenities/{id} { allow read: if signed(); allow write: if admin(); }
+    match /favorites/{id} {
+      allow read: if signed() && resource.data.userId == request.auth.uid;
+      allow create: if signed() && request.resource.data.userId == request.auth.uid;
+      allow update: if signed() && resource.data.userId == request.auth.uid && request.resource.data.userId == resource.data.userId;
+      allow delete: if signed() && resource.data.userId == request.auth.uid;
+    }
+    match /notifications/{id} {
+      allow read: if signed() && resource.data.get('userId', '') == request.auth.uid;
+      allow create: if signed() && !request.resource.data.get('walletManaged', false)
+        && request.resource.data.get('senderId', request.auth.uid) == request.auth.uid;
+      allow update: if signed() && resource.data.get('userId', '') == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead','readAt','updatedAt']);
+      allow delete: if signed() && resource.data.get('userId', '') == request.auth.uid;
+    }
+    // Existing reciprocal screen still writes this legacy collection.
+    match /exchangeRequests/{id} {
+      allow read: if signed() && (resource.data.senderId == request.auth.uid || resource.data.recipientId in [request.auth.uid,myId()]);
+      allow create: if signed() && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.get('status', '') == 'pending'
+        && request.resource.data.keys().hasOnly(['senderId','recipientId','targetPostId','offeredPostId','status','createdAt'])
+        && ownsPost(request.resource.data.offeredPostId);
+      allow update: if signed() && (resource.data.senderId == request.auth.uid || resource.data.recipientId in [request.auth.uid,myId()])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt']);
+      allow delete: if false;
+    }
+    match /conversations/{id} {
+      function member(data) { return signed() && (data.get('participant1Id','') == request.auth.uid || data.get('participant2Id','') == request.auth.uid); }
+      allow read: if member(resource.data);
+      allow create: if member(request.resource.data);
+      allow update: if member(resource.data) && request.resource.data.participant1Id == resource.data.participant1Id && request.resource.data.participant2Id == resource.data.participant2Id;
+      allow delete: if false;
+      match /messages/{messageId} {
+        allow read: if member(get(/databases/$(database)/documents/conversations/$(id)).data);
+        allow create: if member(get(/databases/$(database)/documents/conversations/$(id)).data) && request.resource.data.senderId == request.auth.uid;
+        allow update, delete: if false;
+      }
+    }
+    match /reports/{id} { allow read: if signed(); allow create: if signed(); allow update, delete: if admin(); }
+    match /reviews/{id} { allow read: if signed(); allow create: if signed(); allow update, delete: if admin(); }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

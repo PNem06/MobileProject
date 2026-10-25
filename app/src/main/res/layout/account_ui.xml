@@ -75,6 +75,58 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Wallet entry -->
+        <LinearLayout
+            android:id="@+id/btnWallet"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="22dp"
+            android:paddingVertical="16dp"
+            android:background="?android:attr/selectableItemBackground">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_wallet"
+                app:tint="#171719"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginHorizontal="14dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/sx_fraunces"
+                    android:text="Ví của tôi"
+                    android:textColor="#171719"
+                    android:textSize="17sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:fontFamily="@font/sx_noto_sans"
+                    android:text="Nạp tiền, thanh toán và xem lịch sử giao dịch"
+                    android:textColor="#73737B"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_arrow_next"
+                app:tint="#171719"
+                android:importantForAccessibility="no" />
+        </LinearLayout>
+
+
         <!-- Menu Item: Personal Info -->
         <LinearLayout
             android:id="@+id/btnPersonalInfo"

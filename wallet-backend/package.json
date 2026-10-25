@@ -1,0 +1,18 @@
+{
+  "name": "stayexchange-wallet",
+  "version": "1.2.1",
+  "private": true,
+  "description": "MBBank or VPBank/SePay wallet backend for the existing StayExchange Android project",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node --env-file=.env server.js",
+    "test": "node --test test/*.test.js",
+    "diagnose": "node --env-file=.env diagnose.js",
+    "reconcile:mb-minute": "node --env-file=.env reconcile-mb-minute.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

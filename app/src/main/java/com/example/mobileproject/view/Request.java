@@ -63,7 +63,14 @@ public class Request extends AppCompatActivity {
         setupBottomNav();
         setupTabs();
         selectTab(true);
-        loadFirebaseData();
+    }
+
+    @Override protected void onResume() { super.onResume(); if (adapter != null) loadFirebaseData(); }
+
+    private void openWalletBooking(RequestItem item) {
+        Intent next = new Intent(this, WalletActivity.class);
+        next.putExtra(WalletActivity.EXTRA_BOOKING_ID, item.exchangeId);
+        startActivity(next);
     }
 
     private void initViews() {
@@ -100,6 +107,7 @@ public class Request extends AppCompatActivity {
         adapter = new RequestAdapter(this, currentDisplayList, new RequestAdapter.OnRequestListener() {
             @Override
             public void onItemClick(RequestItem item) {
+                if (item.walletManaged && item.isSentTab) { openWalletBooking(item); return; }
                 if (!item.isSentTab) {
                     openReceivedDetailActivity(item);
                 } else {
@@ -109,6 +117,7 @@ public class Request extends AppCompatActivity {
 
             @Override
             public void onLeftButtonClick(RequestItem item) {
+                if (item.walletManaged && item.isSentTab) { openWalletBooking(item); return; }
                 if (item.isSentTab) {
                     // Nút "Hủy" hoặc "Liên hệ"
                     if ("ACCEPTED".equalsIgnoreCase(item.status) || "CANCELLED".equalsIgnoreCase(item.status)) {
@@ -124,16 +133,15 @@ public class Request extends AppCompatActivity {
 
             @Override
             public void onRightButtonClick(RequestItem item) {
+                if (!item.isSentTab) { openReceivedDetailActivity(item); return; }
+                if (item.walletManaged) { openWalletBooking(item); return; }
                 if (item.isSentTab) {
                     if ("PENDING".equalsIgnoreCase(item.status)) {
                         if (item.hasMoneyAlternativePending) {
-                            Map<String, Object> changes = new HashMap<>();
-                            changes.put("exchangeType", "NON_RECIPROCAL");
-                            changes.put("status", "PENDING");
-                            exchangeRepository.updateExchange(item.exchangeId, changes, error -> {
-                                if (error != null) showError(error);
-                                else { Toast.makeText(Request.this, "Đã chuyển sang yêu cầu thanh toán bằng tiền.", Toast.LENGTH_SHORT).show(); loadFirebaseData(); }
-                            });
+                            Intent payment = new Intent(Request.this, RentalActivity.class);
+                            payment.putExtra("targetPostId", item.postId);
+                            payment.putExtra(WalletActivity.EXTRA_LEGACY_ID, item.exchangeId);
+                            startActivity(payment);
                         } else {
                             Toast.makeText(Request.this, "Chức năng chỉnh sửa cần nối với màn hình sửa yêu cầu hiện có.", Toast.LENGTH_SHORT).show();
                         }
@@ -238,7 +246,8 @@ public class Request extends AppCompatActivity {
 
         if (navAccount != null) {
             navAccount.setOnClickListener(v -> {
-                Intent intent = new Intent(Request.this, AccountUi.class);
+                Intent intent = new Intent(Request.this, MainActivity.class);
+                intent.putExtra(MainActivity.EXTRA_HOME_PAGE, "account");
                 startActivity(intent);
             });
         }
@@ -281,7 +290,11 @@ public class Request extends AppCompatActivity {
         item.startDateText = dateText(doc.get("startDate"));
         item.endDateText = dateText(doc.get("endDate"));
         item.dateRangeText = item.startDateText.isEmpty() ? "Thời gian chưa cập nhật" : item.startDateText + (item.endDateText.isEmpty() ? "" : " - " + item.endDateText);
-        item.hasMoneyAlternativePending = "NON_RECIPROCAL".equals(item.exchangeType) && "PENDING".equals(item.status);
+        item.walletManaged = Boolean.TRUE.equals(doc.getBoolean("walletManaged"));
+        item.paymentStatus = safeString(doc.getString("paymentStatus"), "");
+        item.paymentId = safeString(doc.getString("paymentId"), "");
+        item.isPaid = "PAID".equals(item.paymentStatus) || "RELEASED".equals(item.paymentStatus);
+        item.hasMoneyAlternativePending = !item.walletManaged && !item.isPaid && "NON_RECIPROCAL".equals(item.exchangeType) && "PENDING".equals(item.status);
         return item;
     }
 

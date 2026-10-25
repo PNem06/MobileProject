@@ -125,7 +125,7 @@ public class DashboardAdmin extends AppCompatActivity {
 
             // TODO: Chuyen sang trang Tai khoan.
 
-            showComingSoon("Tài khoản");
+            startActivity(new Intent(this, WalletActivity.class));
         });
 
         // QUAN LY TAI KHOAN USER

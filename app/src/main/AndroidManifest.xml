@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <queries>
+        <package android:name="com.mbmobile" />
+        <package android:name="com.vnpay.vpbankonline" />
         <package android:name="com.google.android.gms" />
         <intent>
             <action android:name="com.google.android.gms.settings.CODELAB" />
@@ -77,8 +79,11 @@
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".view.RentalActivity"
+            android:theme="@style/Theme.StayExchangeWallet"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <activity android:name=".view.WalletActivity" android:exported="false" android:theme="@style/Theme.StayExchangeWallet" android:windowSoftInputMode="adjustResize" />
 
         <!-- Exchange Schedule / Lịch trao đổi -->
         <activity
