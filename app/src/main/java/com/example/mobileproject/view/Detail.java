@@ -33,6 +33,8 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.WriteBatch;
 
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -67,6 +69,7 @@ public class Detail extends AppCompatActivity {
     private String fullDescription = "";
     private boolean isMyPost = false;
     private boolean postReserved, viewerAdmin;
+    private boolean deletingPost;
     private String viewerAccountId = "";
     private String postOwnerId = "";
 
@@ -898,28 +901,41 @@ public class Detail extends AppCompatActivity {
 
     private void deletePost() {
         if (postReserved) { showMessage("Bài đã có trao đổi. Không thể xóa bài đang lưu giao dịch."); return; }
-        if (postId.isEmpty()) return;
+        if (postId.isEmpty() || deletingPost) return;
+        deletingPost = true;
+        if (btnDeletePost != null) btnDeletePost.setEnabled(false);
 
-        db.collection("posts").document(postId)
-                .delete()
-                .addOnSuccessListener(aVoid -> {
-                    db.collection("images")
-                            .whereEqualTo("postId", postId)
-                            .get()
-                            .addOnSuccessListener(snapshot -> {
-                                if (snapshot != null && !snapshot.isEmpty()) {
-                                    for (DocumentSnapshot imgDoc : snapshot.getDocuments()) {
-                                        imgDoc.getReference().delete();
-                                    }
-                                }
-                            });
-
-                    Toast.makeText(this, "Đã xóa bài đăng thành công!", Toast.LENGTH_SHORT).show();
-                    finish();
+        // Read image references before removing their parent. Firestore then deletes
+        // the post and both image collections atomically, checking the current lock.
+        Task<QuerySnapshot> images = db.collection("images").whereEqualTo("postId", postId).get();
+        Task<QuerySnapshot> oldImages = db.collection("postImages").whereEqualTo("postId", postId).get();
+        Tasks.<QuerySnapshot>whenAllSuccess(images, oldImages)
+                .addOnSuccessListener(snapshots -> {
+                    int imageCount = 0;
+                    for (QuerySnapshot snapshot : snapshots) imageCount += snapshot.size();
+                    if (imageCount > 499) {
+                        deletePostFailed("Bài có quá nhiều ảnh để xóa cùng lúc. Vui lòng liên hệ quản trị viên.");
+                        return;
+                    }
+                    WriteBatch batch = db.batch();
+                    for (QuerySnapshot snapshot : snapshots) {
+                        for (DocumentSnapshot image : snapshot.getDocuments()) batch.delete(image.getReference());
+                    }
+                    batch.delete(db.collection("posts").document(postId));
+                    batch.commit().addOnSuccessListener(unused -> {
+                        if (isFinishing() || isDestroyed()) return;
+                        Toast.makeText(this, "Đã xóa bài đăng thành công!", Toast.LENGTH_SHORT).show();
+                        finish();
+                    }).addOnFailureListener(error -> deletePostFailed(error.getLocalizedMessage()));
                 })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Xóa bài đăng thất bại: " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                });
+                .addOnFailureListener(error -> deletePostFailed(error.getLocalizedMessage()));
+    }
+
+    private void deletePostFailed(String message) {
+        deletingPost = false;
+        if (isFinishing() || isDestroyed()) return;
+        if (btnDeletePost != null) btnDeletePost.setEnabled(true);
+        Toast.makeText(this, "Xóa bài đăng thất bại: " + message, Toast.LENGTH_LONG).show();
     }
 
 

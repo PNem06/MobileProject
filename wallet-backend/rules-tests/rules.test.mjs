@@ -1,7 +1,7 @@
 import {after,before,beforeEach,test} from 'node:test';
 import {readFile} from 'node:fs/promises';
 import {initializeTestEnvironment,assertSucceeds,assertFails} from '@firebase/rules-unit-testing';
-import {doc,setDoc,getDoc,getDocs,collection,query,where,updateDoc,deleteDoc,writeBatch,serverTimestamp} from 'firebase/firestore';
+import {doc,setDoc,getDoc,getDocs,collection,query,where,limit,updateDoc,deleteDoc,writeBatch,serverTimestamp} from 'firebase/firestore';
 let env;const projectId='demo-stayexchange-rebuild';const db=uid=>env.authenticatedContext(uid).firestore();
 const account=(uid,role='USER',status='ACTIVE')=>({accountId:uid,role,status});
 const exchange=wallet=>({requester_accountId:'A',host_accountId:'B',requesterId:'A',hostId:'B',postId:'room',exchangeType:'NON_RECIPROCAL',status:'ACCEPTED',cancelRequestStatus:'PENDING',...(wallet?{walletManaged:true,paymentStatus:'PAID',amount:10000,settlementState:'HELD',requesterUid:'A',hostUid:'B'}:{})});
@@ -108,4 +108,110 @@ test('real Firestore transactions: two guests produce exactly one booking and on
 });
 test('real Firestore transactions: wallet payment and reciprocal acceptance cannot both win',async t=>{
  const h=await emulatorService(t);await h.store.doc('exchanges/raceSwap').set({requester_accountId:'A',host_accountId:'B',postId:'raceRoom',offeredPostId:'raceOffer',status:'PENDING',exchangeType:'RECIPROCAL'});const results=await Promise.allSettled([h.pay('C'),h.updateExchange(h.service,h.actor('B'),{exchangeId:'raceSwap',updates:{status:'ACCEPTED'}})]);if(results.filter(x=>x.status==='fulfilled').length!==1)throw Error('Expected one winning flow: '+JSON.stringify(results));const post=await h.store.doc('posts/raceRoom').get(),offer=await h.store.doc('posts/raceOffer').get(),guest=await h.store.doc('wallets/C').get(),paid=results[0].status==='fulfilled';if(offer.get('status')!==(paid?'APPROVED':'BOOKED')||post.get('status')!=='BOOKED'||guest.get('available')!==(paid?20000:30000))throw Error('Losing flow changed a post or charged the guest');
+});
+
+test('Console compatibility: anonymous username lookup keeps its limit-one access',async()=>{
+ await env.withSecurityRulesDisabled(async c=>updateDoc(doc(c.firestore(),'accounts/A'),{username:'alice'}));
+ const anonymous=env.unauthenticatedContext().firestore();
+ const found=await assertSucceeds(getDocs(query(collection(anonymous,'accounts'),where('username','==','alice'),limit(1))));
+ if(found.size!==1)throw Error('The pre-login username lookup did not find its profile');
+ await assertFails(getDocs(collection(anonymous,'accounts')));await assertFails(getDocs(query(collection(anonymous,'accounts'),limit(2))));await assertFails(getDoc(doc(anonymous,'accounts/A')));
+});
+test('Console compatibility: registration rejects forged roles, balances and identity bindings',async()=>{
+ const profile={accountId:'D',username:'d',fullName:'D',role:'USER',status:'ACTIVE',rating:0,totalExchanges:0};
+ for(const bad of [{role:'ADMIN'},{accountId:'A'},{authUid:'A'},{walletBalance:1},{balance:1},{googleUid:'A'},{rating:5}])await assertFails(setDoc(doc(db('D'),'accounts/D'),{...profile,...bad}));
+ await assertSucceeds(setDoc(doc(db('D'),'accounts/D'),profile));
+ await assertSucceeds(updateDoc(doc(db('D'),'accounts/D'),{fullName:'Updated',googleUid:'D'}));
+ await assertFails(updateDoc(doc(db('D'),'accounts/D'),{googleUid:'C'}));await assertFails(updateDoc(doc(db('admin'),'accounts/D'),{walletBalance:123}));await assertFails(deleteDoc(doc(db('D'),'accounts/D')));
+});
+test('Console compatibility: public listings and amenities remain public while pending and booked posts are private',async()=>{
+ await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'posts/draft'),{accountId:'A',status:'PENDING'});await setDoc(doc(c.firestore(),'amenities/wifi'),{name:'WiFi'});await setDoc(doc(c.firestore(),'images/publicCover'),{postId:'room',imgUrl:'public'});});
+ const anonymous=env.unauthenticatedContext().firestore();
+ await assertSucceeds(getDoc(doc(anonymous,'posts/room')));await assertSucceeds(getDocs(query(collection(anonymous,'posts'),where('status','==','APPROVED'))));await assertSucceeds(getDoc(doc(anonymous,'images/publicCover')));await assertSucceeds(getDocs(collection(anonymous,'amenities')));
+ await assertFails(getDoc(doc(anonymous,'posts/draft')));await assertFails(getDoc(doc(db('C'),'posts/draft')));await assertSucceeds(getDoc(doc(db('A'),'posts/draft')));
+ await lockedPost();await assertFails(getDoc(doc(anonymous,'posts/room')));await assertFails(getDoc(doc(anonymous,'images/cover')));
+});
+test('New_Post can create its parent and both image schemas in one batch',async()=>{
+ const store=db('A'),batch=writeBatch(store);
+ batch.set(doc(store,'posts/newRoom'),{accountId:'A',ownerId:'A',status:'PENDING',title:'New'});
+ for(const source of ['images','postImages'])batch.set(doc(store,source+'/newCover'),{postId:'newRoom',imgUrl:'encoded',orderIndex:0});
+ await assertSucceeds(batch.commit());await assertSucceeds(getDoc(doc(store,'images/newCover')));await assertFails(getDoc(doc(db('C'),'images/newCover')));
+ await assertFails(setDoc(doc(db('C'),'images/injected'),{postId:'newRoom',imgUrl:'forged'}));
+ await assertFails(setDoc(doc(store,'posts/forgedOwner'),{accountId:'A',ownerId:'B',status:'PENDING'}));
+});
+test('a post with many photos stays within Rules document-access limits in one batch',async()=>{
+ const store=db('A'),batch=writeBatch(store);batch.set(doc(store,'posts/manyPhotos'),{accountId:'A',status:'PENDING'});
+ for(let i=0;i<20;i++)batch.set(doc(store,'images/photo'+i),{postId:'manyPhotos',imgUrl:'image'+i});
+ await assertSucceeds(batch.commit());const photos=await assertSucceeds(getDocs(query(collection(store,'images'),where('postId','==','manyPhotos'))));if(photos.size!==20)throw Error('Missing uploaded photos');
+});
+test('Detail atomically deletes the unreserved post and its image documents',async()=>{
+ await env.withSecurityRulesDisabled(async c=>{for(const source of ['images','postImages'])await setDoc(doc(c.firestore(),source+'/deletable'),{postId:'room',imgUrl:'photo'});});
+ const store=db('B'),images=await getDocs(query(collection(store,'images'),where('postId','==','room'))),old=await getDocs(query(collection(store,'postImages'),where('postId','==','room'))),batch=writeBatch(store);
+ for(const image of [...images.docs,...old.docs])batch.delete(image.ref);batch.delete(doc(store,'posts/room'));await assertSucceeds(batch.commit());
+ await env.withSecurityRulesDisabled(async c=>{for(const p of ['posts/room','images/deletable','postImages/deletable'])if((await getDoc(doc(c.firestore(),p))).exists())throw Error('Atomic delete left '+p);});
+});
+test('a stale Detail delete cannot remove any image after a concurrent booking',async()=>{
+ await env.withSecurityRulesDisabled(async c=>setDoc(doc(c.firestore(),'images/stale'),{postId:'room',imgUrl:'keep'}));
+ const store=db('B'),photos=await getDocs(query(collection(store,'images'),where('postId','==','room')));await lockedPost();
+ const batch=writeBatch(store);for(const image of photos.docs)batch.delete(image.ref);batch.delete(doc(store,'posts/room'));await assertFails(batch.commit());
+ await env.withSecurityRulesDisabled(async c=>{if(!(await getDoc(doc(c.firestore(),'images/stale'))).exists())throw Error('Rejected delete removed a reserved photo');});
+});
+test('orphan photos do not become public after their parent disappears',async()=>{
+ await env.withSecurityRulesDisabled(async c=>setDoc(doc(c.firestore(),'images/orphan'),{postId:'missingParent',imgUrl:'private'}));
+ for(const store of [db('A'),env.unauthenticatedContext().firestore()])await assertFails(getDoc(doc(store,'images/orphan')));
+ await assertSucceeds(getDoc(doc(db('admin'),'images/orphan')));
+});
+test('Console compatibility: missing favorite subscriptions and owner toggles still work',async()=>{
+ const store=db('A');await assertSucceeds(getDoc(doc(store,'favorites/A_room')));await assertSucceeds(setDoc(doc(store,'favorites/A_room'),{userId:'A',postId:'room'}));
+ await assertSucceeds(getDocs(query(collection(store,'favorites'),where('userId','==','A'))));await assertFails(getDoc(doc(db('B'),'favorites/A_room')));await assertFails(setDoc(doc(db('B'),'favorites/A_other'),{userId:'A',postId:'other'}));await assertFails(updateDoc(doc(store,'favorites/A_room'),{postId:'offered'}));await assertSucceeds(deleteDoc(doc(store,'favorites/A_room')));
+});
+test('Console compatibility: nested notices preserve recipient actions and reject fake wallet notices',async()=>{
+ const admin=db('admin');await assertSucceeds(setDoc(doc(admin,'accounts/B/notifications/moderation'),{accountId:'B',type:'POST_HIDDEN',isRead:false}));
+ for(const extra of [{walletManaged:false},{paymentId:'fake'},{paymentStatus:'PAID'}])await assertFails(setDoc(doc(admin,'accounts/B/notifications/forged'),{accountId:'B',...extra}));
+ await assertSucceeds(updateDoc(doc(db('B'),'accounts/B/notifications/moderation'),{isRead:true}));await assertFails(deleteDoc(doc(admin,'accounts/B/notifications/moderation')));await assertSucceeds(deleteDoc(doc(db('B'),'accounts/B/notifications/moderation')));
+});
+test('Rebuilt exchange-request notifications validate their sender and actual host',async()=>{
+ await assertSucceeds(setDoc(doc(db('A'),'exchanges/pending'),pending));
+ const notice={userId:'B',senderId:'A',type:'exchange_request',requestId:'pending',exchangeId:'pending',isRead:false};
+ await assertSucceeds(setDoc(doc(db('A'),'notifications/validExchange'),notice));
+ await assertFails(setDoc(doc(db('C'),'notifications/spoofSender'),notice));await assertFails(setDoc(doc(db('A'),'notifications/spoofHost'),{...notice,userId:'C'}));await assertFails(setDoc(doc(db('A'),'notifications/mismatchedRequest'),{...notice,requestId:'different'}));
+});
+test('legacy request creation and its notification can share one atomic batch',async()=>{
+ const store=db('A'),batch=writeBatch(store);batch.set(doc(store,'exchangeRequests/oldNew'),{senderId:'A',recipientId:'B',targetPostId:'room',offeredPostId:'offered',status:'pending',createdAt:serverTimestamp()});batch.set(doc(store,'notifications/oldNew'),{senderId:'A',userId:'B',type:'exchange_request',requestId:'oldNew'});await assertSucceeds(batch.commit());
+ await assertSucceeds(getDoc(doc(db('admin'),'exchangeRequests/oldNew')));for(const uid of ['A','B','admin'])await assertFails(updateDoc(doc(db(uid),'exchangeRequests/oldNew'),{status:'accepted'}));
+});
+test('Chat notifications require the actual two participants and obey blocking',async()=>{
+ await assertSucceeds(messageBatch(db('A'),'first','A').commit());const notice={userId:'B',senderId:'A',type:'chat_message',conversationId:'A_B',body:'Hello'};
+ await assertSucceeds(setDoc(doc(db('A'),'notifications/chat'),notice));await assertFails(setDoc(doc(db('C'),'notifications/outsider'),notice));await assertFails(setDoc(doc(db('A'),'notifications/wrongChatRecipient'),{...notice,userId:'C'}));
+ await assertSucceeds(setDoc(doc(db('B'),'blocks/B_A'),{blockerId:'B',blockedUserId:'A'}));await assertFails(setDoc(doc(db('A'),'notifications/blockedChat'),notice));
+});
+test('root notices cannot impersonate financial events and preserve admin moderation types',async()=>{
+ for(const uid of ['A','admin'])for(const extra of [{paymentId:'fake'},{paymentStatus:'PAID'},{walletManaged:false},{amount:10000},{settlementState:'HELD'}])await assertFails(setDoc(doc(db(uid),'notifications/forged'),{userId:'B',senderId:uid,type:'POST_HIDDEN',...extra}));
+ for(const type of ['post_approved','post_rejected','POST_HIDDEN','ACCOUNT_LOCKED'])await assertSucceeds(setDoc(doc(db('admin'),'notifications/'+type),{userId:'B',type,isRead:false}));
+ await assertFails(setDoc(doc(db('A'),'notifications/forgedAdmin'),{userId:'B',senderId:'A',type:'POST_HIDDEN'}));
+});
+test('pending exchanges reject extra financial fields and inconsistent aliases',async()=>{
+ for(const extra of [{currency:'VND'},{acceptedAt:serverTimestamp()},{bankEventId:'fake'},{senderId:'C'},{recipientId:'C'},{targetPostId:'offered'},{proposedPostId:'room'}])await assertFails(setDoc(doc(db('A'),'exchanges/forged'),{...pending,...extra}));
+ await assertFails(setDoc(doc(db('B'),'exchanges/self'),{...pending,requesterId:'B',requester_accountId:'B'}));
+});
+test('message read receipts remain available after blocking without allowing content edits',async()=>{
+ await assertSucceeds(messageBatch(db('A'),'receipt','A').commit());await assertSucceeds(setDoc(doc(db('B'),'blocks/B_A'),{blockerId:'B',blockedUserId:'A'}));
+ await assertSucceeds(updateDoc(doc(db('B'),'conversations/A_B/messages/receipt'),{isRead:true,readAt:serverTimestamp()}));
+ await assertFails(updateDoc(doc(db('A'),'conversations/A_B/messages/receipt'),{content:'Changed'}));await assertFails(updateDoc(doc(db('B'),'conversations/A_B/messages/receipt'),{content:'Changed'}));await assertFails(updateDoc(doc(db('C'),'conversations/A_B/messages/receipt'),{isRead:true}));
+});
+test('conversations require two distinct string participants and a truthful sender',async()=>{
+ await assertFails(setDoc(doc(db('A'),'conversations/self'),{participant1Id:'A',participant2Id:'A'}));await assertFails(setDoc(doc(db('A'),'conversations/number'),{participant1Id:'A',participant2Id:42}));await assertFails(setDoc(doc(db('A'),'conversations/forgedSender'),{...participants,lastMessageSenderId:'B'}));
+ await assertSucceeds(messageBatch(db('A'),'truthful','A').commit());await assertFails(updateDoc(doc(db('A'),'conversations/A_B'),{lastMessage:'Forged',lastMessageSenderId:'B'}));
+});
+test('reports and reviews retain Console author and rating validation',async()=>{
+ await assertSucceeds(setDoc(doc(db('A'),'reports/new'),{reporterId:'A',target_postId:'room'}));await assertFails(setDoc(doc(db('A'),'reports/forged'),{reporterId:'B'}));
+ await assertSucceeds(setDoc(doc(db('A'),'reviews/new'),{reviewerId:'A',rating:4,comment:'Good'}));await assertSucceeds(updateDoc(doc(db('A'),'reviews/new'),{rating:5,comment:'Updated'}));await assertFails(setDoc(doc(db('A'),'reviews/forged'),{reviewerId:'B',rating:5}));await assertFails(updateDoc(doc(db('A'),'reviews/new'),{rating:6}));await assertFails(updateDoc(doc(db('B'),'reviews/new'),{comment:'Replaced'}));
+});
+test('booked posts honor trusted legacy account aliases without granting outsiders access',async()=>{
+ await env.withSecurityRulesDisabled(async c=>{const s=c.firestore();await updateDoc(doc(s,'accounts/A'),{accountId:'legacyA'});await updateDoc(doc(s,'accounts/B'),{accountId:'legacyB'});await setDoc(doc(s,'posts/aliasRoom'),{accountId:'legacyB',status:'BOOKED',bookingKey:'exchanges/alias',bookingPartyIds:['legacyA','legacyB']});});
+ for(const uid of ['A','B','admin'])await assertSucceeds(getDoc(doc(db(uid),'posts/aliasRoom')));await assertFails(getDoc(doc(db('C'),'posts/aliasRoom')));await assertFails(updateDoc(doc(db('C'),'accounts/C'),{accountId:'legacyA'}));
+});
+test('old conflict locks stay closed until server-side review resolves the history',async()=>{
+ await env.withSecurityRulesDisabled(async c=>setDoc(doc(c.firestore(),'posts/conflict'),{accountId:'B',status:'BOOKED',bookingKey:'conflict/conflict',bookingState:'CONFLICT',bookingPartyIds:[]}));
+ for(const uid of ['B','admin'])await assertSucceeds(getDoc(doc(db(uid),'posts/conflict')));await assertFails(getDoc(doc(db('C'),'posts/conflict')));await assertFails(updateDoc(doc(db('admin'),'posts/conflict'),{bookingKey:'',bookingPartyIds:['A','B'],status:'APPROVED'}));await assertFails(setDoc(doc(db('A'),'exchanges/conflictRequest'),{...pending,postId:'conflict'}));
 });
