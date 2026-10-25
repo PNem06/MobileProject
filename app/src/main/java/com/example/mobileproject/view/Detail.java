@@ -50,6 +50,8 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 
 import java.text.ParseException;
+import android.graphics.Color;
+import androidx.core.content.ContextCompat;
 
 public class Detail extends AppCompatActivity {
     public static final String EXTRA_POST_ID = "postId";
@@ -220,20 +222,29 @@ public class Detail extends AppCompatActivity {
 
         String status = stringValue(doc, "status");
         if (status.isEmpty()) status = "PENDING";
+
         if (txtStatusBadge != null) {
-            txtStatusBadge.setVisibility(View.VISIBLE);
-            if ("APPROVED".equalsIgnoreCase(status) || "PUBLIC".equalsIgnoreCase(status) || "ACTIVE".equalsIgnoreCase(status)) {
-                txtStatusBadge.setText("Trạng thái: Active");
-                txtStatusBadge.setTextColor(Color.parseColor("#2E7D32"));
-                txtStatusBadge.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_status_accepted));
-            } else if ("REJECTED".equalsIgnoreCase(status) || "PRIVATE".equalsIgnoreCase(status)) {
-                txtStatusBadge.setText("Trạng thái: Bị từ chối");
-                txtStatusBadge.setTextColor(Color.parseColor("#D32F2F"));
-                txtStatusBadge.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_status_cancelled));
+            txtStatusBadge.setVisibility(View.GONE);
+
+            if ("ACTIVE".equalsIgnoreCase(status)
+                    || "APPROVED".equalsIgnoreCase(status)
+                    || "PUBLIC".equalsIgnoreCase(status)) {
+
+                txtStatusBadge.setText("● Đang hoạt động");
+                txtStatusBadge.setTextColor(Color.parseColor("#1B5E20"));
+                txtStatusBadge.setBackgroundColor(Color.parseColor("#E8F5E9"));
+
+            } else if ("REJECTED".equalsIgnoreCase(status)
+                    || "PRIVATE".equalsIgnoreCase(status)) {
+
+                txtStatusBadge.setText("● Bị từ chối");
+                txtStatusBadge.setTextColor(Color.parseColor("#B3261E"));
+                txtStatusBadge.setBackgroundColor(Color.parseColor("#FDECEA"));
+
             } else {
-                txtStatusBadge.setText("Trạng thái: Chờ duyệt");
-                txtStatusBadge.setTextColor(Color.parseColor("#E65100"));
-                txtStatusBadge.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_status_waiting));
+                txtStatusBadge.setText("● Chờ Admin duyệt");
+                txtStatusBadge.setTextColor(Color.parseColor("#8D4E00"));
+                txtStatusBadge.setBackgroundColor(Color.parseColor("#FFF3E0"));
             }
         }
 
@@ -293,12 +304,24 @@ public class Detail extends AppCompatActivity {
         isMyPost = currentUid != null && !currentUid.isEmpty() && currentUid.equals(postOwnerId);
 
         if (isMyPost) {
+            if (txtStatusBadge != null) {
+                txtStatusBadge.setVisibility(View.VISIBLE);
+            }
             if (layoutHostInfo != null) layoutHostInfo.setVisibility(View.GONE);
             if (layoutGuestActions != null) layoutGuestActions.setVisibility(View.GONE);
             if (layoutOwnerActions != null) layoutOwnerActions.setVisibility(View.VISIBLE);
             if (layoutEditActions != null) layoutEditActions.setVisibility(View.GONE);
         } else {
-            if (layoutHostInfo != null) layoutHostInfo.setVisibility(View.VISIBLE);
+            if (txtStatusBadge != null) {
+                txtStatusBadge.setVisibility(View.GONE);
+            }
+            if (layoutHostInfo != null) {
+                layoutHostInfo.setVisibility(View.VISIBLE);
+                layoutHostInfo.setOnLongClickListener(v -> {
+                    showBlockDialogForOwner(postOwnerId, txtHostName.getText().toString());
+                    return true;
+                });
+            }
             if (layoutGuestActions != null) layoutGuestActions.setVisibility(View.VISIBLE);
             if (layoutOwnerActions != null) layoutOwnerActions.setVisibility(View.GONE);
             if (layoutEditActions != null) layoutEditActions.setVisibility(View.GONE);
@@ -315,40 +338,122 @@ public class Detail extends AppCompatActivity {
         loadRoomImages(postId);
     }
 
+
+    private void showBlockDialogForOwner(String ownerId, String name) {
+        String currentUid = FirebaseAuth.getInstance().getUid();
+        if (currentUid == null || currentUid.isEmpty() || ownerId == null || ownerId.isEmpty() || currentUid.equals(ownerId)) return;
+
+        String docId = currentUid + "_" + ownerId;
+        db.collection("blocks").document(docId).get()
+                .addOnSuccessListener(doc -> {
+                    boolean isBlocked = doc.exists();
+                    String actionText = isBlocked ? "Bỏ chặn " + name : "Chặn " + name;
+
+                    new AlertDialog.Builder(this)
+                            .setTitle(name)
+                            .setItems(new String[]{actionText}, (dialog, which) -> {
+                                if (isBlocked) {
+                                    db.collection("blocks").document(docId).delete()
+                                            .addOnSuccessListener(aVoid -> Toast.makeText(this, "Đã bỏ chặn " + name, Toast.LENGTH_SHORT).show());
+                                } else {
+                                    Map<String, Object> blockData = new HashMap<>();
+                                    blockData.put("blockId", docId);
+                                    blockData.put("blockerId", currentUid);
+                                    blockData.put("blockedUserId", ownerId);
+                                    blockData.put("createdAt", FieldValue.serverTimestamp());
+
+                                    db.collection("blocks").document(docId).set(blockData)
+                                            .addOnSuccessListener(aVoid -> Toast.makeText(this, "Đã chặn " + name, Toast.LENGTH_SHORT).show());
+                                }
+                            })
+                            .setNegativeButton("Hủy", null)
+                            .show();
+                });
+    }
+
     private void checkExistingSentRequest(String currentUid, String postId) {
-        if (currentUid == null || currentUid.isEmpty() || postId == null || postId.isEmpty()) return;
+        if (currentUid == null || currentUid.isEmpty()
+                || postId == null || postId.isEmpty()) {
+            return;
+        }
 
         db.collection("exchanges")
                 .whereEqualTo("requester_accountId", currentUid)
                 .get()
                 .addOnSuccessListener(snapshot -> {
-                    boolean foundActiveRequest = false;
+                    if (isFinishing() || isDestroyed()) return;
+
+                    DocumentSnapshot activeRequest = null;
+
                     if (snapshot != null && !snapshot.isEmpty()) {
                         for (DocumentSnapshot doc : snapshot.getDocuments()) {
                             String targetId = doc.getString("postId");
-                            if (targetId == null || targetId.isEmpty()) targetId = doc.getString("targetPostId");
-                            if (postId.equals(targetId)) {
-                                String st = doc.getString("status");
-                                if (st == null) st = "";
-                                if (!"CANCELLED".equalsIgnoreCase(st) && !"REJECTED".equalsIgnoreCase(st)) {
-                                    foundActiveRequest = true;
-                                    break;
-                                }
+
+                            if (targetId == null || targetId.isEmpty()) {
+                                targetId = doc.getString("targetPostId");
+                            }
+
+                            if (!postId.equals(targetId)) {
+                                continue;
+                            }
+
+                            String status = doc.getString("status");
+
+                            if (!"CANCELLED".equalsIgnoreCase(status)
+                                    && !"REJECTED".equalsIgnoreCase(status)) {
+                                activeRequest = doc;
+                                break;
                             }
                         }
                     }
 
-                    if (foundActiveRequest) {
-                        TextView btnBooking = findViewById(R.id.btnBooking);
-                        if (btnBooking != null) {
-                            btnBooking.setText("Xem yêu cầu đã gửi");
-                            btnBooking.setOnClickListener(v -> {
-                                Intent intent = new Intent(Detail.this, Request.class);
-                                intent.putExtra("selectReceivedTab", false);
-                                startActivity(intent);
-                            });
-                        }
+                    TextView btnBooking = findViewById(R.id.btnBooking);
+
+                    if (btnBooking == null) return;
+
+                    if (activeRequest != null) {
+                        // Lấy ID chính xác của yêu cầu trong Firestore.
+                        String exchangeId = activeRequest.getId();
+
+                        btnBooking.setText("Xem yêu cầu đã gửi");
+                        btnBooking.setBackground(
+                                ContextCompat.getDrawable(
+                                        Detail.this,
+                                        R.drawable.bg_btn_primary_blue
+                                )
+                        );
+                        btnBooking.setTextColor(Color.WHITE);
+
+                        // Nhấn một lần để mở thẳng chi tiết yêu cầu.
+                        btnBooking.setOnClickListener(v -> {
+                            Intent intent = new Intent(
+                                    Detail.this,
+                                    SentRequestDetailActivity.class
+                            );
+
+                            intent.putExtra(
+                                    SentRequestDetailActivity.EXTRA_EXCHANGE_ID,
+                                    exchangeId
+                            );
+
+                            startActivity(intent);
+                        });
+
+                    } else {
+                        // Không có yêu cầu đang hoạt động thì giữ chức năng đặt phòng.
+                        btnBooking.setText("Đặt phòng");
+                        btnBooking.setOnClickListener(v -> showBookingOptions());
                     }
+                })
+                .addOnFailureListener(error -> {
+                    if (isFinishing() || isDestroyed()) return;
+
+                    Toast.makeText(
+                            Detail.this,
+                            "Không kiểm tra được yêu cầu đã gửi: "
+                                    + error.getLocalizedMessage(),
+                            Toast.LENGTH_SHORT
+                    ).show();
                 });
     }
 
@@ -721,9 +826,9 @@ public class Detail extends AppCompatActivity {
         });
 
         findViewById(R.id.btnMessage).setOnClickListener(v -> {
-            Intent intent = new Intent(Detail.this, Chat.class);
+            Intent intent = new Intent(Detail.this, ChatDetailActivity.class);
             if (postOwnerId != null && !postOwnerId.isEmpty()) {
-                intent.putExtra("recipientId", postOwnerId);
+                intent.putExtra(ChatDetailActivity.EXTRA_RECIPIENT_ID, postOwnerId);
             }
             startActivity(intent);
         });

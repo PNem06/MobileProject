@@ -79,48 +79,178 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
     }
 
     private void loadIntentData() {
-        mainRequestItem = (RequestItem) getIntent().getSerializableExtra(EXTRA_REQUEST_ITEM);
-        if (mainRequestItem == null || mainRequestItem.postId == null || mainRequestItem.postId.isEmpty()) {
-            Toast.makeText(this, "Không xác định được bài viết.", Toast.LENGTH_LONG).show(); finish(); return;
-        }
-        txtHeaderPostTitle.setText(mainRequestItem.postTitle == null ? "Yêu cầu đã nhận" : mainRequestItem.postTitle);
-        txtPostDateRange.setText(mainRequestItem.dateRangeText == null ? "" : mainRequestItem.dateRangeText);
-        txtPostRating.setText(mainRequestItem.rating > 0 ? String.format(java.util.Locale.US, "%.1f", mainRequestItem.rating) : "—");
-        txtPostLocation.setText(mainRequestItem.locationText == null ? "" : mainRequestItem.locationText);
-        if (mainRequestItem.postImageUrl != null && !mainRequestItem.postImageUrl.isEmpty()) Glide.with(this).load(PostImageUtils.asGlideModel(mainRequestItem.postImageUrl)).into(imgMainPost);
+        mainRequestItem = (RequestItem) getIntent()
+                .getSerializableExtra(EXTRA_REQUEST_ITEM);
 
-        allSubRequests.clear(); visibleSubRequests.clear();
+        if (mainRequestItem == null
+                || mainRequestItem.postId == null
+                || mainRequestItem.postId.isEmpty()) {
+            Toast.makeText(this, "Không xác định được bài viết.",
+                    Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
+
+        txtHeaderPostTitle.setText(
+                mainRequestItem.postTitle == null
+                        ? "Yêu cầu đã nhận"
+                        : mainRequestItem.postTitle
+        );
+
+        txtPostDateRange.setText(
+                mainRequestItem.dateRangeText == null
+                        ? ""
+                        : mainRequestItem.dateRangeText
+        );
+
+        txtPostRating.setText(
+                mainRequestItem.rating > 0
+                        ? String.format(java.util.Locale.US, "%.1f",
+                        mainRequestItem.rating)
+                        : "—"
+        );
+
+        txtPostLocation.setText(
+                mainRequestItem.locationText == null
+                        ? ""
+                        : mainRequestItem.locationText
+        );
+
+        if (mainRequestItem.postImageUrl != null
+                && !mainRequestItem.postImageUrl.isEmpty()) {
+            Glide.with(this)
+                    .load(PostImageUtils.asGlideModel(
+                            mainRequestItem.postImageUrl))
+                    .into(imgMainPost);
+        }
+
+        allSubRequests.clear();
+        visibleSubRequests.clear();
+        adapter.notifyDataSetChanged();
+
         repository.resolveCurrentAccountId((accountId, error) -> {
-            if (error != null) { Toast.makeText(this, error.getMessage(), Toast.LENGTH_LONG).show(); return; }
-            FirebaseFirestore.getInstance().collection("exchanges")
-                    .whereEqualTo("postId", mainRequestItem.postId).get()
+            if (error != null) {
+                Toast.makeText(this,
+                        "Không xác định được tài khoản: " + error.getMessage(),
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+            // Truy vấn riêng theo host_accountId.
+            db.collection("exchanges")
+                    .whereEqualTo("host_accountId", accountId)
+                    .get()
                     .addOnSuccessListener(snapshot -> {
-                        allSubRequests.clear();
                         for (DocumentSnapshot doc : snapshot.getDocuments()) {
-                            String host = doc.getString("host_accountId");
-                            if (host == null) host = doc.getString("hostId");
-                            if (!accountId.equals(host)) continue;
-                            RequestItem sub = new RequestItem();
-                            sub.exchangeId = doc.getId(); sub.subRequestId = doc.getId();
-                            sub.postId = doc.getString("postId");
-                            sub.requesterId = doc.getString("requester_accountId");
-                            if (sub.requesterId == null) sub.requesterId = doc.getString("requesterId");
-                            sub.hostId = host;
-                            sub.status = doc.getString("status") == null ? "PENDING" : doc.getString("status");
-                            String type = doc.getString("exchangeType");
-                            sub.exchangeType = "NON_RECIPROCAL".equals(type) ? "MONEY" : "RECIPROCAL";
-                            sub.requestDateText = "Yêu cầu " + sub.status;
-                            sub.isPaid = false;
-                            String offeredPostId = doc.getString("offeredPostId");
-                            if (offeredPostId == null || offeredPostId.isEmpty()) offeredPostId = doc.getString("proposedPostId");
-                            sub.proposedPostId = offeredPostId;
-                            allSubRequests.add(sub);
-                            loadSenderInfo(sub);
-                            loadProposedPostInfo(sub);
+                            addReceivedRequestIfMatches(
+                                    doc, accountId, mainRequestItem.postId);
                         }
-                        updateFilterCountsAndList("ALL");
-                    }).addOnFailureListener(e -> Toast.makeText(this, "Không tải được yêu cầu: " + e.getMessage(), Toast.LENGTH_LONG).show());
+
+                        // Truy vấn riêng theo hostId.
+                        db.collection("exchanges")
+                                .whereEqualTo("hostId", accountId)
+                                .get()
+                                .addOnSuccessListener(snapshot2 -> {
+                                    for (DocumentSnapshot doc :
+                                            snapshot2.getDocuments()) {
+                                        addReceivedRequestIfMatches(
+                                                doc, accountId,
+                                                mainRequestItem.postId);
+                                    }
+
+                                    updateFilterCountsAndList("ALL");
+                                })
+                                .addOnFailureListener(e -> {
+                                    updateFilterCountsAndList("ALL");
+                                    Toast.makeText(this,
+                                            "Không tải được yêu cầu theo hostId: "
+                                                    + e.getMessage(),
+                                            Toast.LENGTH_LONG).show();
+                                });
+                    })
+                    .addOnFailureListener(e ->
+                            Toast.makeText(this,
+                                    "Không tải được yêu cầu theo host_accountId: "
+                                            + e.getMessage(),
+                                    Toast.LENGTH_LONG).show()
+                    );
         });
+    }
+
+    private void addReceivedRequestIfMatches(
+            DocumentSnapshot doc,
+            String accountId,
+            String targetPostId) {
+
+        String host = doc.getString("host_accountId");
+
+        if (host == null || host.isEmpty()) {
+            host = doc.getString("hostId");
+        }
+
+        String postId = doc.getString("postId");
+
+        if (postId == null || postId.isEmpty()) {
+            postId = doc.getString("targetPostId");
+        }
+
+        if (!accountId.equals(host)
+                || postId == null
+                || !targetPostId.equals(postId)) {
+            return;
+        }
+
+        // Tránh thêm trùng khi cùng một document có cả hai trường host.
+        for (RequestItem existing : allSubRequests) {
+            if (doc.getId().equals(existing.exchangeId)) {
+                return;
+            }
+        }
+
+        RequestItem sub = new RequestItem();
+
+        sub.exchangeId = doc.getId();
+        sub.subRequestId = doc.getId();
+        sub.postId = postId;
+        sub.requesterId = doc.getString("requester_accountId");
+
+        if (sub.requesterId == null || sub.requesterId.isEmpty()) {
+            sub.requesterId = doc.getString("requesterId");
+        }
+
+        if (sub.requesterId == null || sub.requesterId.isEmpty()) {
+            sub.requesterId = doc.getString("senderId");
+        }
+
+        sub.hostId = host;
+
+        String status = doc.getString("status");
+        sub.status = status == null ? "PENDING" : status;
+
+        String type = doc.getString("exchangeType");
+        sub.exchangeType =
+                "NON_RECIPROCAL".equalsIgnoreCase(type)
+                        || "MONEY".equalsIgnoreCase(type)
+                        ? "MONEY"
+                        : "RECIPROCAL";
+
+        sub.requestDateText = "Yêu cầu " + sub.status;
+        sub.isPaid = false;
+
+        String offeredPostId = doc.getString("offeredPostId");
+
+        if (offeredPostId == null || offeredPostId.isEmpty()) {
+            offeredPostId = doc.getString("proposedPostId");
+        }
+
+        sub.proposedPostId = offeredPostId;
+
+        allSubRequests.add(sub);
+
+        loadSenderInfo(sub);
+        loadProposedPostInfo(sub);
     }
 
     private void loadProposedPostInfo(RequestItem item) {

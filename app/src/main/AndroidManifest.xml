@@ -92,6 +92,10 @@
             android:name=".view.ReceivedRequestsDetailActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".view.SentRequestDetailActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
 
         <!-- Exchange và Rental -->
         <activity
@@ -112,6 +116,10 @@
 
         <activity
             android:name=".view.Chat"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".view.ChatDetailActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 

@@ -313,6 +313,7 @@ public class HomeUi extends HomeViews {
         Intent intent = new Intent(activity, destination);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         activity.startActivity(intent);
+        activity.overridePendingTransition(0, 0);
     }
 
     private void buildHomeFilters() {

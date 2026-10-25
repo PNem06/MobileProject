@@ -1,6 +1,7 @@
 package com.example.mobileproject.view;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -14,6 +15,7 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -25,6 +27,7 @@ import com.bumptech.glide.Glide;
 import com.example.mobileproject.MainActivity;
 import com.example.mobileproject.R;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -33,6 +36,7 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -49,6 +53,8 @@ public class Chat extends AppCompatActivity {
     private ConversationAdapter adapter;
     private String userId = "";
     private String searchText = "";
+    private TextView chipAll, chipUnread, chipRead;
+    private int activeFilterMode = 0; // 0 = Tất cả, 1 = Chưa đọc, 2 = Đã đọc
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,6 +91,14 @@ public class Chat extends AppCompatActivity {
             }
             @Override public void afterTextChanged(Editable s) {}
         });
+        chipAll = findViewById(R.id.chipAll);
+        chipUnread = findViewById(R.id.chipUnread);
+        chipRead = findViewById(R.id.chipRead);
+
+        if (chipAll != null) chipAll.setOnClickListener(v -> selectFilter(0));
+        if (chipUnread != null) chipUnread.setOnClickListener(v -> selectFilter(1));
+        if (chipRead != null) chipRead.setOnClickListener(v -> selectFilter(2));
+
         setupBottomNavigation();
         BottomNavigationView navigation = findViewById(R.id.chatBottomMenu);
         if (navigation != null) {
@@ -94,6 +108,25 @@ public class Chat extends AppCompatActivity {
             });
         }
         navigation.getMenu().findItem(R.id.menu_message).setChecked(true);
+    }
+
+    private void selectFilter(int mode) {
+        activeFilterMode = mode;
+        setChipSelected(chipAll, mode == 0);
+        setChipSelected(chipUnread, mode == 1);
+        setChipSelected(chipRead, mode == 2);
+        renderConversations();
+    }
+
+    private void setChipSelected(TextView chip, boolean selected) {
+        if (chip == null) return;
+        if (selected) {
+            chip.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_chip_selected));
+            chip.setTextColor(Color.WHITE);
+        } else {
+            chip.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_chip_unselected));
+            chip.setTextColor(Color.parseColor("#444444"));
+        }
     }
 
     private void setupBottomNavigation() {
@@ -116,6 +149,7 @@ public class Chat extends AppCompatActivity {
             }
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             startActivity(intent);
+            overridePendingTransition(0, 0);
             return true;
         });
     }
@@ -216,12 +250,30 @@ public class Chat extends AppCompatActivity {
 
     private void renderConversations() {
         if (adapter == null) return;
+
+        int totalCount = 0;
+        int unreadCount = 0;
+        int readCount = 0;
+
         List<ConversationRow> rows = new ArrayList<>();
         for (DocumentSnapshot document : conversations.values()) {
             String firstId = document.getString("participant1Id");
             String secondId = document.getString("participant2Id");
             String otherId = userId.equals(firstId) ? secondId : firstId;
             if (otherId == null || otherId.trim().isEmpty()) continue;
+
+            totalCount++;
+            String lastSender = document.getString("lastMessageSenderId");
+            Boolean isReadObj = document.getBoolean("isRead");
+            if (isReadObj == null) isReadObj = document.getBoolean("read");
+
+            boolean isUnread = lastSender != null && !lastSender.equals(userId) && !Boolean.TRUE.equals(isReadObj);
+
+            if (isUnread) unreadCount++;
+            else readCount++;
+
+            if (activeFilterMode == 1 && !isUnread) continue;
+            if (activeFilterMode == 2 && isUnread) continue;
 
             Profile profile = profiles.get(otherId);
             String name = profile == null ? null : profile.name;
@@ -234,18 +286,76 @@ public class Chat extends AppCompatActivity {
             if (name == null || name.trim().isEmpty()) name = otherId;
             String preview = document.getString("lastMessage");
             if (preview == null || preview.trim().isEmpty()) preview = "Bắt đầu trò chuyện";
+
+            if (lastSender != null && lastSender.equals(userId)) {
+                preview = "Bạn: " + preview;
+            }
+
+            Date msgDate = null;
+            Object lastAt = document.get("lastMessageAt");
+            if (lastAt instanceof com.google.firebase.Timestamp) msgDate = ((com.google.firebase.Timestamp) lastAt).toDate();
+            else if (lastAt instanceof Date) msgDate = (Date) lastAt;
+
+            String timeText = "";
+            if (msgDate != null) {
+                java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm", new Locale("vi", "VN"));
+                timeText = timeFormat.format(msgDate);
+            }
+
             if (!searchText.isEmpty()
                     && !name.toLowerCase(Locale.ROOT).contains(searchText)
                     && !preview.toLowerCase(Locale.ROOT).contains(searchText)) continue;
             String avatarUrl = profile == null ? null : profile.avatarUrl;
-            rows.add(new ConversationRow(name, preview, avatarUrl));
+            rows.add(new ConversationRow(otherId, name, preview, avatarUrl, timeText, isUnread));
         }
+
+        if (chipAll != null) chipAll.setText("Tất cả (" + totalCount + ")");
+        if (chipUnread != null) chipUnread.setText("Chưa đọc (" + unreadCount + ")");
+        if (chipRead != null) chipRead.setText("Đã đọc (" + readCount + ")");
+
         adapter.submit(rows);
     }
 
     private void removeConversationListeners() {
         for (ListenerRegistration listener : listeners) listener.remove();
         listeners.clear();
+    }
+
+    private void showBlockDialogForPartner(String partnerId, String name) {
+        if (userId.isEmpty() || partnerId == null || partnerId.isEmpty()) return;
+        String myBlockDocId = userId + "_" + partnerId;
+
+        FirebaseFirestore.getInstance().collection("blocks").document(myBlockDocId).get()
+                .addOnSuccessListener(doc -> {
+                    boolean isBlocked = doc.exists();
+                    String actionText = isBlocked ? "Bỏ chặn " + name : "Chặn " + name;
+
+                    new androidx.appcompat.app.AlertDialog.Builder(this)
+                            .setTitle(name)
+                            .setItems(new String[]{actionText}, (dialog, which) -> {
+                                if (isBlocked) {
+                                    FirebaseFirestore.getInstance().collection("blocks").document(myBlockDocId).delete()
+                                            .addOnSuccessListener(aVoid -> {
+                                                Toast.makeText(this, "Đã bỏ chặn " + name, Toast.LENGTH_SHORT).show();
+                                                renderConversations();
+                                            });
+                                } else {
+                                    Map<String, Object> blockData = new HashMap<>();
+                                    blockData.put("blockId", myBlockDocId);
+                                    blockData.put("blockerId", userId);
+                                    blockData.put("blockedUserId", partnerId);
+                                    blockData.put("createdAt", com.google.firebase.firestore.FieldValue.serverTimestamp());
+
+                                    FirebaseFirestore.getInstance().collection("blocks").document(myBlockDocId).set(blockData)
+                                            .addOnSuccessListener(aVoid -> {
+                                                Toast.makeText(this, "Đã chặn " + name, Toast.LENGTH_SHORT).show();
+                                                renderConversations();
+                                            });
+                                }
+                            })
+                            .setNegativeButton("Hủy", null)
+                            .show();
+                });
     }
 
     private void removeProfileListeners() {
@@ -266,13 +376,20 @@ public class Chat extends AppCompatActivity {
     }
 
     private static class ConversationRow {
+        final String otherId;
         final String name;
         final String preview;
         final String avatarUrl;
-        ConversationRow(String name, String preview, String avatarUrl) {
+        final String timeText;
+        final boolean isUnread;
+
+        ConversationRow(String otherId, String name, String preview, String avatarUrl, String timeText, boolean isUnread) {
+            this.otherId = otherId;
             this.name = name;
             this.preview = preview;
             this.avatarUrl = avatarUrl;
+            this.timeText = timeText;
+            this.isUnread = isUnread;
         }
     }
 
@@ -297,7 +414,19 @@ public class Chat extends AppCompatActivity {
             ConversationRow row = rows.get(position);
             holder.name.setText(row.name);
             holder.preview.setText(row.preview);
+            if (holder.time != null) holder.time.setText(row.timeText);
             holder.initials.setText(initials(row.name));
+
+            if (row.isUnread) {
+                holder.name.setTypeface(null, android.graphics.Typeface.BOLD);
+                holder.preview.setTypeface(null, android.graphics.Typeface.BOLD);
+                holder.preview.setTextColor(Color.parseColor("#10132D"));
+            } else {
+                holder.name.setTypeface(null, android.graphics.Typeface.BOLD);
+                holder.preview.setTypeface(null, android.graphics.Typeface.NORMAL);
+                holder.preview.setTextColor(Color.parseColor("#8289A4"));
+            }
+
             Glide.with(holder.photo).clear(holder.photo);
             if (row.avatarUrl == null || row.avatarUrl.trim().isEmpty()) {
                 holder.photo.setVisibility(View.GONE);
@@ -305,6 +434,17 @@ public class Chat extends AppCompatActivity {
                 holder.photo.setVisibility(View.VISIBLE);
                 Glide.with(holder.photo).load(row.avatarUrl).circleCrop().into(holder.photo);
             }
+            holder.itemView.setOnClickListener(v -> {
+                Intent intent = new Intent(Chat.this, ChatDetailActivity.class);
+                intent.putExtra(ChatDetailActivity.EXTRA_RECIPIENT_ID, row.otherId);
+                intent.putExtra(ChatDetailActivity.EXTRA_PARTNER_NAME, row.name);
+                intent.putExtra(ChatDetailActivity.EXTRA_PARTNER_AVATAR, row.avatarUrl);
+                startActivity(intent);
+            });
+            holder.itemView.setOnLongClickListener(v -> {
+                showBlockDialogForPartner(row.otherId, row.name);
+                return true;
+            });
         }
 
         @Override public int getItemCount() { return rows.size(); }
@@ -312,12 +452,14 @@ public class Chat extends AppCompatActivity {
         class RowHolder extends RecyclerView.ViewHolder {
             final TextView name;
             final TextView preview;
+            final TextView time;
             final TextView initials;
             final ImageView photo;
             RowHolder(View itemView) {
                 super(itemView);
                 name = itemView.findViewById(R.id.chatProfileName);
                 preview = itemView.findViewById(R.id.chatConversationPreview);
+                time = itemView.findViewById(R.id.chatConversationTime);
                 initials = itemView.findViewById(R.id.chatProfileInitials);
                 photo = itemView.findViewById(R.id.chatProfilePhoto);
             }
