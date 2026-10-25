@@ -35,14 +35,16 @@ public class ExchangeRepository {
         return id == null || id.trim().isEmpty() ? doc.getId() : id;
     }
 
-    public void updateExchange(String exchangeId, Map<String, Object> updates, UpdateCallback callback) {
-        if (exchangeId == null || exchangeId.trim().isEmpty()) {
-            callback.onComplete(new Exception("Thiếu exchangeId.")); return;
-        }
-        updates.put("updatedAt", com.google.firebase.firestore.FieldValue.serverTimestamp());
-        db.collection("exchanges").document(exchangeId).update(updates)
-                .addOnSuccessListener(unused -> callback.onComplete(null))
-                .addOnFailureListener(callback::onComplete);
+    public void updateExchange(android.content.Context context, String id, Map<String,Object> changes, UpdateCallback callback) {
+        updateExchange(context, "exchanges", id, changes, callback);
+    }
+    public void updateExchange(android.content.Context context, String source, String id, Map<String,Object> changes, UpdateCallback callback) {
+        if (id == null || id.trim().isEmpty()) { callback.onComplete(new Exception("Thiếu mã yêu cầu.")); return; }
+        try {
+            org.json.JSONObject body = new org.json.JSONObject();
+            body.put("exchangeId", id); body.put("collection", source); body.put("updates", new org.json.JSONObject(changes));
+            com.example.mobileproject.wallet.WalletApi.call(context, "/v1/exchanges/update", body, (data,error) -> callback.onComplete(error));
+        } catch (Exception error) { callback.onComplete(error); }
     }
 
     public Map<String, Object> statusUpdate(String status) {

@@ -31,6 +31,7 @@ public class AdminManagementRepository {
 
     private final FirebaseFirestore firestore = FirebaseFirestore.getInstance();
     private final AdminCacheDao dao;
+    private final Application application;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private ListenerRegistration reportListener;
     private ListenerRegistration exchangeListener;
@@ -41,6 +42,7 @@ public class AdminManagementRepository {
     private List<DocumentSnapshot> latestPayments = new ArrayList<>();
 
     public AdminManagementRepository(Application application) {
+        this.application=application;
         dao = AdminLocalDatabase.getInstance(application).adminCacheDao();
     }
 
@@ -238,6 +240,9 @@ public class AdminManagementRepository {
 
         for (DocumentSnapshot account : latestAccounts) {
             accountById.put(account.getId(), account);
+            for (String field : new String[]{"accountId","authUid","googleUid"}) {
+                String alias=firstString(account,field); if(!alias.isEmpty()) accountById.put(alias,account);
+            }
         }
         for (DocumentSnapshot doc : latestExchanges) {
             ExchangeCacheEntity item = new ExchangeCacheEntity();
@@ -269,12 +274,12 @@ public class AdminManagementRepository {
             item.startDate = dateMillis(doc.get("startDate"));
             item.endDate = dateMillis(doc.get("endDate"));
             item.createdAt = dateMillis(doc.get("createdAt"));
-            DocumentSnapshot payment = paymentByExchange.get(item.exchangeId);
-            if (payment != null) {
-                item.paymentStatus = firstString(payment, "status");
-                item.paymentAmount = doubleValue(payment.get("amount"));
-                item.paidAt = dateMillis(payment.get("paidAt"));
-            }
+            item.walletManaged=Boolean.TRUE.equals(doc.getBoolean("walletManaged"));
+            DocumentSnapshot payment=paymentByExchange.get(item.exchangeId);
+            java.util.Map<String,Object> legacy=payment==null?null:payment.getData();
+            item.paymentStatus=com.example.mobileproject.data.ExchangePaymentMapper.status(item.walletManaged,doc.getData(),legacy);
+            item.paymentAmount=com.example.mobileproject.data.ExchangePaymentMapper.amount(item.walletManaged,doc.getData(),legacy);
+            item.paidAt=dateMillis(item.walletManaged?doc.get("paidAt"):payment==null?null:payment.get("paidAt"));
             result.add(item);
         }
         io.execute(() -> dao.replaceExchanges(result));
@@ -370,37 +375,28 @@ public class AdminManagementRepository {
     }
 
     public void decideCancellation(ExchangeCacheEntity exchange, boolean accept, ActionCallback callback) {
-        if (!"PAID".equalsIgnoreCase(exchange.paymentStatus)) {
-            callback.onError("Chỉ xử lý yêu cầu hủy khi giao dịch đã thanh toán (PAID).");
-            return;
-        }
-        if (!"PENDING".equalsIgnoreCase(exchange.cancelRequestStatus)) {
-            callback.onError("Trao đổi này không có yêu cầu hủy đang chờ xử lý.");
-            return;
-        }
-        String newRequestStatus = accept ? "ACCEPTED" : "REJECTED";
-        WriteBatch batch = firestore.batch();
-        Map<String, Object> changes = new HashMap<>();
-        changes.put("cancelRequestStatus", newRequestStatus);
-        changes.put("cancelReviewedAt", FieldValue.serverTimestamp());
-        if (accept) changes.put("status", "CANCELLED");
-        batch.update(firestore.collection("exchanges").document(exchange.exchangeId), changes);
-        String title = accept ? "Yêu cầu hủy trao đổi được chấp nhận" : "Yêu cầu hủy trao đổi bị từ chối";
-        String body = "Yêu cầu hủy trao đổi " + exchange.exchangeId + (accept ? " đã được Admin chấp nhận." : " đã bị Admin từ chối.");
-        if (exchange.requesterId != null && !exchange.requesterId.trim().isEmpty())
-            addNotification(batch, exchange.requesterId, "EXCHANGE_CANCEL_" + newRequestStatus, title, body);
-        if (exchange.hostId != null && !exchange.hostId.trim().isEmpty() && !exchange.hostId.equals(exchange.requesterId))
-            addNotification(batch, exchange.hostId, "EXCHANGE_CANCEL_" + newRequestStatus, title, body);
-        batch.commit().addOnSuccessListener(unused -> callback.onSuccess(accept ? "Đã chấp nhận yêu cầu hủy." : "Đã từ chối yêu cầu hủy."))
-                .addOnFailureListener(e -> callback.onError("Không thể cập nhật yêu cầu hủy: " + e.getMessage()));
+        if(exchange.walletManaged){callback.onError("Giao dịch ví phải được hủy và hoàn tiền trong chi tiết thanh toán.");return;}
+        try {
+            org.json.JSONObject body=new org.json.JSONObject();body.put("exchangeId",exchange.exchangeId);body.put("cancelDecision",accept);
+            com.example.mobileproject.wallet.WalletApi.call(application,"/v1/exchanges/update",body,(data,error)->{
+                if(error!=null)callback.onError(error.getMessage());
+                else callback.onSuccess(accept?"Đã chấp nhận yêu cầu hủy.":"Đã từ chối yêu cầu hủy.");
+            });
+        }catch(Exception error){callback.onError(error.getMessage());}
     }
 
     private void addNotification(WriteBatch batch, String accountId, String type, String title, String body) {
-        com.google.firebase.firestore.DocumentReference ref = firestore.collection("accounts")
-                .document(accountId).collection("notifications").document();
+        com.google.firebase.firestore.DocumentReference ref = firestore.collection("notifications").document();
         Map<String, Object> data = new HashMap<>();
         data.put("notificationId", ref.getId());
         data.put("accountId", accountId);
+        String recipientUid=accountId;
+        for(DocumentSnapshot account:latestAccounts){
+            if(accountId.equals(account.getId())||accountId.equals(firstString(account,"accountId"))){
+                String mapped=firstString(account,"authUid","googleUid");recipientUid=mapped.isEmpty()?account.getId():mapped;break;
+            }
+        }
+        data.put("userId",recipientUid);data.put("recipientId",recipientUid);
         data.put("title", title);
         data.put("body", body);
         data.put("type", type);

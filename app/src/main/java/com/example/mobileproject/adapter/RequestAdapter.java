@@ -51,7 +51,7 @@ public class RequestAdapter extends RecyclerView.Adapter<RequestAdapter.ViewHold
         RequestItem item = items.get(position);
 
         holder.txtPostTitle.setText(valueOrDefault(item.postTitle, "Căn hộ chỗ ở"));
-        holder.txtDates.setText(valueOrDefault(item.dateRangeText, "31/02/2026 - 4/03/2026"));
+        holder.txtDates.setText(valueOrDefault(item.dateRangeText, "Thời gian chưa cập nhật"));
         holder.txtRating.setText(String.format(Locale.US, "%.1f", item.rating));
 
         // Tải ảnh bài đăng
@@ -152,6 +152,16 @@ public class RequestAdapter extends RecyclerView.Adapter<RequestAdapter.ViewHold
                 holder.btnActionRight.setText("Chấp nhận");
                 holder.btnActionRight.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_btn_primary_blue));
             }
+        }
+
+        if (item.walletManaged && item.isSentTab) {
+            holder.btnActionLeft.setVisibility(("PENDING".equals(status) || "ACCEPTED".equals(status) || "ONGOING".equals(status)) ? View.VISIBLE : View.GONE);
+            holder.btnActionLeft.setText("Chi tiết hủy");
+            holder.btnActionRight.setVisibility(View.VISIBLE);
+            holder.btnActionRight.setText("Xem thanh toán");
+            if ("COMPLETED".equals(status)) holder.txtStatusBadge.setText("Đã hoàn tất");
+        } else if (!item.isSentTab) {
+            holder.btnActionRight.setText("Xem yêu cầu");
         }
 
         holder.itemView.setOnClickListener(v -> {

@@ -17,6 +17,7 @@ public class ExchangeCacheEntity {
     public String cancelReason = "";
     public String cancelRequestStatus = "";
     public String paymentStatus = "CHƯA CÓ DỮ LIỆU";
+    @androidx.room.ColumnInfo(defaultValue = "0") public boolean walletManaged;
     public double paymentAmount = 0.0;
     public int guestCount = 0;
     public String note = "";

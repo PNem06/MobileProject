@@ -66,6 +66,8 @@ public class Detail extends AppCompatActivity {
     private boolean isExpanded;
     private String fullDescription = "";
     private boolean isMyPost = false;
+    private boolean postReserved, viewerAdmin;
+    private String viewerAccountId = "";
     private String postOwnerId = "";
 
     private ViewPager2 viewPagerImages;
@@ -131,7 +133,14 @@ public class Detail extends AppCompatActivity {
         initViews();
         setupEvents();
         setupFavorite();
-        listenToRoomRealtime();
+        String viewerUid = FirebaseAuth.getInstance().getUid();
+        if (viewerUid == null) { finish(); return; }
+        db.collection("accounts").document(viewerUid).get().addOnSuccessListener(profile -> {
+            if (isFinishing() || isDestroyed()) return;
+            viewerAccountId = profile.getString("accountId") == null ? viewerUid : profile.getString("accountId");
+            viewerAdmin = "ADMIN".equals(profile.getString("role")) && "ACTIVE".equals(profile.getString("status"));
+            listenToRoomRealtime();
+        }).addOnFailureListener(error -> { if (!isFinishing()) { showMessage("Không thể xác nhận tài khoản. Vui lòng mở lại bài đăng."); finish(); } });
     }
 
     private void initViews() {
@@ -190,6 +199,9 @@ public class Detail extends AppCompatActivity {
                     if (isFinishing() || isDestroyed()) return;
 
                     if (error != null) {
+                        if (error.getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                            showMessage("Bài đăng không còn mở cho tài khoản này."); finish(); return;
+                        }
                         Toast.makeText(
                                 this,
                                 "Lỗi đọc Firestore: " + error.getLocalizedMessage(),
@@ -212,6 +224,14 @@ public class Detail extends AppCompatActivity {
     }
 
     private void renderRoom(DocumentSnapshot doc) {
+        postReserved = !stringValue(doc,"bookingKey").isEmpty() || "BOOKED".equals(doc.getString("status"));
+        String uid = FirebaseAuth.getInstance().getUid();
+        java.util.List<?> parties = doc.get("bookingPartyIds") instanceof java.util.List ? (java.util.List<?>)doc.get("bookingPartyIds") : java.util.Collections.emptyList();
+        String owner = nonEmpty(doc.getString("accountId"),doc.getString("ownerId"));
+        if (postReserved && !viewerAdmin && !parties.contains(uid) && !parties.contains(viewerAccountId)
+                && (uid == null || (!uid.equals(owner) && !viewerAccountId.equals(owner)))) {
+            showMessage("Bài đăng đã có trao đổi và không còn mở đặt phòng."); finish(); return;
+        }
         String title = stringValue(doc, "title");
         String address = stringValue(doc, "address");
         String destination = stringValue(doc, "destination");
@@ -301,7 +321,7 @@ public class Detail extends AppCompatActivity {
         }
 
         String currentUid = FirebaseAuth.getInstance().getUid();
-        isMyPost = currentUid != null && !currentUid.isEmpty() && currentUid.equals(postOwnerId);
+        isMyPost = currentUid != null && !currentUid.isEmpty() && (currentUid.equals(postOwnerId) || viewerAccountId.equals(postOwnerId));
 
         if (isMyPost) {
             if (txtStatusBadge != null) {
@@ -329,6 +349,11 @@ public class Detail extends AppCompatActivity {
             checkExistingSentRequest(currentUid, postId);
         }
 
+        if (postReserved) {
+            if (layoutGuestActions != null) layoutGuestActions.setVisibility(View.GONE);
+            if (layoutOwnerActions != null) layoutOwnerActions.setVisibility(View.GONE);
+            if (txtStatusBadge != null) { txtStatusBadge.setVisibility(View.VISIBLE); txtStatusBadge.setText("● Đã có trao đổi"); }
+        }
         txtRating.setText("—");
         txtReviewCount.setText("0");
         txtPrice.setText(priceLabel(doc.get("price")));
@@ -344,9 +369,9 @@ public class Detail extends AppCompatActivity {
         if (currentUid == null || currentUid.isEmpty() || ownerId == null || ownerId.isEmpty() || currentUid.equals(ownerId)) return;
 
         String docId = currentUid + "_" + ownerId;
-        db.collection("blocks").document(docId).get()
-                .addOnSuccessListener(doc -> {
-                    boolean isBlocked = doc.exists();
+        db.collection("blocks").whereEqualTo("blockerId",currentUid).whereEqualTo("blockedUserId",ownerId).get()
+                .addOnSuccessListener(docs -> {
+                    boolean isBlocked = !docs.isEmpty();
                     String actionText = isBlocked ? "Bỏ chặn " + name : "Chặn " + name;
 
                     new AlertDialog.Builder(this)
@@ -872,6 +897,7 @@ public class Detail extends AppCompatActivity {
     }
 
     private void deletePost() {
+        if (postReserved) { showMessage("Bài đã có trao đổi. Không thể xóa bài đang lưu giao dịch."); return; }
         if (postId.isEmpty()) return;
 
         db.collection("posts").document(postId)
@@ -1269,6 +1295,7 @@ public class Detail extends AppCompatActivity {
     }
 
     private void showBookingOptions() {
+        if (postReserved) { showMessage("Bài đăng đã có trao đổi và không còn mở đặt phòng."); return; }
         String[] options = {
                 "Trao đổi phòng",
                 "Thuê phòng"

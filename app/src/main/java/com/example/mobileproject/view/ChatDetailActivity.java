@@ -52,6 +52,7 @@ public class ChatDetailActivity extends AppCompatActivity {
 
     private View layoutInputBar, layoutBlockedNotice;
     private TextView txtBlockedNotice, btnUnblock;
+    private boolean sending, blockStatusKnown;
     private boolean iBlockedPartner = false;
     private boolean partnerBlockedMe = false;
 
@@ -108,7 +109,7 @@ public class ChatDetailActivity extends AppCompatActivity {
         loadPartnerProfile();
         setupRecyclerView();
         checkBlockStatus();
-        listenToMessages();
+        ensureConversation();
     }
 
     private void initViews() {
@@ -148,23 +149,38 @@ public class ChatDetailActivity extends AppCompatActivity {
     }
 
     private void checkBlockStatus() {
-        if (currentUid.isEmpty() || partnerId.isEmpty()) return;
-
-        String myBlockDocId = currentUid + "_" + partnerId;
-        String partnerBlockDocId = partnerId + "_" + currentUid;
-
-        db.collection("blocks").document(myBlockDocId).get()
-                .addOnSuccessListener(myDoc -> {
-                    iBlockedPartner = myDoc.exists();
-                    db.collection("blocks").document(partnerBlockDocId).get()
-                            .addOnSuccessListener(partnerDoc -> {
-                                partnerBlockedMe = partnerDoc.exists();
-                                updateBlockUi();
-                            });
-                });
+        blockStatusKnown=false;
+        if(btnSendMessage!=null)btnSendMessage.setEnabled(false);
+        db.collection("blocks").whereEqualTo("blockerId",currentUid).whereEqualTo("blockedUserId",partnerId).get()
+                .addOnSuccessListener(mine->{
+                    if(isFinishing()||isDestroyed())return;
+                    iBlockedPartner=!mine.isEmpty();
+                    db.collection("blocks").whereEqualTo("blockerId",partnerId).whereEqualTo("blockedUserId",currentUid).get()
+                            .addOnSuccessListener(theirs->{
+                                if(isFinishing()||isDestroyed())return;
+                                partnerBlockedMe=!theirs.isEmpty();blockStatusKnown=true;updateBlockUi();
+                            }).addOnFailureListener(error->blockCheckFailed());
+                }).addOnFailureListener(error->blockCheckFailed());
+    }
+    private void blockCheckFailed(){
+        if(isFinishing()||isDestroyed())return;
+        blockStatusKnown=false;btnSendMessage.setEnabled(false);
+        Toast.makeText(this,"Chưa kiểm tra được trạng thái nhắn tin. Vui lòng mở lại cuộc trò chuyện.",Toast.LENGTH_SHORT).show();
+    }
+    private Map<String,Object> participants(){
+        Map<String,Object> value=new HashMap<>();
+        value.put("participant1Id",currentUid.compareTo(partnerId)<0?currentUid:partnerId);
+        value.put("participant2Id",currentUid.compareTo(partnerId)<0?partnerId:currentUid);
+        return value;
+    }
+    private void ensureConversation(){
+        db.collection("conversations").document(conversationId).set(participants(),SetOptions.merge())
+                .addOnSuccessListener(unused->{if(!isFinishing()&&!isDestroyed())listenToMessages();})
+                .addOnFailureListener(error->{if(!isFinishing()&&!isDestroyed())Toast.makeText(this,"Không thể mở cuộc trò chuyện.",Toast.LENGTH_SHORT).show();});
     }
 
     private void updateBlockUi() {
+        btnSendMessage.setEnabled(blockStatusKnown&&!sending&&!iBlockedPartner&&!partnerBlockedMe);
         if (iBlockedPartner) {
             if (layoutInputBar != null) layoutInputBar.setVisibility(View.GONE);
             if (layoutBlockedNotice != null) layoutBlockedNotice.setVisibility(View.VISIBLE);
@@ -303,59 +319,30 @@ public class ChatDetailActivity extends AppCompatActivity {
     }
 
     private void sendMessage() {
-        String text = edtMessageInput.getText().toString().trim();
-        if (text.isEmpty()) return;
-
-        edtMessageInput.setText("");
-
-        messageList.add(new ChatMessageItem(currentUid, text, new Date()));
-        adapter.notifyDataSetChanged();
-        if (!messageList.isEmpty()) {
-            recyclerMessages.smoothScrollToPosition(messageList.size() - 1);
-        }
-
-        Map<String, Object> msg = new HashMap<>();
-        msg.put("senderId", currentUid);
-        msg.put("content", text);
-        msg.put("sentAt", FieldValue.serverTimestamp());
-
-        db.collection("conversations")
-                .document(conversationId)
-                .collection("messages")
-                .add(msg);
-
-        Map<String, Object> conv = new HashMap<>();
-        conv.put("participant1Id", currentUid.compareTo(partnerId) < 0 ? currentUid : partnerId);
-        conv.put("participant2Id", currentUid.compareTo(partnerId) < 0 ? partnerId : currentUid);
-        conv.put("lastMessage", text);
-        conv.put("lastMessageSenderId", currentUid);
-        conv.put("lastMessageAt", FieldValue.serverTimestamp());
-        conv.put("isRead", false);
-
-        db.collection("conversations")
-                .document(conversationId)
-                .set(conv, SetOptions.merge());
-
-        db.collection("accounts").document(currentUid).get().addOnSuccessListener(myDoc -> {
-            String myName = "Một người dùng";
-            if (myDoc.exists()) {
-                String name = myDoc.getString("fullName");
-                if (name == null || name.isEmpty()) name = myDoc.getString("username");
-                if (name != null && !name.isEmpty()) myName = name;
-            }
-
-            Map<String, Object> notif = new HashMap<>();
-            notif.put("userId", partnerId);
-            notif.put("senderId", currentUid);
-            notif.put("type", "chat_message");
-            notif.put("conversationId", conversationId);
-            notif.put("title", "Tin nhắn từ " + myName);
-            notif.put("body", text);
-            notif.put("isRead", false);
-            notif.put("createdAt", FieldValue.serverTimestamp());
-
-            db.collection("notifications").add(notif);
+        final String text=edtMessageInput.getText().toString().trim();
+        if(text.isEmpty()||sending||!blockStatusKnown||iBlockedPartner||partnerBlockedMe)return;
+        sending=true;btnSendMessage.setEnabled(false);
+        com.google.firebase.firestore.DocumentReference conversation=db.collection("conversations").document(conversationId);
+        Map<String,Object> message=new HashMap<>();message.put("senderId",currentUid);message.put("content",text);message.put("sentAt",FieldValue.serverTimestamp());
+        Map<String,Object> summary=participants();summary.put("lastMessage",text);summary.put("lastMessageSenderId",currentUid);summary.put("lastMessageAt",FieldValue.serverTimestamp());summary.put("isRead",false);
+        com.google.firebase.firestore.WriteBatch batch=db.batch();
+        batch.set(conversation,summary,SetOptions.merge());batch.set(conversation.collection("messages").document(),message);
+        batch.commit().addOnSuccessListener(unused->{
+            notifyMessage(text);
+            if(isFinishing()||isDestroyed())return;
+            sending=false;
+            if(text.equals(edtMessageInput.getText().toString().trim()))edtMessageInput.setText("");
+            updateBlockUi();
+        }).addOnFailureListener(error->{
+            if(isFinishing()||isDestroyed())return;
+            sending=false;checkBlockStatus();
+            Toast.makeText(this,"Chưa gửi được tin nhắn. Nội dung được giữ lại để thử lại.",Toast.LENGTH_SHORT).show();
         });
+    }
+    private void notifyMessage(String text){
+        Map<String,Object> notice=new HashMap<>();notice.put("userId",partnerId);notice.put("senderId",currentUid);notice.put("type","chat_message");
+        notice.put("conversationId",conversationId);notice.put("title","Bạn có tin nhắn mới");notice.put("body",text);notice.put("isRead",false);notice.put("createdAt",FieldValue.serverTimestamp());
+        db.collection("notifications").add(notice);
     }
 
     @Override
