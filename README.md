@@ -23,7 +23,7 @@
 Ứng dụng hỗ trợ 2 hình thức trao đổi:
 
 - **Trao đổi trực tiếp:** Hai người dùng đổi chỗ ở cho nhau.
-- **Trao đổi bằng điểm:** Người dùng cho người khác ở chỗ của mình để nhận điểm, sau đó sử dụng điểm để ở tại chỗ ở của người dùng khác.
+- **Thanh toán bằng tiền:** Người dùng sẽ nạp tiền vào ví trong app, số tiền có trong ví sẽ được dùng để thanh toán.
 
 ## Đối tượng sử dụng
 
