@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.StayExchangeWallet" parent="Theme.MobileProject">
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>

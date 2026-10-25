@@ -64,6 +64,7 @@ public class ExchangeScheduleActivity extends AppCompatActivity {
             });
         }
         bindViews();
+        findViewById(R.id.scheduleBack).setOnClickListener(v -> finish());
         setupList();
         setupBottomNavigation();
 

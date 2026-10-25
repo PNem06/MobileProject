@@ -127,6 +127,9 @@ public class New_Post extends AppCompatActivity {
                         return;
                     }
 
+                    if ("BOOKED".equals(doc.getString("status")) || (doc.getString("bookingKey") != null && !doc.getString("bookingKey").isEmpty())) {
+                        toast("Bài đã có trao đổi. Không thể sửa nội dung khi giao dịch đang được lưu."); finish(); return;
+                    }
                     String uid = FirebaseAuth.getInstance().getUid();
                     String ownerId = doc.getString("accountId");
 

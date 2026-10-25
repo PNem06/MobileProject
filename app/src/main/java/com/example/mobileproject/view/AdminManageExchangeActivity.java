@@ -100,7 +100,7 @@ public class AdminManageExchangeActivity extends AppCompatActivity {
     }
 
     private void showExchangeDetails(ExchangeCacheEntity item) {
-        boolean canDecide = "PAID".equalsIgnoreCase(item.paymentStatus)
+        boolean canDecide = !item.walletManaged && "PAID".equalsIgnoreCase(item.paymentStatus)
                 && "PENDING".equalsIgnoreCase(item.cancelRequestStatus);
         String details = "Mã trao đổi: " + item.exchangeId
                 + "\nNgười yêu cầu: " + safe(item.requesterId)
@@ -121,7 +121,12 @@ public class AdminManageExchangeActivity extends AppCompatActivity {
                 .setTitle("Chi tiết trao đổi")
                 .setMessage(details)
                 .setNeutralButton("Đóng", null);
-        if (canDecide) {
+        if(item.walletManaged){
+            builder.setPositiveButton("Chi tiết thanh toán",(dialog,which)->{
+                android.content.Intent intent=new android.content.Intent(this,WalletActivity.class);
+                intent.putExtra(WalletActivity.EXTRA_BOOKING_ID,item.exchangeId);startActivity(intent);
+            });
+        } else if (canDecide) {
             builder.setPositiveButton("Accept hủy", (dialog, which) -> confirmDecision(item, true));
             builder.setNegativeButton("Reject hủy", (dialog, which) -> confirmDecision(item, false));
         }

@@ -60,6 +60,7 @@ public class Request extends AppCompatActivity {
     private boolean isSentTabActive = true;
     private final ExchangeRepository exchangeRepository = new ExchangeRepository();
     private String currentAccountId = "";
+    private int loadGeneration;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -158,6 +159,7 @@ public class Request extends AppCompatActivity {
         adapter = new RequestAdapter(this, currentDisplayList, new RequestAdapter.OnRequestListener() {
             @Override
             public void onItemClick(RequestItem item) {
+                if (item.walletManaged && item.isSentTab) { openWalletBooking(item); return; }
                 if (!item.isSentTab) {
                     openReceivedDetailActivity(item);
                 } else {
@@ -167,6 +169,7 @@ public class Request extends AppCompatActivity {
 
             @Override
             public void onLeftButtonClick(RequestItem item) {
+                if (item.walletManaged && item.isSentTab) { openWalletBooking(item); return; }
                 if (item.isSentTab) {
                     // Nút "Hủy" hoặc "Liên hệ"
                     if ("PENDING".equalsIgnoreCase(item.status)) {
@@ -187,10 +190,15 @@ public class Request extends AppCompatActivity {
 
             @Override
             public void onRightButtonClick(RequestItem item) {
+                if (!item.isSentTab) { openReceivedDetailActivity(item); return; }
+                if (item.walletManaged) { openWalletBooking(item); return; }
                 if (item.isSentTab) {
                     if ("PENDING".equalsIgnoreCase(item.status)) {
-                        if (item.hasMoneyAlternativePending || "NON_RECIPROCAL".equalsIgnoreCase(item.exchangeType)) {
-                            updateExchangeStatus(item, "ACCEPTED", "Đã chấp nhận và thanh toán yêu cầu!");
+                        if (item.needsWalletPayment()) {
+                            Intent payment = new Intent(Request.this, RentalActivity.class);
+                            payment.putExtra("targetPostId", item.postId);
+                            payment.putExtra(WalletActivity.EXTRA_LEGACY_ID, item.exchangeId);
+                            startActivity(payment);
                         } else {
                             Intent intent = new Intent(Request.this, ExchangeActivity.class);
                             intent.putExtra("targetPostId", item.postId);
@@ -374,8 +382,10 @@ public class Request extends AppCompatActivity {
     }
 
     private void loadFirebaseData() {
+        final int generation = ++loadGeneration;
         sentList.clear(); receivedList.clear(); currentDisplayList.clear();
         exchangeRepository.resolveCurrentAccountId((accountId, accountError) -> {
+            if (generation != loadGeneration || isFinishing() || isDestroyed()) return;
             if (accountError != null || accountId == null) {
                 showError(accountError != null ? accountError : new Exception("Không xác định được tài khoản."));
                 selectTab(isSentTabActive); return;
@@ -386,6 +396,7 @@ public class Request extends AppCompatActivity {
             // TAB "ĐÃ GỬI"
             db.collection("exchanges").whereEqualTo("requester_accountId", accountId).get()
                     .addOnSuccessListener(q -> {
+                        if (generation != loadGeneration || isFinishing() || isDestroyed()) return;
                         for (DocumentSnapshot doc : q.getDocuments()) {
                             RequestItem item = mapExchange(doc, true);
                             sentList.add(item);
@@ -399,6 +410,7 @@ public class Request extends AppCompatActivity {
             db.collection("exchanges")
                     .whereEqualTo("host_accountId", accountId)
                     .get().addOnSuccessListener(q -> {
+                        if (generation != loadGeneration || isFinishing() || isDestroyed()) return;
                 for (DocumentSnapshot doc : q.getDocuments()) {
                     String h = stringField(doc, "host_accountId", "hostId");
                     if (h.isEmpty()) h = stringField(doc, "recipientId", "");
@@ -409,6 +421,7 @@ public class Request extends AppCompatActivity {
                 db.collection("exchangeRequests")
                         .whereEqualTo("recipientId", accountId)
                         .get().addOnSuccessListener(q2 -> {
+                    if (generation != loadGeneration || isFinishing() || isDestroyed()) return;
                     for (DocumentSnapshot doc2 : q2.getDocuments()) {
                         String h2 = stringField(doc2, "recipientId", "host_accountId");
                         if (accountId.equals(h2)) {
@@ -424,6 +437,7 @@ public class Request extends AppCompatActivity {
     private RequestItem mapExchange(DocumentSnapshot doc, boolean sent) {
         RequestItem item = new RequestItem();
         item.exchangeId = doc.getId();
+        item.sourceCollection = doc.getReference().getParent().getId();
         item.subRequestId = doc.getId();
         item.requesterId = stringField(doc, "requester_accountId", "requesterId");
         if (item.requesterId.isEmpty()) item.requesterId = stringField(doc, "senderId", "");
@@ -437,7 +451,11 @@ public class Request extends AppCompatActivity {
         item.startDateText = dateText(doc.get("startDate"));
         item.endDateText = dateText(doc.get("endDate"));
         item.dateRangeText = item.startDateText.isEmpty() ? "Thời gian chưa cập nhật" : item.startDateText + (item.endDateText.isEmpty() ? "" : " - " + item.endDateText);
-        item.hasMoneyAlternativePending = "NON_RECIPROCAL".equals(item.exchangeType) && "PENDING".equals(item.status);
+        item.walletManaged = Boolean.TRUE.equals(doc.getBoolean("walletManaged"));
+        item.paymentStatus = safeString(doc.getString("paymentStatus"), "");
+        item.paymentId = safeString(doc.getString("paymentId"), "");
+        item.isPaid = "PAID".equals(item.paymentStatus) || "RELEASED".equals(item.paymentStatus);
+        item.hasMoneyAlternativePending = item.needsWalletPayment();
         return item;
     }
 
@@ -528,7 +546,7 @@ public class Request extends AppCompatActivity {
     }
     private void updateExchangeStatus(RequestItem item, String status, String message) {
         Map<String, Object> changes = new HashMap<>(); changes.put("status", status);
-        exchangeRepository.updateExchange(item.exchangeId, changes, error -> {
+        exchangeRepository.updateExchange(this, item.sourceCollection, item.exchangeId, changes, error -> {
             if (error != null) showError(error);
             else { Toast.makeText(this, message, Toast.LENGTH_SHORT).show(); loadFirebaseData(); }
         });
@@ -536,4 +554,10 @@ public class Request extends AppCompatActivity {
     private void showError(Exception error) {
         Toast.makeText(this, "Lỗi Firebase: " + error.getMessage(), Toast.LENGTH_LONG).show();
     }
+    private void openWalletBooking(RequestItem item) {
+        Intent intent = new Intent(this, WalletActivity.class);
+        intent.putExtra(WalletActivity.EXTRA_BOOKING_ID, item.exchangeId);
+        startActivity(intent);
+    }
+    @Override protected void onResume() { super.onResume(); if (adapter != null) loadFirebaseData(); }
 }

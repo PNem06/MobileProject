@@ -228,8 +228,9 @@ public class HomeViewModel extends AndroidViewModel {
     }
 
     private void attach(int token) {
-        watch(db.collection("posts").whereEqualTo("status", "APPROVED").limit(50), "feed", token);
+        watch(db.collection("posts").whereEqualTo("status", "APPROVED").limit(50), "feedPublic", token);
         if (!uid.isEmpty()) {
+            watch(db.collection("posts").whereArrayContains("bookingPartyIds", uid), "involvedPosts", token);
             listeners.add(
                     db.collection("accounts")
                             .document(uid)
@@ -305,7 +306,20 @@ public class HomeViewModel extends AndroidViewModel {
                                         "mine",
                                         HomePostMapper.mergeMine(
                                                 rows("mineCurrent"), rows("mineLegacy"), uid));
-                            } else store(key, array);
+                            } else if ("feedPublic".equals(key) || "involvedPosts".equals(key)) {
+                                data.put(key,array);
+                                java.util.Map<String,JSONObject> merged = new java.util.LinkedHashMap<>();
+                                for (String source : new String[]{"feedPublic","involvedPosts"}) {
+                                    JSONArray values = rows(source);
+                                    for(int i=0;i<values.length();i++) {
+                                        JSONObject post=values.optJSONObject(i);
+                                        if(post==null || ("involvedPosts".equals(source) && !"BOOKED".equals(post.optString("status")))) continue;
+                                        merged.put(post.optString("id"),post);
+                                    }
+                                }
+                                JSONArray combined=new JSONArray(); for(JSONObject post:merged.values()) combined.put(post);
+                                store("feed",combined);
+                            } else store(key,array);
                             if (!"notices".equals(key)) {
                                 watchImages(token);
                                 watchOwners(token);

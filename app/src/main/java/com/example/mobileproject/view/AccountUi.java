@@ -65,6 +65,7 @@ public class AccountUi extends HomeViews {
         String avatarUrl = profile.optString("avatarUrl");
         if (!avatarUrl.isEmpty()) Glide.with(this).load(avatarUrl).circleCrop()
                 .diskCacheStrategy(DiskCacheStrategy.ALL).into(avatarPhoto);
+        root.findViewById(R.id.btnWallet).setOnClickListener(v -> activity.startActivity(new Intent(activity, WalletActivity.class)));
         root.findViewById(R.id.btnPersonalInfo).setOnClickListener(v -> {
             if (vm.busy) return;
             vm.draftName = vm.profile().optString("fullName");
@@ -215,6 +216,12 @@ public class AccountUi extends HomeViews {
             }
             row.setOnClickListener(v -> {
                 if (!notice.optBoolean("read")) vm.markRead(notice);
+                if("chat_message".equals(notice.optString("type")) && !notice.optString("senderId").isEmpty()){
+                    Intent next=new Intent(activity,ChatDetailActivity.class);next.putExtra(ChatDetailActivity.EXTRA_RECIPIENT_ID,notice.optString("senderId"));activity.startActivity(next);return;
+                }
+                if("true".equalsIgnoreCase(notice.optString("walletManaged")) || "wallet".equals(notice.optString("type"))){
+                    Intent next=new Intent(activity,WalletActivity.class);next.putExtra(WalletActivity.EXTRA_BOOKING_ID,notice.optString("exchangeId"));activity.startActivity(next);return;
+                }
                 String postId = notice.optString("postId");
                 if (postId.isEmpty()) postId = notice.optString("targetPostId");
                 if (postId.isEmpty()) postId = notice.optString("requestId");

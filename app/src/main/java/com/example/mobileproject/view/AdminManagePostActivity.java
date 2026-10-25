@@ -136,7 +136,7 @@ public class AdminManagePostActivity extends AppCompatActivity {
         status = status.trim().toUpperCase(Locale.ROOT);
 
         // Tương thích dữ liệu cũ: REJECTED cũng nằm trong Unpublic.
-        if (REJECTED.equals(status)) {
+        if (REJECTED.equals(status) || "BOOKED".equals(status)) {
             return UNPUBLIC;
         }
 
@@ -259,7 +259,8 @@ public class AdminManagePostActivity extends AppCompatActivity {
 
         txtTitle.setText(title);
         txtAddress.setText("Địa chỉ: " + address);
-        txtStatus.setText(getStatusLabel(status));
+        boolean reserved="BOOKED".equals(doc.getString("status")) || (doc.getString("bookingKey")!=null && !doc.getString("bookingKey").isEmpty());
+        txtStatus.setText(reserved?"● Đã có trao đổi · Đã ẩn":getStatusLabel(status));
         txtStatus.setTextColor(getStatusColor(status));
         txtStatus.setBackground(roundedBackground(
                 getStatusBackground(status), 8, Color.TRANSPARENT
@@ -272,7 +273,7 @@ public class AdminManagePostActivity extends AppCompatActivity {
         final String finalOwnerId = ownerId;
         final String finalTitle = title;
 
-        switch (status) {
+        switch (reserved ? "BOOKED" : status) {
             case PENDING:
                 layoutPendingActions.setVisibility(View.VISIBLE);
 

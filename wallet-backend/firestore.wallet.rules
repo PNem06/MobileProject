@@ -1,0 +1,290 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signed() { return request.auth != null; }
+    function myId() {
+      return exists(/databases/$(database)/documents/accounts/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/accounts/$(request.auth.uid)).data.get('accountId',request.auth.uid)
+        : request.auth.uid;
+    }
+    function admin() {
+      return signed() && exists(/databases/$(database)/documents/accounts/$(request.auth.uid))
+        && get(/databases/$(database)/documents/accounts/$(request.auth.uid)).data.get('role','') == 'ADMIN'
+        && get(/databases/$(database)/documents/accounts/$(request.auth.uid)).data.get('status','') == 'ACTIVE';
+    }
+    function ownsPost(id) {
+      let p = get(/databases/$(database)/documents/posts/$(id)).data;
+      return p.get('accountId',p.get('ownerId','')) in [request.auth.uid,myId()];
+    }
+    function publicPost(p) { return p.get('status','') in ['APPROVED','PUBLIC','ACTIVE']; }
+    function visiblePost(p) {
+      // Approved public listings remain public; reserved/private posts require membership.
+      return publicPost(p) || (signed() && (admin()
+        || p.get('accountId','') in [request.auth.uid,myId()] || p.get('ownerId','') in [request.auth.uid,myId()]
+        || request.auth.uid in p.get('bookingPartyIds',[]) || myId() in p.get('bookingPartyIds',[])));
+    }
+    function availablePost(id) {
+      let p = get(/databases/$(database)/documents/posts/$(id)).data;
+      return publicPost(p) && p.get('bookingKey','') == '';
+    }
+    function unreservedPost(id) { return get(/databases/$(database)/documents/posts/$(id)).data.get('bookingKey','') == ''; }
+    function noReservationFields(p) { return !p.keys().hasAny(['bookingKey','bookingExchangeId','bookingPartyIds','bookingState','bookingPreviousStatus']); }
+    function exchangeMember(p) {
+      return signed() && (p.get('requesterUid','') == request.auth.uid || p.get('hostUid','') == request.auth.uid
+        || p.get('requesterId','') in [request.auth.uid,myId()] || p.get('hostId','') in [request.auth.uid,myId()]
+        || p.get('requester_accountId','') == myId() || p.get('host_accountId','') == myId());
+    }
+    function noFinancialFields(p) {
+      return !p.keys().hasAny(financialKeys());
+    }
+
+    function own(data) {
+      return signed() && data.get('accountId', data.get('ownerId', '')) in [request.auth.uid, myId()];
+    }
+    function financialKeys() {
+      return ['walletManaged', 'paymentSource', 'paymentStatus', 'paymentId',
+        'settlementState', 'paidAt', 'cancelUntil', 'releaseAt', 'releasedAt',
+        'refundedAt', 'refundedAmount', 'cancellationFee', 'adminUid', 'amount',
+        'currency', 'requesterUid', 'hostUid', 'acceptedAt', 'bankEventId'];
+    }
+    function ownUnreservedPostAfter(id) {
+      let p = getAfter(/databases/$(database)/documents/posts/$(id)).data;
+      return own(p) && p.get('bookingKey', '') == '';
+    }
+    function validPendingExchange(p) {
+      let target = get(/databases/$(database)/documents/posts/$(p.postId)).data;
+      let host = target.get('accountId', target.get('ownerId', ''));
+      return noFinancialFields(p)
+        && p.get('requester_accountId', p.get('requesterId', '')) in [request.auth.uid, myId()]
+        && p.get('requesterId', request.auth.uid) in [request.auth.uid, myId()]
+        && p.get('senderId', request.auth.uid) == request.auth.uid
+        && p.get('host_accountId', p.get('hostId', '')) == host
+        && p.get('hostId', host) == host && p.get('recipientId', host) == host
+        && !(host in [request.auth.uid, myId()])
+        && p.get('targetPostId', p.postId) == p.postId
+        && p.status == 'PENDING' && p.exchangeType in ['RECIPROCAL', 'NON_RECIPROCAL']
+        && availablePost(p.postId)
+        && (p.exchangeType != 'RECIPROCAL'
+          || (p.offeredPostId != p.postId && p.get('proposedPostId', p.offeredPostId) == p.offeredPostId
+            && ownsPost(p.offeredPostId) && availablePost(p.offeredPostId)));
+    }
+    match /wallets/{uid} { allow read: if signed() && request.auth.uid == uid; allow write: if false; }
+    match /walletTopups/{id} { allow read: if signed() && resource.data.userId == request.auth.uid; allow write: if false; }
+    match /walletLedger/{id} { allow read: if signed() && resource.data.userId == request.auth.uid; allow write: if false; }
+    match /walletBankEvents/{id} { allow read,write: if false; }
+    match /walletOperations/{id} { allow read,write: if false; }
+    match /walletTopupLocks/{id} { allow read,write: if false; }
+    match /walletBookingLocks/{id} { allow read,write: if false; }
+    match /exchanges/{id} {
+      allow read: if admin() || exchangeMember(resource.data);
+      allow create: if signed() && validPendingExchange(request.resource.data);
+      // The backend reserves/releases both posts atomically, including legacy exchanges.
+      allow update,delete: if false;
+    }
+    match /accounts/{uid} {
+      allow get: if signed();
+      // Existing AuthService looks up username BEFORE Firebase sign-in/register.
+      // Keep its limit(1) lookup working; anonymous full-list queries are denied.
+      // Firestore returns the full profile, so this is not a private username directory.
+      allow list: if signed() || request.query.limit == 1;
+      allow create: if signed() && request.auth.uid == uid
+        && request.resource.data.accountId == request.auth.uid
+        && request.resource.data.role == 'USER'
+        && request.resource.data.status == 'ACTIVE'
+        && request.resource.data.get('googleUid', null) in [null, request.auth.uid]
+        && request.resource.data.get('rating', 0) == 0
+        && request.resource.data.get('totalExchanges', 0) == 0
+        && request.resource.data.keys().hasOnly(['accountId', 'username', 'fullName',
+          'email', 'phone', 'avatarUrl', 'googleUid', 'rating', 'role', 'status', 'totalExchanges']);
+      allow update: if signed() && (request.auth.uid == uid || admin())
+        && request.resource.data.accountId == resource.data.accountId
+        && request.resource.data.get('authUid', null) == resource.data.get('authUid', null)
+        && (request.resource.data.get('googleUid', null) == resource.data.get('googleUid', null)
+          || (request.auth.uid == uid && resource.data.get('googleUid', null) == null
+            && request.resource.data.get('googleUid', null) == request.auth.uid))
+        && (admin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'fullName', 'phone', 'avatarUrl', 'email', 'googleUid', 'updatedAt']))
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'balance', 'available', 'held', 'walletBalance', 'walletManaged']);
+      // There is no account-delete screen in the submitted source. Keep identity
+      // documents stable so an accountId cannot be deleted/recreated to claim a wallet.
+      allow delete: if false;
+            match /notifications/{notificationId} {
+        allow read: if signed()
+          && (request.auth.uid == uid || myId() == uid || admin());
+
+        allow create: if admin()
+          && request.resource.data.accountId == uid
+          && !request.resource.data.keys().hasAny([
+            'walletManaged',
+            'paymentId',
+            'paymentStatus'
+          ]);
+
+        allow update: if signed()
+          && (request.auth.uid == uid || myId() == uid)
+          && request.resource.data.diff(resource.data)
+              .affectedKeys().hasOnly([
+                'isRead',
+                'readAt',
+                'updatedAt'
+              ]);
+
+        allow delete: if signed()
+          && (request.auth.uid == uid || myId() == uid);
+      }
+    }
+    match /posts/{id} {
+      // A booked post is readable only by its parties/owner and an active admin.
+      allow read: if visiblePost(resource.data);
+      allow create: if own(request.resource.data)
+        && request.resource.data.get('ownerId', request.auth.uid) in [request.auth.uid, myId()]
+        && request.resource.data.status == 'PENDING' && noReservationFields(request.resource.data);
+      allow update: if signed()
+  && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['bookingKey','bookingExchangeId','bookingPartyIds','bookingState','bookingPreviousStatus'])
+  && request.resource.data.get('accountId', '') == resource.data.get('accountId', '')
+  && request.resource.data.get('ownerId', '') == resource.data.get('ownerId', '')
+  && (
+    (admin() && (resource.data.get('bookingKey','') == '' || request.resource.data.status in ['BOOKED','HIDDEN']))
+    || (
+      own(resource.data) && resource.data.get('bookingKey','') == ''
+      && request.resource.data.status == 'PENDING'
+      && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'postId',
+        'title',
+        'address',
+        'destination',
+        'description',
+        'additionalInformation',
+        'bedroomCount',
+        'bathroomCount',
+        'maxGuests',
+        'price',
+        'propertyType',
+        'latitude',
+        'longitude',
+        'amenityIds',
+        'startDate',
+        'endDate',
+        'status',
+        'updatedAt'
+      ])
+    )
+  );
+      allow delete: if signed() && resource.data.get('bookingKey','') == '' && (admin() || own(resource.data));
+    }
+    match /images/{id} {
+      allow read: if admin() || visiblePost(get(/databases/$(database)/documents/posts/$(resource.data.postId)).data);
+      allow create: if signed() && ownUnreservedPostAfter(request.resource.data.postId);
+      allow update: if signed() && (admin() || ownsPost(resource.data.postId)) && unreservedPost(resource.data.postId) && request.resource.data.postId == resource.data.postId;
+      allow delete: if signed() && unreservedPost(resource.data.postId) && (admin() || ownsPost(resource.data.postId));
+    }
+    match /postImages/{id} {
+      allow read: if admin() || visiblePost(get(/databases/$(database)/documents/posts/$(resource.data.postId)).data);
+      allow create: if signed() && ownUnreservedPostAfter(request.resource.data.postId);
+      allow update: if signed() && (admin() || ownsPost(resource.data.postId)) && unreservedPost(resource.data.postId) && request.resource.data.postId == resource.data.postId;
+      allow delete: if signed() && unreservedPost(resource.data.postId) && (admin() || ownsPost(resource.data.postId));
+    }
+    match /amenities/{id} { allow read: if true; allow write: if admin(); }
+    match /favorites/{id} {
+      // Detail listens to UID_postId even before the favorite has been created.
+      allow get: if signed() && (!exists(/databases/$(database)/documents/favorites/$(id))
+        || resource.data.userId == request.auth.uid);
+      allow list: if signed() && resource.data.userId == request.auth.uid;
+      allow create: if signed() && request.resource.data.userId == request.auth.uid
+        && id == request.auth.uid + '_' + request.resource.data.postId;
+      allow update: if signed() && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.postId == resource.data.postId;
+      allow delete: if signed() && (!exists(/databases/$(database)/documents/favorites/$(id))
+        || resource.data.userId == request.auth.uid);
+    }
+    function exchangeNotice(p) {
+      // Rebuilt requests live in exchanges; retain older exchangeRequests notifications too.
+      let e = p.get('exchangeId', '') != ''
+        ? getAfter(/databases/$(database)/documents/exchanges/$(p.exchangeId)).data
+        : getAfter(/databases/$(database)/documents/exchangeRequests/$(p.requestId)).data;
+      return e.get('requesterId', e.get('senderId', '')) in [request.auth.uid, myId()]
+        && e.get('requester_accountId', request.auth.uid) in [request.auth.uid, myId()]
+        && p.userId == e.get('host_accountId', e.get('recipientId', ''))
+        && p.get('requestId', p.get('exchangeId', '')) == p.get('exchangeId', p.get('requestId', ''));
+    }
+    function chatNotice(p) {
+      let conversation = get(/databases/$(database)/documents/conversations/$(p.conversationId)).data;
+      return ((conversation.participant1Id == request.auth.uid && conversation.participant2Id == p.userId)
+          || (conversation.participant2Id == request.auth.uid && conversation.participant1Id == p.userId))
+        && !exists(/databases/$(database)/documents/blocks/$(conversation.participant1Id + '_' + conversation.participant2Id))
+        && !exists(/databases/$(database)/documents/blocks/$(conversation.participant2Id + '_' + conversation.participant1Id));
+    }
+    match /notifications/{id} {
+      allow read: if signed() && resource.data.userId == request.auth.uid;
+      allow create: if signed() && noFinancialFields(request.resource.data)
+        && ((admin() && request.resource.data.type in ['post_approved','post_rejected','POST_APPROVED',
+              'POST_REJECTED','POST_HIDDEN','ACCOUNT_LOCKED','ACCOUNT_UNLOCKED'])
+          || (request.resource.data.get('senderId', '') == request.auth.uid
+            && ((request.resource.data.type == 'exchange_request' && exchangeNotice(request.resource.data))
+              || (request.resource.data.type == 'chat_message' && chatNotice(request.resource.data)))));
+      allow update: if signed() && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead','readAt','updatedAt']);
+      allow delete: if signed() && resource.data.userId == request.auth.uid;
+    }
+    match /exchangeRequests/{id} {
+      allow read: if admin() || (signed() && (resource.data.senderId == request.auth.uid || resource.data.recipientId in [request.auth.uid,myId()]));
+      allow create: if signed() && request.resource.data.senderId == request.auth.uid && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasOnly(['senderId','recipientId','targetPostId','offeredPostId','status','createdAt'])
+        && ownsPost(request.resource.data.offeredPostId) && availablePost(request.resource.data.offeredPostId) && availablePost(request.resource.data.targetPostId)
+        && request.resource.data.offeredPostId != request.resource.data.targetPostId
+        && request.resource.data.recipientId == get(/databases/$(database)/documents/posts/$(request.resource.data.targetPostId)).data.get('accountId','')
+        && !(request.resource.data.recipientId in [request.auth.uid,myId()]);
+      allow update,delete: if false;
+    }
+    match /conversations/{id} {
+      function member(p) { return signed() && (p.get('participant1Id','') == request.auth.uid || p.get('participant2Id','') == request.auth.uid); }
+      function blocked(p) { return exists(/databases/$(database)/documents/blocks/$(p.participant1Id + '_' + p.participant2Id)) || exists(/databases/$(database)/documents/blocks/$(p.participant2Id + '_' + p.participant1Id)); }
+      allow read: if member(resource.data);
+      allow create: if member(request.resource.data)
+        && request.resource.data.participant1Id is string && request.resource.data.participant2Id is string
+        && request.resource.data.participant1Id != request.resource.data.participant2Id
+        && request.resource.data.get('lastMessageSenderId', request.auth.uid) == request.auth.uid
+        && !blocked(request.resource.data);
+      allow update: if member(resource.data) && request.resource.data.participant1Id == resource.data.participant1Id && request.resource.data.participant2Id == resource.data.participant2Id
+        && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead','readAt','updatedAt']) || (!blocked(resource.data) && request.resource.data.get('lastMessageSenderId', request.auth.uid) == request.auth.uid));
+      allow delete: if false;
+      match /messages/{message} {
+        allow read: if member(get(/databases/$(database)/documents/conversations/$(id)).data);
+        allow create: if member(getAfter(/databases/$(database)/documents/conversations/$(id)).data) && request.resource.data.senderId == request.auth.uid
+          && !blocked(getAfter(/databases/$(database)/documents/conversations/$(id)).data);
+        allow update: if member(get(/databases/$(database)/documents/conversations/$(id)).data)
+          && resource.data.senderId != request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt','isRead']);
+        allow delete: if false;
+      }
+    }
+    match /blocks/{id} {
+      allow read: if signed() && (resource.data.blockerId == request.auth.uid || resource.data.blockedUserId == request.auth.uid);
+      allow create: if signed() && request.resource.data.blockerId == request.auth.uid && request.resource.data.blockedUserId != request.auth.uid
+        && id == request.auth.uid + '_' + request.resource.data.blockedUserId && request.resource.data.get('blockId',id) == id
+        && request.resource.data.keys().hasOnly(['blockId','blockerId','blockedUserId','createdAt']);
+      allow update: if signed() && resource.data.blockerId == request.auth.uid && request.resource.data.blockerId == resource.data.blockerId
+        && request.resource.data.blockedUserId == resource.data.blockedUserId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['createdAt']);
+      allow delete: if signed() && resource.data.blockerId == request.auth.uid;
+    }
+    match /reports/{id} {
+      allow read: if signed();
+      allow create: if signed()
+        && request.resource.data.get('reporterId', request.auth.uid) in [request.auth.uid, myId()];
+      allow update, delete: if admin();
+    }
+    match /payments/{id} { allow read: if admin(); allow write: if false; }
+    match /reviews/{id} {
+      allow read: if true;
+      allow create: if signed() && request.resource.data.reviewerId in [request.auth.uid, myId()]
+        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
+      allow update: if signed() && (admin() || resource.data.reviewerId in [request.auth.uid, myId()])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comment', 'rating'])
+        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
+      allow delete: if admin();
+    }
+    match /{document=**} { allow read,write: if false; }
+  }
+}

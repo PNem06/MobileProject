@@ -140,18 +140,10 @@ public class ExchangeActivity extends AppCompatActivity {
             updates.put("offeredPostId", selectedPostId);
             updates.put("proposedPostId", selectedPostId);
             updates.put("status", "PENDING");
-            updates.put("createdAt", FieldValue.serverTimestamp());
-
-            db.collection("exchanges").document(existingExchangeId)
-                    .update(updates)
-                    .addOnSuccessListener(aVoid -> {
-                        Toast.makeText(this, "Đã cập nhật bài đăng đề xuất!", Toast.LENGTH_SHORT).show();
-                        finish();
-                    })
-                    .addOnFailureListener(e -> {
-                        btnSend.setEnabled(true);
-                        Toast.makeText(this, "Cập nhật thất bại: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    });
+            new com.example.mobileproject.repository.ExchangeRepository().updateExchange(this, existingExchangeId, updates, error -> {
+                if (error == null) { Toast.makeText(this,"Đã cập nhật bài đăng đề xuất!",Toast.LENGTH_SHORT).show(); finish(); }
+                else { btnSend.setEnabled(true); Toast.makeText(this,"Cập nhật thất bại: " + error.getMessage(),Toast.LENGTH_LONG).show(); }
+            });
             return;
         }
 
@@ -160,7 +152,7 @@ public class ExchangeActivity extends AppCompatActivity {
                 .document(targetPostId)
                 .get()
                 .addOnSuccessListener(target -> {
-                    if (!target.exists()) {
+                    if (!target.exists() || "BOOKED".equals(target.getString("status")) || (target.getString("bookingKey") != null && !target.getString("bookingKey").isEmpty())) {
                         btnSend.setEnabled(true);
                         Toast.makeText(this,
                                 "Bài đăng cần trao đổi không còn tồn tại.",

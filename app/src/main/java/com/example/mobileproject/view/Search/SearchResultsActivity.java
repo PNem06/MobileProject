@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class SearchResultsActivity extends AppCompatActivity {
+    private com.google.firebase.firestore.ListenerRegistration postsListener;
 
     private final List<ListingPost> allApprovedPosts = new ArrayList<>();
     private final List<ListingPost> visiblePosts = new ArrayList<>();
@@ -107,7 +108,7 @@ public class SearchResultsActivity extends AppCompatActivity {
         btnBackResults.setOnClickListener(v -> finish());
         btnMap.setOnClickListener(v -> openMap());
 
-        loadApprovedPosts();
+
     }
 
     private void loadApprovedPosts() {
@@ -115,11 +116,28 @@ public class SearchResultsActivity extends AppCompatActivity {
         txtEmptyResults.setVisibility(View.GONE);
         recyclerViewClearIfNeeded();
 
-        FirebaseFirestore.getInstance()
-                .collection("posts")
-                .whereEqualTo("status", "APPROVED")
-                .get()
-                .addOnSuccessListener(snapshot -> {
+        if (postsListener != null) postsListener.remove();
+        postsListener=FirebaseFirestore.getInstance().collection("posts").whereEqualTo("status","APPROVED")
+                .addSnapshotListener((snapshot,error)->{
+                    if(isFinishing()||isDestroyed())return;
+                    if(error!=null){
+                        progressResults.setVisibility(View.GONE);
+
+                        txtResultCount.setText("Không tải được kết quả");
+                        txtEmptyResults.setText(
+                                "Không thể tải bài đăng. " +
+                                        "Kiểm tra kết nối mạng hoặc cấu hình Firebase rồi thử lại."
+                        );
+                        txtEmptyResults.setVisibility(View.VISIBLE);
+
+                        Toast.makeText(
+                                SearchResultsActivity.this,
+                                "Lỗi tải bài đăng: " + error.getLocalizedMessage(),
+                                Toast.LENGTH_LONG
+                        ).show();
+                        return;
+                    }
+                    if(snapshot==null)return;
                     allApprovedPosts.clear();
 
                     for (DocumentSnapshot doc : snapshot.getDocuments()) {
@@ -140,25 +158,8 @@ public class SearchResultsActivity extends AppCompatActivity {
 
                     applyLocationFilter();
                     progressResults.setVisibility(View.GONE);
-                })
-                .addOnFailureListener(error -> {
-                    progressResults.setVisibility(View.GONE);
-
-                    txtResultCount.setText("Không tải được kết quả");
-                    txtEmptyResults.setText(
-                            "Không thể tải bài đăng. " +
-                                    "Kiểm tra kết nối mạng hoặc cấu hình Firebase rồi thử lại."
-                    );
-                    txtEmptyResults.setVisibility(View.VISIBLE);
-
-                    Toast.makeText(
-                            SearchResultsActivity.this,
-                            "Lỗi tải bài đăng: " + error.getLocalizedMessage(),
-                            Toast.LENGTH_LONG
-                    ).show();
                 });
     }
-
 
     private void loadCoverImage(ListingPost post) {
         if (post == null || post.getPostId() == null || post.getPostId().trim().isEmpty()) return;
@@ -342,4 +343,6 @@ public class SearchResultsActivity extends AppCompatActivity {
     private static String valueOrEmpty(String value) {
         return value == null ? "" : value.trim();
     }
+    @Override protected void onStart(){super.onStart();loadApprovedPosts();}
+    @Override protected void onStop(){if(postsListener!=null){postsListener.remove();postsListener=null;}super.onStop();}
 }

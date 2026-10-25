@@ -158,6 +158,8 @@ public class PostCards extends HomeViews {
                 badge = "Active";
                 holder.badge.setBackground(round(0xFFE8F5E9, 12));
                 holder.badge.setTextColor(0xFF2E7D32);
+            } else if ("BOOKED".equalsIgnoreCase(status) || !post.optString("bookingKey").isEmpty()) {
+                badge="Đã có trao đổi"; holder.badge.setBackground(round(0xFFEFEDF8,12)); holder.badge.setTextColor(0xFF433883);
             } else if ("REJECTED".equalsIgnoreCase(status) || "PRIVATE".equalsIgnoreCase(status)) {
                 badge = "Bị từ chối";
                 holder.badge.setBackground(round(0xFFFFEBEE, 12));
@@ -168,7 +170,7 @@ public class PostCards extends HomeViews {
                 holder.badge.setTextColor(0xFFE65100);
             }
         } else {
-            badge = vm.isFavorite(id)
+            badge = "BOOKED".equals(status) || !post.optString("bookingKey").isEmpty() ? "Trao đổi của bạn" : vm.isFavorite(id)
                     ? "Được bạn\nyêu thích"
                     : PostCardData.isAvailable(post, System.currentTimeMillis())
                     ? "Còn trống"

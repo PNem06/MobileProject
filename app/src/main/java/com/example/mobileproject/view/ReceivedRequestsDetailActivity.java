@@ -1,6 +1,7 @@
 package com.example.mobileproject.view;
 
 import android.app.Dialog;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
@@ -48,6 +49,7 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
 
     private RequestItem mainRequestItem;
     private final ExchangeRepository repository = new ExchangeRepository();
+    private int loadGeneration;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,6 +81,7 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
     }
 
     private void loadIntentData() {
+        final int generation = ++loadGeneration;
         mainRequestItem = (RequestItem) getIntent()
                 .getSerializableExtra(EXTRA_REQUEST_ITEM);
 
@@ -129,6 +132,7 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
         adapter.notifyDataSetChanged();
 
         repository.resolveCurrentAccountId((accountId, error) -> {
+            if (generation != loadGeneration || isFinishing() || isDestroyed()) return;
             if (error != null) {
                 Toast.makeText(this,
                         "Không xác định được tài khoản: " + error.getMessage(),
@@ -137,12 +141,18 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
             }
 
             FirebaseFirestore db = FirebaseFirestore.getInstance();
+            db.collection("exchangeRequests").whereEqualTo("recipientId", accountId).get().addOnSuccessListener(rows -> {
+                if (generation != loadGeneration || isFinishing() || isDestroyed()) return;
+                for (DocumentSnapshot doc : rows.getDocuments()) addReceivedRequestIfMatches(doc, accountId, mainRequestItem.postId);
+                updateFilterCountsAndList("ALL");
+            });
 
             // Truy vấn riêng theo host_accountId.
             db.collection("exchanges")
                     .whereEqualTo("host_accountId", accountId)
                     .get()
                     .addOnSuccessListener(snapshot -> {
+                        if (generation != loadGeneration || isFinishing() || isDestroyed()) return;
                         for (DocumentSnapshot doc : snapshot.getDocuments()) {
                             addReceivedRequestIfMatches(
                                     doc, accountId, mainRequestItem.postId);
@@ -153,6 +163,7 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
                                 .whereEqualTo("hostId", accountId)
                                 .get()
                                 .addOnSuccessListener(snapshot2 -> {
+                                    if (generation != loadGeneration || isFinishing() || isDestroyed()) return;
                                     for (DocumentSnapshot doc :
                                             snapshot2.getDocuments()) {
                                         addReceivedRequestIfMatches(
@@ -190,6 +201,8 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
             host = doc.getString("hostId");
         }
 
+        if (host == null || host.isEmpty()) host = doc.getString("recipientId");
+
         String postId = doc.getString("postId");
 
         if (postId == null || postId.isEmpty()) {
@@ -204,7 +217,7 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
 
         // Tránh thêm trùng khi cùng một document có cả hai trường host.
         for (RequestItem existing : allSubRequests) {
-            if (doc.getId().equals(existing.exchangeId)) {
+            if (doc.getId().equals(existing.exchangeId) && doc.getReference().getParent().getId().equals(existing.sourceCollection)) {
                 return;
             }
         }
@@ -212,6 +225,7 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
         RequestItem sub = new RequestItem();
 
         sub.exchangeId = doc.getId();
+        sub.sourceCollection = doc.getReference().getParent().getId();
         sub.subRequestId = doc.getId();
         sub.postId = postId;
         sub.requesterId = doc.getString("requester_accountId");
@@ -227,7 +241,7 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
         sub.hostId = host;
 
         String status = doc.getString("status");
-        sub.status = status == null ? "PENDING" : status;
+        sub.status = status == null ? "PENDING" : status.toUpperCase(java.util.Locale.ROOT);
 
         String type = doc.getString("exchangeType");
         sub.exchangeType =
@@ -237,7 +251,10 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
                         : "RECIPROCAL";
 
         sub.requestDateText = "Yêu cầu " + sub.status;
-        sub.isPaid = false;
+        sub.walletManaged = Boolean.TRUE.equals(doc.getBoolean("walletManaged"));
+        sub.paymentStatus = doc.getString("paymentStatus") == null ? "" : doc.getString("paymentStatus");
+        sub.paymentId = doc.getString("paymentId") == null ? "" : doc.getString("paymentId");
+        sub.isPaid = "PAID".equals(sub.paymentStatus) || "RELEASED".equals(sub.paymentStatus);
 
         String offeredPostId = doc.getString("offeredPostId");
 
@@ -349,7 +366,18 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
         }
     }
 
+    @Override protected void onResume() {
+        super.onResume();
+        if (mainRequestItem != null) loadIntentData();
+    }
+
     private void showDetailDialog(RequestItem subRequest) {
+        if (subRequest.walletManaged) {
+            Intent next = new Intent(this, WalletActivity.class);
+            next.putExtra(WalletActivity.EXTRA_BOOKING_ID, subRequest.exchangeId);
+            startActivity(next);
+            return;
+        }
         if ("MONEY".equalsIgnoreCase(subRequest.exchangeType)) {
             showMoneyDialog(subRequest);
         } else {
@@ -402,7 +430,7 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
             Map<String, Object> changes = new HashMap<>();
             changes.put("exchangeType", "NON_RECIPROCAL");
             changes.put("status", "PENDING");
-            repository.updateExchange(subRequest.exchangeId, changes, error -> {
+            repository.updateExchange(this, subRequest.sourceCollection, subRequest.exchangeId, changes, error -> {
                 if (error != null) Toast.makeText(this, "Cập nhật thất bại: " + error.getMessage(), Toast.LENGTH_LONG).show();
                 else { Toast.makeText(this, "Đã chuyển sang thanh toán bằng tiền.", Toast.LENGTH_SHORT).show(); dialog.dismiss(); loadIntentData(); }
             });
@@ -450,6 +478,9 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
         }
 
         btnClose.setOnClickListener(v -> dialog.dismiss());
+        btnAccept.setEnabled(subRequest.isPaid);
+        if (!subRequest.isPaid) btnAccept.setText("Chờ khách thanh toán ví");
+        if (!subRequest.isPaid) btnAccept.setText("Chờ khách thanh toán ví");
 
         btnReject.setOnClickListener(v -> updateStatus(subRequest, "REJECTED", dialog));
         btnAccept.setOnClickListener(v -> updateStatus(subRequest, "ACCEPTED", dialog));
@@ -459,7 +490,7 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
 
     private void updateStatus(RequestItem item, String status, Dialog dialog) {
         Map<String, Object> changes = new HashMap<>(); changes.put("status", status);
-        repository.updateExchange(item.exchangeId, changes, error -> {
+        repository.updateExchange(this, item.sourceCollection, item.exchangeId, changes, error -> {
             if (error != null) Toast.makeText(this, "Cập nhật thất bại: " + error.getMessage(), Toast.LENGTH_LONG).show();
             else { Toast.makeText(this, status.equals("ACCEPTED") ? "Đã chấp nhận yêu cầu." : "Đã từ chối yêu cầu.", Toast.LENGTH_SHORT).show(); dialog.dismiss(); loadIntentData(); }
         });

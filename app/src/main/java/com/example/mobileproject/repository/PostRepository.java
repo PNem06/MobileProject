@@ -44,6 +44,7 @@ public class PostRepository {
 
     public void getApprovedPosts(OnPostsLoadedListener listener) {
         db.collection("posts")
+                .whereEqualTo("status", Post.APPROVED)
                 .get()
                 .addOnSuccessListener(snapshot -> {
                     List<Post> posts = new ArrayList<>();

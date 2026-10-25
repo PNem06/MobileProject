@@ -6,6 +6,7 @@ import java.util.List;
 
 public class RequestItem implements Serializable {
     public String exchangeId = "";
+    public String sourceCollection = "exchanges";
     public String requesterId = "";
     public String hostId = "";
     public String postId = "";
@@ -39,9 +40,12 @@ public class RequestItem implements Serializable {
     public double proposedPostRating = 4.8;
     public String proposedPostDates = "";
     public boolean isPaid = false;
+    public boolean walletManaged = false;
 
     public List<RequestItem> subRequestsList = new ArrayList<>();
 
     public RequestItem() {
     }
+    public boolean isMoneyRequest() { return "NON_RECIPROCAL".equalsIgnoreCase(exchangeType) || "MONEY".equalsIgnoreCase(exchangeType); }
+    public boolean needsWalletPayment() { return !walletManaged && !isPaid && "PENDING".equalsIgnoreCase(status) && isMoneyRequest(); }
 }

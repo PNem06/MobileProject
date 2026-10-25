@@ -13,6 +13,7 @@ public final class PostCardData {
 
     public static boolean isAvailable(JSONObject post, long now) {
         if (post == null) return false;
+        if ("BOOKED".equals(post.optString("status")) || !post.optString("bookingKey").isEmpty()) return false;
         long from = post.optLong("availableFrom");
         long to = post.optLong("availableTo");
         return from > 0 && to > from && from <= now && now < to;
