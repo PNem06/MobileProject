@@ -377,7 +377,7 @@ public class AdminManagePostActivity extends AppCompatActivity {
                             && !ownerId.isEmpty()
                             && isApproval != null) {
                         sendNotification(
-                                ownerId, postTitle, isApproval
+                                ownerId, postTitle, isApproval, postId
                         );
                     }
 
@@ -411,11 +411,13 @@ public class AdminManagePostActivity extends AppCompatActivity {
     private void sendNotification(
             String ownerId,
             String postTitle,
-            boolean isApproved
+            boolean isApproved,
+            String postId
     ) {
         Map<String, Object> notif = new HashMap<>();
 
         notif.put("userId", ownerId);
+        notif.put("postId", postId);
         notif.put(
                 "type",
                 isApproved ? "post_approved" : "post_rejected"

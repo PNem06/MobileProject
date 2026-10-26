@@ -18,6 +18,8 @@ import com.google.firebase.firestore.FirebaseFirestore;
 public class SentRequestDetailActivity extends AppCompatActivity {
 
     public static final String EXTRA_EXCHANGE_ID = "exchangeId";
+    public static final String EXTRA_SOURCE_COLLECTION = "sourceCollection";
+    private String sourceCollection = "exchanges";
 
     private FirebaseFirestore db;
 
@@ -64,6 +66,8 @@ public class SentRequestDetailActivity extends AppCompatActivity {
             return;
         }
 
+        String source = getIntent().getStringExtra(EXTRA_SOURCE_COLLECTION);
+        if ("exchangeRequests".equals(source)) sourceCollection = source;
         loadRequestDetail(exchangeId);
     }
 
@@ -75,7 +79,7 @@ public class SentRequestDetailActivity extends AppCompatActivity {
     }
 
     private void loadRequestDetail(String exchangeId) {
-        db.collection("exchanges")
+        db.collection(sourceCollection)
                 .document(exchangeId)
                 .get()
                 .addOnSuccessListener(doc -> {

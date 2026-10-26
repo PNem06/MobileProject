@@ -35,6 +35,9 @@ import java.util.List;
 
 public class ReceivedRequestsDetailActivity extends AppCompatActivity {
     public static final String EXTRA_REQUEST_ITEM = "EXTRA_REQUEST_ITEM";
+    public static final String EXTRA_FOCUS_REQUEST_ID = "focusRequestId";
+    public static final String EXTRA_FOCUS_COLLECTION = "focusRequestCollection";
+    private boolean focusOpened;
 
     private ImageView btnBack;
     private TextView txtHeaderPostTitle;
@@ -56,6 +59,7 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_received_requests_detail);
 
+        focusOpened = savedInstanceState != null && savedInstanceState.getBoolean("noticeFocusOpened");
         initViews();
         loadIntentData();
         setupEvents();
@@ -356,6 +360,17 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
         }
 
         adapter.notifyDataSetChanged();
+        if (!focusOpened && !isFinishing() && !isDestroyed()) {
+            String focusedId = getIntent().getStringExtra(EXTRA_FOCUS_REQUEST_ID);
+            String collection = getIntent().getStringExtra(EXTRA_FOCUS_COLLECTION);
+            if (focusedId != null) for (RequestItem item : allSubRequests) {
+                if (focusedId.equals(item.exchangeId) && (collection == null || collection.equals(item.sourceCollection))) {
+                    focusOpened = true;
+                    showDetailDialog(item);
+                    break;
+                }
+            }
+        }
     }
 
     private void resetChipStyles() {
@@ -499,4 +514,9 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
     private String valueOrDefault(String val, String fallback) {
         return (val == null || val.trim().isEmpty()) ? fallback : val;
     }
+    @Override protected void onSaveInstanceState(Bundle out) {
+        out.putBoolean("noticeFocusOpened", focusOpened);
+        super.onSaveInstanceState(out);
+    }
+
 }
