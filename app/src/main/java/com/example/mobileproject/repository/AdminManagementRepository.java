@@ -355,7 +355,8 @@ public class AdminManagementRepository {
                         ownerId,
                         "POST_HIDDEN",
                         "Bài đăng đã bị ẩn",
-                        "Bài đăng của bạn đã bị ẩn do vi phạm quy định của StayExchange."
+                        "Bài đăng của bạn đã bị ẩn do vi phạm quy định của StayExchange.",
+                        actualPostId
                 );
 
                 batch.commit()
@@ -386,9 +387,13 @@ public class AdminManagementRepository {
     }
 
     private void addNotification(WriteBatch batch, String accountId, String type, String title, String body) {
+        addNotification(batch, accountId, type, title, body, "");
+    }
+    private void addNotification(WriteBatch batch, String accountId, String type, String title, String body, String postId) {
         com.google.firebase.firestore.DocumentReference ref = firestore.collection("notifications").document();
         Map<String, Object> data = new HashMap<>();
         data.put("notificationId", ref.getId());
+        if (!postId.isEmpty()) data.put("postId", postId);
         data.put("accountId", accountId);
         String recipientUid=accountId;
         for(DocumentSnapshot account:latestAccounts){

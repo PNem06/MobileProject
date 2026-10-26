@@ -207,53 +207,26 @@ public class AccountUi extends HomeViews {
         for (int i = 0; i < items.length(); i++) {
             JSONObject notice = items.optJSONObject(i);
             if (notice == null) continue;
+            com.example.mobileproject.notifications.Notice message = com.example.mobileproject.notifications.Notice.fromJson(notice);
             LinearLayout row = template(R.id.notificationRowTemplate);
-            row.setBackgroundColor(notice.optBoolean("read") ? Color.WHITE : 0xFFF8F7FE);
+            row.setBackgroundColor(message.read() ? Color.WHITE : 0xFFF8F7FE);
             ImageView notificationGlyph = row.findViewById(R.id.notificationGlyph);
             notificationGlyph.setImageTintList(android.content.res.ColorStateList.valueOf(INK));
             TextView txtNotificationTitle = row.findViewById(R.id.notificationTitle);
             TextView txtNotificationBody = row.findViewById(R.id.notificationBody);
             TextView txtNotificationDate = row.findViewById(R.id.notificationDate);
-            txtNotificationTitle.setText(notice.optString("title"));
-            txtNotificationBody.setText(notice.optString("body"));
+            txtNotificationTitle.setText(message.title());
+            txtNotificationBody.setText(message.body());
             if (notice.optLong("createdAt") > 0) {
                 txtNotificationDate.setText(DateFormat.getDateTimeInstance().format(new Date(notice.optLong("createdAt"))));
                 txtNotificationDate.setVisibility(View.VISIBLE);
             }
             row.setOnClickListener(v -> {
-                if (!notice.optBoolean("read")) vm.markRead(notice);
-                if("chat_message".equals(notice.optString("type")) && !notice.optString("senderId").isEmpty()){
-                    Intent next=new Intent(activity,ChatDetailActivity.class);next.putExtra(ChatDetailActivity.EXTRA_RECIPIENT_ID,notice.optString("senderId"));activity.startActivity(next);return;
-                }
-                if("true".equalsIgnoreCase(notice.optString("walletManaged")) || "wallet".equals(notice.optString("type"))){
-                    Intent next=new Intent(activity,WalletActivity.class);next.putExtra(WalletActivity.EXTRA_BOOKING_ID,notice.optString("exchangeId"));activity.startActivity(next);return;
-                }
-                String postId = notice.optString("postId");
-                if (postId.isEmpty()) postId = notice.optString("targetPostId");
-                if (postId.isEmpty()) postId = notice.optString("requestId");
-                if (!postId.isEmpty()) {
-                    try {
-                        Activity targetActivity = hostActivity != null ? hostActivity : activity;
-                        Intent intent = new Intent(targetActivity, Detail.class);
-                        intent.putExtra(Detail.EXTRA_POST_ID, postId);
-                        if (targetActivity != null) {
-                            targetActivity.startActivity(intent);
-                        }
-                    } catch (Exception e) {
-                        new AlertDialog.Builder(this)
-                                .setTitle(notice.optString("title"))
-                                .setMessage(notice.optString("body"))
-                                .setPositiveButton("Đóng", null)
-                                .show();
-                    }
-                } else {
-                    new AlertDialog.Builder(this)
-                            .setTitle(notice.optString("title"))
-                            .setMessage(notice.optString("body"))
-                            .setPositiveButton("Đóng", null)
-                            .show();
-                }
+                Activity target = hostActivity != null ? hostActivity : activity;
+                if (target != null) com.example.mobileproject.notifications.NotificationNavigator.open(
+                        target, message);
             });
+
             rows.addView(row);
             divider(rows);
         }

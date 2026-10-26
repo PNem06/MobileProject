@@ -21,7 +21,6 @@ import com.example.mobileproject.data.HomePostMapper;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -288,21 +287,7 @@ public class HomeViewModel extends AndroidViewModel {
                                                 Long.compare(
                                                         b.optLong("createdAt"),
                                                         a.optLong("createdAt")));
-                                if (!snap.getMetadata().hasPendingWrites()) {
-                                    for (DocumentChange dc : snap.getDocumentChanges()) {
-                                        if (dc.getType() == DocumentChange.Type.ADDED) {
-                                            DocumentSnapshot newDoc = dc.getDocument();
-                                            Boolean isRead = newDoc.getBoolean("isRead");
-                                            if (isRead != null && !isRead) {
-                                                String notifTitle = newDoc.getString("title");
-                                                String notifBody = newDoc.getString("body");
-                                                if (notifTitle != null && !notifTitle.isEmpty()) {
-                                                    tell("🔔 " + notifTitle + (notifBody != null && !notifBody.isEmpty() ? "\n" + notifBody : ""));
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                                // Notification alerts are delivered once by GlobalNotificationListener.
                             } else items.sort(Comparator.comparing(a -> a.optString("title")));
                             JSONArray array = new JSONArray();
                             for (JSONObject item : items) array.put(item);
@@ -568,7 +553,7 @@ public class HomeViewModel extends AndroidViewModel {
         }
         db.collection("notifications")
                 .document(notice.optString("id"))
-                .update(notice.optString("readField", "read"), true)
+                .update("isRead", true)
                 .addOnFailureListener(e -> tell("Không đánh dấu được: " + e.getMessage()));
     }
 

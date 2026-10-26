@@ -61,10 +61,11 @@ public final class HomePostMapper {
             result.put("availableFrom", time(fields, "startDate", "availableFrom"));
             result.put("availableTo", time(fields, "endDate", "availableTo"));
             result.put("createdAt", millis(fields.get("createdAt")));
-            String readField =
-                    fields.containsKey("isRead") && !fields.containsKey("read") ? "isRead" : "read";
-            result.put("readField", readField);
-            result.put("read", Boolean.TRUE.equals(fields.get(readField)));
+            result.put("readField", "isRead");
+            result.put("read", Boolean.TRUE.equals(fields.get("isRead")) || Boolean.TRUE.equals(fields.get("read"))
+                    || "true".equalsIgnoreCase(String.valueOf(fields.get("isRead")))
+                    || "true".equalsIgnoreCase(String.valueOf(fields.get("read"))));
+
         } catch (JSONException error) {
             throw new IllegalArgumentException("Dữ liệu Home không hợp lệ", error);
         }
