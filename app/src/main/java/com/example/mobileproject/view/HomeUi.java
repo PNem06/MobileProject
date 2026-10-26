@@ -16,7 +16,6 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import com.example.mobileproject.MainActivity;
 import com.example.mobileproject.R;
 import com.example.mobileproject.viewmodel.HomeViewModel;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
 
 import org.json.JSONArray;
@@ -38,24 +37,27 @@ public class HomeUi extends HomeViews {
     private final TextView subpageTitle;
     private final PostCards cards;
     private final AccountUi accountUi;
-    private final BottomNavigationView bottomNavigation;
     private final DrawerLayout drawerLayout;
     private final NavigationView drawerMenu;
     private LinearLayout homeSections;
     private String builtPage = "";
     private int selectedFilter;
+    private final View root;
+    private final String rootPage;
+    private ActionBarDrawerToggle drawerToggle;
 
-    public HomeUi(MainActivity activity, HomeViewModel vm, Bundle saved) {
+    public HomeUi(MainActivity activity, HomeViewModel vm, View root, Bundle saved, String rootPage) {
         super(activity, vm);
-        header = activity.findViewById(R.id.homeHeader);
-        filters = activity.findViewById(R.id.homeFilters);
-        content = activity.findViewById(R.id.homeContent);
-        drawerLayout = activity.findViewById(R.id.homeRoot);
-        drawerMenu = activity.findViewById(R.id.homeNavigationDrawer);
-        bottomNavigation = activity.findViewById(R.id.homeDrawerMenu);
+        this.root = root;
+        this.rootPage = rootPage;
+        header = root.findViewById(R.id.homeHeader);
+        filters = root.findViewById(R.id.homeFilters);
+        content = root.findViewById(R.id.homeContent);
+        drawerLayout = root.findViewById(R.id.homeRoot);
+        drawerMenu = root.findViewById(R.id.homeNavigationDrawer);
         drawerLayout.setBackgroundColor(Color.WHITE);
         drawerLayout.setScrimColor(0x33000000);
-        activity.findViewById(R.id.homeScreenContent).setBackgroundColor(Color.WHITE);
+        root.findViewById(R.id.homeScreenContent).setBackgroundColor(Color.WHITE);
         header.setBackgroundColor(Color.WHITE);
         filters.setBackgroundColor(Color.WHITE);
         content.setBackgroundColor(Color.WHITE);
@@ -64,14 +66,14 @@ public class HomeUi extends HomeViews {
         pageContent.setBackgroundColor(Color.WHITE);
         content.addView(pageContent, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT));
-        scroll = activity.findViewById(R.id.homeScroll);
-        progress = activity.findViewById(R.id.homeProgress);
-        homeHeaderContent = activity.findViewById(R.id.headerHomeContent);
-        subpageHeader = activity.findViewById(R.id.headerSubpageContent);
-        searchInput = activity.findViewById(R.id.edtSearch);
-        unreadDot = activity.findViewById(R.id.viewUnreadDot);
-        subpageTitle = activity.findViewById(R.id.txtHeaderTitle);
-        toolbarHome = activity.findViewById(R.id.toolbarHome);
+        scroll = root.findViewById(R.id.homeScroll);
+        progress = root.findViewById(R.id.homeProgress);
+        homeHeaderContent = root.findViewById(R.id.headerHomeContent);
+        subpageHeader = root.findViewById(R.id.headerSubpageContent);
+        searchInput = root.findViewById(R.id.edtSearch);
+        unreadDot = root.findViewById(R.id.viewUnreadDot);
+        subpageTitle = root.findViewById(R.id.txtHeaderTitle);
+        toolbarHome = root.findViewById(R.id.toolbarHome);
         cards = new PostCards(activity, vm);
         accountUi = new AccountUi(activity, vm, pageContent, cards, this::openNewPost);
         setupToolbar();
@@ -82,41 +84,18 @@ public class HomeUi extends HomeViews {
     }
 
     private void setupToolbar() {
-        activity.setSupportActionBar(toolbarHome);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 activity,
                 drawerLayout,
                 toolbarHome,
                 R.string.open,
                 R.string.close);
+        drawerToggle = toggle;
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
         drawerMenu.setNavigationItemSelectedListener(item -> {
             drawerLayout.closeDrawer(GravityCompat.START);
             return handleDrawerItem(item);
-        });
-        bottomNavigation.setOnItemSelectedListener(item -> {
-            if (vm.busy) return false;
-            int id = item.getItemId();
-            if (id == R.id.menu_explore) {
-                selectedFilter = 0;
-                go("home");
-            } else if (id == R.id.menu_request) {
-                if (!requireLogin()) return false;
-                startDestination(Request.class);
-            } else if (id == R.id.menu_calendar) {
-                if (!requireLogin()) return false;
-                startDestination(ExchangeScheduleActivity.class);
-            } else if (id == R.id.menu_message) {
-                if (!requireLogin()) return false;
-                startDestination(Chat.class);
-            } else if (id == R.id.menu_settings) {
-                if (!requireLogin()) return false;
-                go("account");
-            } else {
-                return false;
-            }
-            return true;
         });
     }
 
@@ -142,11 +121,11 @@ public class HomeUi extends HomeViews {
     }
 
     private void setupHeaderControls() {
-        activity.findViewById(R.id.btnNotification).setOnClickListener(v -> {
+        root.findViewById(R.id.btnNotification).setOnClickListener(v -> {
             if (requireLogin()) go("notifications");
         });
-        activity.findViewById(R.id.btnHeaderBack).setOnClickListener(v ->
-                go(Arrays.asList("edit", "settings", "about").contains(vm.page) ? "account" : "home"));
+        root.findViewById(R.id.btnHeaderBack).setOnClickListener(v ->
+                go(Arrays.asList("edit", "settings").contains(vm.page) ? "account" : rootPage));
         change(searchInput, value -> {
             vm.search = value;
             if (homeSections != null) renderHomeSections();
@@ -222,7 +201,6 @@ public class HomeUi extends HomeViews {
         if (!vm.signedIn() && !Arrays.asList("home", "about").contains(vm.page)) vm.page = "home";
         progress.setVisibility(vm.busy ? View.VISIBLE : View.GONE);
         buildHeader();
-        buildNavigation();
         buildHomeFilters();
         if (!vm.online() && !Arrays.asList("settings", "about").contains(vm.page)) {
             builtPage = "";
@@ -297,21 +275,9 @@ public class HomeUi extends HomeViews {
         }
     }
 
-    private void buildNavigation() {
-        int selected = "home".equals(vm.page)
-                ? R.id.menu_explore
-                : Arrays.asList("account", "edit", "settings", "about").contains(vm.page)
-                ? R.id.menu_settings : 0;
-        if (selected != 0 && bottomNavigation.getSelectedItemId() != selected) {
-            bottomNavigation.getMenu().findItem(selected).setChecked(true);
-        }
-    }
 
-    private void startDestination(Class<?> destination) {
-        Intent intent = new Intent(activity, destination);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        activity.startActivity(intent);
-    }
+
+
 
     private void buildHomeFilters() {
         boolean show = "home".equals(vm.page) && vm.online();
@@ -321,7 +287,7 @@ public class HomeUi extends HomeViews {
         int[] ids = {R.id.btnFilterAll, R.id.btnFilterFavorites};
         for (int i = 0; i < labels.length; i++) {
             final int value = i == 1 ? 2 : 0;
-            TextView chip = activity.findViewById(ids[i]);
+            TextView chip = root.findViewById(ids[i]);
             chip.setText(labels[i]);
             chip.setSelected(value == selectedFilter);
             chip.setTextColor(value == selectedFilter ? Color.WHITE : INK);
@@ -417,6 +383,11 @@ public class HomeUi extends HomeViews {
                         "feed1",
                         false);
         }
+    }
+
+    public void dispose() {
+        if (drawerToggle != null) drawerLayout.removeDrawerListener(drawerToggle);
+        scroll.setOnScrollChangeListener((View.OnScrollChangeListener) null);
     }
 
     private void openNewPost() {

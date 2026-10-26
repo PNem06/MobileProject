@@ -35,6 +35,22 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all {
+            it.systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
+        }
+    }
+}
+
+// Host-side UI tests do not contact Maps or require the production API key.
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        variant.hostTests.values.forEach { hostTest ->
+            hostTest.manifestPlaceholders.put("MAPS_API_KEY", "unit-test-placeholder")
+        }
+    }
 }
 
 // Đặt secrets bên ngoài android
@@ -79,6 +95,7 @@ dependencies {
     annotationProcessor("androidx.room:room-compiler:2.7.2")
 
     testImplementation(libs.junit)
+    testImplementation("org.robolectric:robolectric:4.16.1")
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
 }

@@ -144,16 +144,4 @@
         android:paddingEnd="16dp"
         android:paddingBottom="20dp" />
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/chatBottomMenu"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:background="@android:color/white"
-        app:backgroundTint="@android:color/white"
-        app:itemIconTint="@android:color/black"
-        app:itemTextColor="@android:color/black"
-        app:labelVisibilityMode="labeled"
-        app:menu="@menu/menu_bottom" />
-
 </LinearLayout>
