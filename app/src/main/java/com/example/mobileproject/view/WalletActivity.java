@@ -102,7 +102,18 @@ public class WalletActivity extends AppCompatActivity {
     private String money(long amount){return NumberFormat.getIntegerInstance(new Locale("vi","VN")).format(amount)+"đ";}
     private String date(long time){if(time<=0)return "Chưa cập nhật";SimpleDateFormat f=new SimpleDateFormat("dd/MM/yyyy HH:mm",new Locale("vi","VN"));f.setTimeZone(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));return f.format(new Date(time));}
     private String status(String raw){switch(raw){case "PENDING":return "Đang chờ phản hồi";case "ACCEPTED":return "Đã chấp nhận";case "ONGOING":return "Đang diễn ra";case "CANCELLED":return "A đã hủy";case "REJECTED":return "B đã từ chối";case "COMPLETED":return "Đã hoàn tất";default:return raw;}}
-    private void setupNav(){BottomNavigationView nav=findViewById(R.id.walletBottomNav);ViewCompat.setOnApplyWindowInsetsListener(nav,(v,insets)->{v.setPadding(0,0,0,0);return insets;});nav.getMenu().findItem(R.id.menu_settings).setChecked(true);nav.setOnItemSelectedListener(item->{int id=item.getItemId();Intent next;if(id==R.id.menu_settings||id==R.id.menu_explore){next=new Intent(this,MainActivity.class);next.putExtra(MainActivity.EXTRA_HOME_PAGE,id==R.id.menu_settings?"account":"home");}else if(id==R.id.menu_request)next=new Intent(this,Request.class);else if(id==R.id.menu_calendar)next=new Intent(this,ExchangeScheduleActivity.class);else if(id==R.id.menu_message)next=new Intent(this,Chat.class);else return false;next.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);startActivity(next);finish();return true;});}
+    private void setupNav(){
+        BottomNavigationView nav=findViewById(R.id.walletBottomNav);
+        ViewCompat.setOnApplyWindowInsetsListener(nav,(v,insets)->{v.setPadding(0,0,0,0);return insets;});
+        nav.getMenu().findItem(R.id.menu_settings).setChecked(true);
+        nav.setOnItemSelectedListener(item->{
+            com.example.mobileproject.navigation.MainTab tab=com.example.mobileproject.navigation.MainTab.fromMenuId(item.getItemId());
+            if(tab==null)return false;
+            startActivity(MainActivity.tabIntent(this,tab));
+            finish();
+            return true;
+        });
+    }
     private void render(){
         if(vm==null||content==null)return;
         String title;
