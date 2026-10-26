@@ -154,7 +154,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
                 android:layout_marginTop="6dp"
-                android:backgroundTint="#E53935"
+                android:backgroundTint="#161B61"
                 android:text="Chọn vị trí trên bản đồ"
                 android:textAllCaps="false"
                 android:textColor="#FFFFFF" />
@@ -324,7 +324,7 @@
             android:layout_width="0dp"
             android:layout_height="38dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_request_button_red"
+            android:background="@drawable/bg_btn_primary_blue"
             android:fontFamily="serif"
             android:text="Đăng"
             android:textAllCaps="false"

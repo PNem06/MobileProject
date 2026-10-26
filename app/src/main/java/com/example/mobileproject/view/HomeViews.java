@@ -80,7 +80,7 @@ public class HomeViews extends ContextWrapper {
         return false;
     }
     protected LinearLayout menuRow(
-        String icon, String title, String subtitle, boolean danger, Runnable action) {
+            String icon, String title, String subtitle, boolean danger, Runnable action) {
         LinearLayout wrapper = template(R.id.homeMenuRow);
         ImageView leading = wrapper.findViewById(R.id.menuLeadingGlyph);
         ImageView trailing = wrapper.findViewById(R.id.menuTrailingGlyph);

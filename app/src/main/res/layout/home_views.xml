@@ -86,42 +86,42 @@
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingVertical="17dp">
-        <ImageView
-            android:id="@+id/menuLeadingGlyph"
-            android:layout_width="23dp"
-            android:layout_height="23dp"
-            android:src="@drawable/ic_profile"
-            android:contentDescription="@null" />
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="13dp"
-            android:layout_marginEnd="8dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
-            <TextView
-                android:id="@+id/menuTitle"
-                android:layout_width="match_parent"
+            <ImageView
+                android:id="@+id/menuLeadingGlyph"
+                android:layout_width="23dp"
+                android:layout_height="23dp"
+                android:src="@drawable/ic_profile"
+                android:contentDescription="@null" />
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/sx_fraunces"
-                android:textColor="#171719"
-                android:textSize="17sp" />
-            <TextView
-                android:id="@+id/menuSubtitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
-                android:fontFamily="@font/sx_noto_sans"
-                android:textColor="#73737B"
-                android:textSize="11sp"
-                android:visibility="gone" />
-        </LinearLayout>
-        <ImageView
-            android:id="@+id/menuTrailingGlyph"
-            android:layout_width="17dp"
-            android:layout_height="17dp"
-            android:src="@drawable/ic_chevron_right"
-            android:contentDescription="@null" />
+                android:layout_marginStart="13dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/menuTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/sx_fraunces"
+                    android:textColor="#171719"
+                    android:textSize="17sp" />
+                <TextView
+                    android:id="@+id/menuSubtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:fontFamily="@font/sx_noto_sans"
+                    android:textColor="#73737B"
+                    android:textSize="11sp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <ImageView
+                android:id="@+id/menuTrailingGlyph"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
+                android:src="@drawable/ic_chevron_right"
+                android:contentDescription="@null" />
         </LinearLayout>
     </LinearLayout>
 
@@ -306,26 +306,26 @@
             <TextView android:id="@+id/editChooseAvatar" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingVertical="10dp" android:text="Thay đổi ảnh đại diện" android:textColor="#3533CD" android:textSize="12sp" />
         </LinearLayout>
         <Space android:layout_width="1dp" android:layout_height="20dp" />
-        <EditText android:id="@+id/editName" android:layout_width="match_parent" android:layout_height="48dp" android:hint="Họ và tên" android:background="@drawable/bg_form_field" android:singleLine="true" android:textColor="#171719" android:textSize="14sp" />
+        <EditText android:id="@+id/editName" android:layout_width="match_parent" android:layout_height="48dp" android:hint="Họ và tên" android:background="@drawable/bg_form_field" android:singleLine="true" android:textColor="#171719" android:textSize="14sp" android:paddingLeft="10dp"/>
         <Space android:layout_width="1dp" android:layout_height="12dp" />
-        <EditText android:id="@+id/editEmail" android:layout_width="match_parent" android:layout_height="48dp" android:hint="Email" android:background="@drawable/bg_form_field_readonly" android:focusable="false" android:singleLine="true" android:textColor="#73737B" android:textSize="14sp" />
+        <EditText android:id="@+id/editEmail" android:layout_width="match_parent" android:layout_height="48dp" android:hint="Email" android:background="@drawable/bg_form_field_readonly" android:focusable="false" android:singleLine="true" android:textColor="#73737B" android:textSize="14sp" android:paddingLeft="10dp"/>
         <Space android:layout_width="1dp" android:layout_height="12dp" />
-        <EditText android:id="@+id/editPhone" android:layout_width="match_parent" android:layout_height="48dp" android:hint="Số điện thoại" android:background="@drawable/bg_form_field" android:inputType="phone" android:singleLine="true" android:textColor="#171719" android:textSize="14sp" />
+        <EditText android:id="@+id/editPhone" android:layout_width="match_parent" android:layout_height="48dp" android:hint="Số điện thoại" android:background="@drawable/bg_form_field" android:inputType="phone" android:singleLine="true" android:textColor="#171719" android:textSize="14sp" android:paddingLeft="10dp"/>
         <Space android:layout_width="1dp" android:layout_height="20dp" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-            <TextView android:id="@+id/editCancel" android:layout_width="0dp" android:layout_height="48dp" android:layout_marginEnd="10dp" android:layout_weight="1" android:background="#FFF1F1F3" android:gravity="center" android:text="Hủy" android:textColor="#171719" />
+            <TextView android:id="@+id/editCancel" android:layout_width="0dp" android:layout_height="48dp" android:layout_marginEnd="10dp" android:layout_weight="1" android:background="@drawable/bg_btn_light_gray" android:gravity="center" android:text="Hủy" android:textColor="#171719" />
             <TextView android:id="@+id/editSave" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:background="@drawable/bg_black_blue" android:gravity="center" android:text="Lưu thay đổi" android:textColor="#FFFFFF" />
         </LinearLayout>
     </LinearLayout>
     <LinearLayout android:id="@+id/accountSettingsTemplate" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingHorizontal="24dp">
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="11dp" android:paddingBottom="4dp" android:text="TÀI KHOẢN" android:textColor="#85858E" android:textSize="11sp" />
-        <LinearLayout android:id="@+id/settingsPersonal" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <LinearLayout android:id="@+id/settingsPersonal" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
         <Space android:layout_width="1dp" android:layout_height="18dp" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="11dp" android:paddingBottom="4dp" android:text="DỮ LIỆU VÀ QUYỀN RIÊNG TƯ" android:textColor="#85858E" android:textSize="11sp" />
-        <LinearLayout android:id="@+id/settingsPrivacy" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <LinearLayout android:id="@+id/settingsPrivacy" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
         <Space android:layout_width="1dp" android:layout_height="22dp" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="11dp" android:paddingBottom="4dp" android:text="QUẢN LÝ TÀI KHOẢN" android:textColor="#85858E" android:textSize="11sp" />
-        <LinearLayout android:id="@+id/settingsDelete" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <LinearLayout android:id="@+id/settingsDelete" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
     </LinearLayout>
     <LinearLayout android:id="@+id/accountNotificationsTemplate" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal" android:paddingHorizontal="22dp" android:paddingTop="3dp" android:paddingBottom="17dp">
@@ -352,7 +352,7 @@
         <Space android:layout_width="1dp" android:layout_height="27dp" />
         <TextView android:id="@+id/aboutPageIntro" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Trao đổi một mái nhà, mở ra một trải nghiệm. StayExchange kết nối những người muốn khám phá điểm đến và trải nghiệm cuộc sống địa phương." android:textColor="#171719" android:textSize="18sp" />
         <Space android:layout_width="1dp" android:layout_height="25dp" />
-        <LinearLayout android:id="@+id/aboutPrivacyRow" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <LinearLayout android:id="@+id/aboutPrivacyRow" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
         <Space android:layout_width="1dp" android:layout_height="30dp" />
         <TextView android:id="@+id/aboutVersion" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="Phiên bản 1.0&#10;Đồ án môn Lập trình ứng dụng Mobile" android:textColor="#73737B" android:textSize="11sp" />
     </LinearLayout>

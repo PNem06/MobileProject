@@ -31,7 +31,6 @@
                     android:layout_height="match_parent"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingStart="56dp"
                     android:paddingEnd="13dp">
 
                     <!-- Search Input Box -->
@@ -47,10 +46,10 @@
 
                         <ImageView
                             android:layout_width="22dp"
-                            android:layout_height="22dp"
+                            android:layout_height="26dp"
+                            android:importantForAccessibility="no"
                             android:src="@drawable/ic_search"
-                            app:tint="#171719"
-                            android:importantForAccessibility="no" />
+                            app:tint="#171719" />
 
                         <EditText
                             android:id="@+id/edtSearch"
@@ -174,24 +173,6 @@
                     android:clickable="true"
                     android:focusable="true" />
 
-                <!-- Filter 1: Còn trống -->
-                <TextView
-                    android:id="@+id/btnFilterAvailable"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp"
-                    android:minHeight="49dp"
-                    android:gravity="center"
-                    android:fontFamily="@font/sx_fraunces"
-                    android:text="Còn trống"
-                    android:textColor="#171719"
-                    android:textSize="15sp"
-                    android:background="@drawable/bg_chip_unselected"
-                    android:clickable="true"
-                    android:focusable="true" />
-
-                <!-- Filter 2: Được yêu thích -->
                 <TextView
                     android:id="@+id/btnFilterFavorites"
                     android:layout_width="0dp"

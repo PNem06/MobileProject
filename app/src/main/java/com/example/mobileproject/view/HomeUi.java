@@ -79,10 +79,6 @@ public class HomeUi extends HomeViews {
         restoreState(saved);
         scroll.setOnScrollChangeListener(
                 (View.OnScrollChangeListener) (v, x, y, oldX, oldY) -> vm.scrollY = y);
-        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(bottomNavigation, (v, insets) -> {
-            v.setPadding(0, 0, 0, 0);
-            return insets;
-        });
     }
 
     private void setupToolbar() {
@@ -171,6 +167,8 @@ public class HomeUi extends HomeViews {
     private void restoreState(Bundle saved) {
         if (saved == null) return;
         selectedFilter = saved.getInt("filter", 0);
+        // Filter 1 was the removed availability filter in older saved state.
+        if (selectedFilter == 1) selectedFilter = 2;
         Bundle offsets = saved.getBundle("tracks");
         if (offsets != null)
             for (String key : offsets.keySet()) cards.trackOffsets.put(key, offsets.getInt(key));
@@ -303,7 +301,7 @@ public class HomeUi extends HomeViews {
         int selected = "home".equals(vm.page)
                 ? R.id.menu_explore
                 : Arrays.asList("account", "edit", "settings", "about").contains(vm.page)
-                        ? R.id.menu_settings : 0;
+                ? R.id.menu_settings : 0;
         if (selected != 0 && bottomNavigation.getSelectedItemId() != selected) {
             bottomNavigation.getMenu().findItem(selected).setChecked(true);
         }
@@ -313,22 +311,21 @@ public class HomeUi extends HomeViews {
         Intent intent = new Intent(activity, destination);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         activity.startActivity(intent);
-        activity.overridePendingTransition(0, 0);
     }
 
     private void buildHomeFilters() {
         boolean show = "home".equals(vm.page) && vm.online();
         filters.setVisibility(show ? View.VISIBLE : View.GONE);
         if (!show) return;
-        String[] labels = {"Tất cả", "Còn trống", "Yêu thích"};
-        int[] ids = {R.id.btnFilterAll, R.id.btnFilterAvailable, R.id.btnFilterFavorites};
+        String[] labels = {"Tất cả", "Yêu thích"};
+        int[] ids = {R.id.btnFilterAll, R.id.btnFilterFavorites};
         for (int i = 0; i < labels.length; i++) {
-            final int value = i;
+            final int value = i == 1 ? 2 : 0;
             TextView chip = activity.findViewById(ids[i]);
             chip.setText(labels[i]);
-            chip.setSelected(i == selectedFilter);
-            chip.setTextColor(i == selectedFilter ? Color.WHITE : INK);
-            chip.setBackgroundResource(i == selectedFilter ? R.drawable.bg_chip_selected_dark
+            chip.setSelected(value == selectedFilter);
+            chip.setTextColor(value == selectedFilter ? Color.WHITE : INK);
+            chip.setBackgroundResource(value == selectedFilter ? R.drawable.bg_chip_selected_dark
                     : R.drawable.bg_chip_unselected);
             chip.setOnClickListener(
                     v -> {
@@ -369,7 +366,6 @@ public class HomeUi extends HomeViews {
         Set<String> favoriteIds = vm.favoriteIds();
         String query = vm.search.trim().toLowerCase(Locale.ROOT);
         JSONArray source = vm.rows("feed");
-        long now = System.currentTimeMillis();
         for (int i = 0; i < source.length(); i++) {
             JSONObject p = source.optJSONObject(i);
             if (p == null) continue;
@@ -381,7 +377,7 @@ public class HomeUi extends HomeViews {
                             + p.optString("addressText"))
                             .toLowerCase(Locale.ROOT);
             if (!searchable.contains(query)) continue;
-            if (!PostCardData.matchesFilter(p, selectedFilter, favoriteIds, now)) continue;
+            if (!PostCardData.matchesFilter(p, selectedFilter, favoriteIds)) continue;
             posts.add(p);
         }
         if (posts.isEmpty()) {
@@ -390,10 +386,7 @@ public class HomeUi extends HomeViews {
                     query.isEmpty()
                             ? "Các bài đăng đã duyệt sẽ xuất hiện tại đây."
                             : "Thử tìm theo tên chỗ ở hoặc địa điểm khác.";
-            if (selectedFilter == 1) {
-                title = "Chưa có chỗ ở còn trống";
-                note = "Chỉ hiển thị bài đăng có khoảng thời gian cho phép bao gồm hôm nay.";
-            } else if (selectedFilter == 2) {
+            if (selectedFilter == 2) {
                 title = "Chưa có chỗ ở yêu thích";
                 note = "Chạm vào trái tim trên ảnh để chọn chỗ ở bạn thích.";
             }

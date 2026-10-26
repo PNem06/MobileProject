@@ -179,7 +179,7 @@
                 android:layout_marginTop="8dp"
                 android:text="Chọn vị trí trên bản đồ"
                 android:textAllCaps="false"
-                android:backgroundTint="#E53935"
+                android:backgroundTint="#161B61"
                 android:textColor="#FFFFFF"/>
 
             <TextView
@@ -333,7 +333,7 @@
             android:layout_width="0dp"
             android:layout_height="42dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_request_button_red"
+            android:background="@drawable/bg_btn_primary_blue"
             app:backgroundTint="@null"
             android:fontFamily="serif"
             android:text="Đăng"

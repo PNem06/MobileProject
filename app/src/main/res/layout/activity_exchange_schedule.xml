@@ -32,7 +32,7 @@
             android:gravity="center"
             android:text="Sắp tới"
             android:textColor="@color/schedule_tab_text_selector"
-            android:textSize="16sp"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
         <TextView
@@ -45,7 +45,7 @@
             android:gravity="center"
             android:text="Đang diễn ra"
             android:textColor="@color/schedule_tab_text_selector"
-            android:textSize="15sp"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
         <TextView
@@ -58,7 +58,7 @@
             android:gravity="center"
             android:text="Đã xong"
             android:textColor="@color/schedule_tab_text_selector"
-            android:textSize="16sp"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
     </LinearLayout>

@@ -94,10 +94,13 @@ public class New_Post extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
+        getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         setContentView(R.layout.activity_new_post);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right,
+                    Math.max(systemBars.bottom, ime.bottom));
             return insets;
         });
 
@@ -715,10 +718,6 @@ public class New_Post extends AppCompatActivity {
         }
         if (a.isEmpty()) {
             address.setError("Nhập địa chỉ");
-            return;
-        }
-        if (destinationValue.isEmpty()) {
-            destination.setError("Nhập điểm đến");
             return;
         }
         if (d.isEmpty()) {

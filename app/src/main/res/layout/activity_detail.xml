@@ -206,6 +206,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="—"
+                                android:fontFamily="serif"
                                 android:textColor="#111111"
                                 android:textSize="27sp"
                                 android:textStyle="bold"/>
@@ -230,7 +231,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1.4"
                             android:gravity="center"
-                            android:text="Chỗ ở\nđược yêu thích"
+                            android:text="Chỗ ở\nđang chờ bạn"
                             android:fontFamily="serif"
                             android:textColor="#111111"
                             android:textSize="17sp"
@@ -253,6 +254,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="0"
+                                android:fontFamily="serif"
                                 android:textColor="#111111"
                                 android:textSize="27sp"
                                 android:textStyle="bold"/>
@@ -592,64 +594,30 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
-                        android:text="Bạn thấy nơi này như thế nào?"
+                        android:text="Bài đánh giá"
                         android:textColor="#111111"
                         android:textSize="21sp"
                         android:textStyle="bold"
                         android:fontFamily="serif"/>
 
-                    <HorizontalScrollView
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/recyclerRecentReviews"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:scrollbars="none">
-
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginEnd="8dp"
-                                android:background="@drawable/bg_request_button_gray"
-                                android:padding="12dp"
-                                android:text="Chất lượng giấc ngủ"
-                                android:textSize="14sp"/>
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginEnd="8dp"
-                                android:background="@drawable/bg_request_button_gray"
-                                android:padding="12dp"
-                                android:text="Tiếng ồn"
-                                android:textSize="14sp"
-                                android:fontFamily="serif"/>
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:background="@drawable/bg_request_button_gray"
-                                android:padding="12dp"
-                                android:text="Khung cảnh đẹp"
-                                android:textSize="14sp"
-                                android:fontFamily="serif"/>
-
-                        </LinearLayout>
-
-                    </HorizontalScrollView>
+                        android:nestedScrollingEnabled="false"
+                        android:overScrollMode="never"
+                        tools:listitem="@layout/review_card" />
 
                     <TextView
-                        android:id="@+id/txtReviews"
+                        android:id="@+id/txtReviewsEmpty"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:textColor="#222222"
-                        android:textSize="16sp"
-                        android:lineSpacingExtra="5dp"
-                        android:fontFamily="serif"/>
+                        android:layout_marginTop="12dp"
+                        android:text="Chưa có nhận xét nào."
+                        android:textColor="#666666"
+                        android:textSize="14sp"
+                        android:fontFamily="serif" />
 
                     <TextView
                         android:id="@+id/btnAllReviews"
@@ -658,7 +626,7 @@
                         android:layout_marginTop="14dp"
                         android:background="@drawable/bg_request_button_gray"
                         android:gravity="center"
-                        android:text="Xem đánh giá"
+                        android:text="Xem nhận xét"
                         android:textColor="#111111"
                         android:textSize="16sp"
                         android:fontFamily="serif"/>

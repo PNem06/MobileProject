@@ -21,10 +21,14 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.viewpager2.widget.ViewPager2;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.mobileproject.R;
 import com.example.mobileproject.adapter.DetailAdapter;
+import com.example.mobileproject.adapter.ReviewAdapter;
+import com.example.mobileproject.model.ReviewItem;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.Timestamp;
@@ -52,8 +56,6 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 
 import java.text.ParseException;
-import android.graphics.Color;
-import androidx.core.content.ContextCompat;
 
 public class Detail extends AppCompatActivity {
     public static final String EXTRA_POST_ID = "postId";
@@ -61,6 +63,10 @@ public class Detail extends AppCompatActivity {
     private FirebaseFirestore db;
     private ListenerRegistration roomListener;
     private ListenerRegistration favoriteListener;
+    private ListenerRegistration reviewsListener;
+    private ReviewAdapter recentReviewsAdapter;
+    private RecyclerView recyclerRecentReviews;
+    private TextView txtReviewsEmpty;
     private String postId = "";
     private SharedPreferences preferences;
 
@@ -68,8 +74,7 @@ public class Detail extends AppCompatActivity {
     private boolean isExpanded;
     private String fullDescription = "";
     private boolean isMyPost = false;
-    private boolean postReserved, viewerAdmin;
-    private boolean deletingPost;
+    private boolean postReserved, viewerAdmin, deletingPost;
     private String viewerAccountId = "";
     private String postOwnerId = "";
 
@@ -134,16 +139,27 @@ public class Detail extends AppCompatActivity {
         preferences = getSharedPreferences("room_favorites", MODE_PRIVATE);
 
         initViews();
+        setupRecentReviews();
         setupEvents();
         setupFavorite();
         String viewerUid = FirebaseAuth.getInstance().getUid();
-        if (viewerUid == null) { finish(); return; }
-        db.collection("accounts").document(viewerUid).get().addOnSuccessListener(profile -> {
-            if (isFinishing() || isDestroyed()) return;
-            viewerAccountId = profile.getString("accountId") == null ? viewerUid : profile.getString("accountId");
-            viewerAdmin = "ADMIN".equals(profile.getString("role")) && "ACTIVE".equals(profile.getString("status"));
+        if (viewerUid == null || viewerUid.trim().isEmpty()) {
             listenToRoomRealtime();
-        }).addOnFailureListener(error -> { if (!isFinishing()) { showMessage("Không thể xác nhận tài khoản. Vui lòng mở lại bài đăng."); finish(); } });
+        } else {
+            viewerAccountId = viewerUid;
+            db.collection("accounts").document(viewerUid).get()
+                    .addOnSuccessListener(profile -> {
+                        if (isFinishing() || isDestroyed()) return;
+                        String accountId = profile.getString("accountId");
+                        if (accountId != null && !accountId.trim().isEmpty()) viewerAccountId = accountId;
+                        viewerAdmin = "ADMIN".equalsIgnoreCase(profile.getString("role"))
+                                && "ACTIVE".equalsIgnoreCase(profile.getString("status"));
+                        listenToRoomRealtime();
+                    })
+                    .addOnFailureListener(error -> {
+                        if (!isFinishing() && !isDestroyed()) listenToRoomRealtime();
+                    });
+        }
     }
 
     private void initViews() {
@@ -171,7 +187,8 @@ public class Detail extends AppCompatActivity {
         txtPrice = findViewById(R.id.txtPrice);
         txtImageCount = findViewById(R.id.txtImageCount);
         txtReviews = findViewById(R.id.txtReviews);
-
+        recyclerRecentReviews = findViewById(R.id.recyclerRecentReviews);
+        txtReviewsEmpty = findViewById(R.id.txtReviewsEmpty);
         btnFavorite = findViewById(R.id.btnFavorite);
         btnShowMore = findViewById(R.id.btnShowMore);
         btnAllReviews = findViewById(R.id.btnAllReviews);
@@ -193,6 +210,58 @@ public class Detail extends AppCompatActivity {
         edtPrice = findViewById(R.id.edtPrice);
     }
 
+    private void setupRecentReviews() {
+        if (recyclerRecentReviews == null) return;
+        recentReviewsAdapter = new ReviewAdapter();
+        recyclerRecentReviews.setLayoutManager(new LinearLayoutManager(this));
+        recyclerRecentReviews.setNestedScrollingEnabled(false);
+        recyclerRecentReviews.setAdapter(recentReviewsAdapter);
+        if (postId.isEmpty()) return;
+        reviewsListener = db.collection("reviews")
+                .whereEqualTo("postId", postId)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (isFinishing() || isDestroyed() || error != null || snapshot == null) return;
+                    ArrayList<ReviewItem> rows = new ArrayList<>();
+                    double ratingTotal = 0;
+                    for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                        ReviewItem item = new ReviewItem();
+                        item.reviewerAccountId = doc.getString("reviewer_accountId");
+                        if (item.reviewerAccountId == null) item.reviewerAccountId = "";
+                        String name = doc.getString("reviewerName");
+                        item.reviewerName = name == null || name.trim().isEmpty() ? "Người dùng" : name;
+                        String comment = doc.getString("comment");
+                        item.comment = comment == null ? "" : comment;
+                        Number rating = (Number) doc.get("rating");
+                        item.rating = rating == null ? 0 : rating.floatValue();
+                        ratingTotal += item.rating;
+                        Date createdAt = doc.getDate("createdAt");
+                        if (createdAt != null) {
+                            item.createdAtMillis = createdAt.getTime();
+                            item.date = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(createdAt);
+                        }
+                        rows.add(item);
+                    }
+                    rows.sort((a, b) -> Long.compare(b.createdAtMillis, a.createdAtMillis));
+                    txtRating.setText(rows.isEmpty() ? "—" : String.format(Locale.getDefault(), "%.1f", ratingTotal / rows.size()));
+                    txtReviewCount.setText(String.valueOf(rows.size()));
+                    if (txtReviews != null) {
+                        StringBuilder preview = new StringBuilder();
+                        int previewCount = Math.min(3, rows.size());
+                        for (int i = 0; i < previewCount; i++) {
+                            ReviewItem item = rows.get(i);
+                            if (preview.length() > 0) preview.append("\n\n");
+                            preview.append(item.reviewerName).append(" · ")
+                                    .append(String.format(Locale.getDefault(), "%.0f★", item.rating));
+                            if (!item.comment.isEmpty()) preview.append("\n").append(item.comment);
+                        }
+                        txtReviews.setText(preview.length() == 0 ? "Chưa có dữ liệu đánh giá." : preview.toString());
+                    }
+                    if (rows.size() > 3) rows = new ArrayList<>(rows.subList(0, 3));
+                    recentReviewsAdapter.submit(rows);
+                    if (txtReviewsEmpty != null) txtReviewsEmpty.setVisibility(rows.isEmpty() ? View.VISIBLE : View.GONE);
+                });
+    }
+
     private void listenToRoomRealtime() {
         if (postId.isEmpty()) return;
 
@@ -202,8 +271,11 @@ public class Detail extends AppCompatActivity {
                     if (isFinishing() || isDestroyed()) return;
 
                     if (error != null) {
-                        if (error.getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-                            showMessage("Bài đăng không còn mở cho tài khoản này."); finish(); return;
+                        if (error.getCode()
+                                == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                            showMessage("Bài đăng không còn mở cho tài khoản này.");
+                            finish();
+                            return;
                         }
                         Toast.makeText(
                                 this,
@@ -227,14 +299,24 @@ public class Detail extends AppCompatActivity {
     }
 
     private void renderRoom(DocumentSnapshot doc) {
-        postReserved = !stringValue(doc,"bookingKey").isEmpty() || "BOOKED".equals(doc.getString("status"));
+        String postStatus = stringValue(doc, "status");
+        String bookingKey = stringValue(doc, "bookingKey");
+        postReserved = "BOOKED".equalsIgnoreCase(postStatus) || !bookingKey.isEmpty();
         String uid = FirebaseAuth.getInstance().getUid();
-        java.util.List<?> parties = doc.get("bookingPartyIds") instanceof java.util.List ? (java.util.List<?>)doc.get("bookingPartyIds") : java.util.Collections.emptyList();
-        String owner = nonEmpty(doc.getString("accountId"),doc.getString("ownerId"));
-        if (postReserved && !viewerAdmin && !parties.contains(uid) && !parties.contains(viewerAccountId)
-                && (uid == null || (!uid.equals(owner) && !viewerAccountId.equals(owner)))) {
-            showMessage("Bài đăng đã có trao đổi và không còn mở đặt phòng."); finish(); return;
+        Object partiesValue = doc.get("bookingPartyIds");
+        List<?> bookingParties = partiesValue instanceof List
+                ? (List<?>) partiesValue : java.util.Collections.emptyList();
+        String postAccountId = nonEmpty(doc.getString("accountId"), doc.getString("ownerId"));
+        boolean isOwner = (uid != null && uid.equals(postAccountId))
+                || (!viewerAccountId.isEmpty() && viewerAccountId.equals(postAccountId));
+        boolean isBookingParty = (uid != null && bookingParties.contains(uid))
+                || (!viewerAccountId.isEmpty() && bookingParties.contains(viewerAccountId));
+        if (postReserved && !viewerAdmin && !isOwner && !isBookingParty) {
+            showMessage("Bài đăng đã có trao đổi và không còn mở đặt phòng.");
+            finish();
+            return;
         }
+
         String title = stringValue(doc, "title");
         String address = stringValue(doc, "address");
         String destination = stringValue(doc, "destination");
@@ -324,7 +406,8 @@ public class Detail extends AppCompatActivity {
         }
 
         String currentUid = FirebaseAuth.getInstance().getUid();
-        isMyPost = currentUid != null && !currentUid.isEmpty() && (currentUid.equals(postOwnerId) || viewerAccountId.equals(postOwnerId));
+        isMyPost = currentUid != null && !currentUid.isEmpty()
+                && (currentUid.equals(postOwnerId) || viewerAccountId.equals(postOwnerId));
 
         if (isMyPost) {
             if (txtStatusBadge != null) {
@@ -355,26 +438,33 @@ public class Detail extends AppCompatActivity {
         if (postReserved) {
             if (layoutGuestActions != null) layoutGuestActions.setVisibility(View.GONE);
             if (layoutOwnerActions != null) layoutOwnerActions.setVisibility(View.GONE);
-            if (txtStatusBadge != null) { txtStatusBadge.setVisibility(View.VISIBLE); txtStatusBadge.setText("● Đã có trao đổi"); }
+            if (txtStatusBadge != null) {
+                txtStatusBadge.setVisibility(View.VISIBLE);
+                txtStatusBadge.setText("● Đã có trao đổi");
+            }
         }
-        txtRating.setText("—");
-        txtReviewCount.setText("0");
-        txtPrice.setText(priceLabel(doc.get("price")));
-        txtReviews.setText("Chưa có dữ liệu đánh giá.");
-        btnAllReviews.setText("Xem đánh giá");
 
+        txtPrice.setText(priceLabel(doc.get("price")));
+        if (txtReviews != null
+                && (recentReviewsAdapter == null || recentReviewsAdapter.getItemCount() == 0)) {
+            txtReviews.setText("Chưa có dữ liệu đánh giá.");
+        }
+        if (txtReviewsEmpty != null
+                && (recentReviewsAdapter == null || recentReviewsAdapter.getItemCount() == 0)) {
+            txtReviewsEmpty.setVisibility(View.VISIBLE);
+        }
+        btnAllReviews.setText("Xem nhận xét");
         loadRoomImages(postId);
     }
-
 
     private void showBlockDialogForOwner(String ownerId, String name) {
         String currentUid = FirebaseAuth.getInstance().getUid();
         if (currentUid == null || currentUid.isEmpty() || ownerId == null || ownerId.isEmpty() || currentUid.equals(ownerId)) return;
 
         String docId = currentUid + "_" + ownerId;
-        db.collection("blocks").whereEqualTo("blockerId",currentUid).whereEqualTo("blockedUserId",ownerId).get()
-                .addOnSuccessListener(docs -> {
-                    boolean isBlocked = !docs.isEmpty();
+        db.collection("blocks").document(docId).get()
+                .addOnSuccessListener(doc -> {
+                    boolean isBlocked = doc.exists();
                     String actionText = isBlocked ? "Bỏ chặn " + name : "Chặn " + name;
 
                     new AlertDialog.Builder(this)
@@ -723,14 +813,14 @@ public class Detail extends AppCompatActivity {
                     }
 
                     if (amenityNames.isEmpty()) {
-                        txtAmenities.setText("Mã tiện nghi:\n• " + TextUtils.join("\n• ", amenityIds));
+                        txtAmenities.setText("• " + TextUtils.join("\n• ", amenityIds));
                     } else {
-                        txtAmenities.setText("Tiện nghi:\n• " + TextUtils.join("\n• ", amenityNames));
+                        txtAmenities.setText("• " + TextUtils.join("\n• ", amenityNames));
                     }
                 })
                 .addOnFailureListener(e -> {
                     if (isFinishing() || isDestroyed()) return;
-                    txtAmenities.setText("Mã tiện nghi:\n• " + TextUtils.join("\n• ", amenityIds));
+                    txtAmenities.setText("• " + TextUtils.join("\n• ", amenityIds));
                 });
     }
 
@@ -865,9 +955,11 @@ public class Detail extends AppCompatActivity {
                 v -> showBookingOptions()
         );
 
-        btnAllReviews.setOnClickListener(
-                v -> showMessage("Cần kết nối dữ liệu đánh giá để xem chi tiết.")
-        );
+        btnAllReviews.setOnClickListener(v -> {
+            Intent intent = new Intent(Detail.this, Review.class);
+            intent.putExtra("postId", postId);
+            startActivity(intent);
+        });
 
         if (btnDeletePost != null) {
             btnDeletePost.setOnClickListener(v -> confirmDeletePost());
@@ -900,13 +992,14 @@ public class Detail extends AppCompatActivity {
     }
 
     private void deletePost() {
-        if (postReserved) { showMessage("Bài đã có trao đổi. Không thể xóa bài đang lưu giao dịch."); return; }
+        if (postReserved) {
+            showMessage("Bài đã có trao đổi. Không thể xóa bài đang lưu giao dịch.");
+            return;
+        }
         if (postId.isEmpty() || deletingPost) return;
         deletingPost = true;
         if (btnDeletePost != null) btnDeletePost.setEnabled(false);
 
-        // Read image references before removing their parent. Firestore then deletes
-        // the post and both image collections atomically, checking the current lock.
         Task<QuerySnapshot> images = db.collection("images").whereEqualTo("postId", postId).get();
         Task<QuerySnapshot> oldImages = db.collection("postImages").whereEqualTo("postId", postId).get();
         Tasks.<QuerySnapshot>whenAllSuccess(images, oldImages)
@@ -940,6 +1033,10 @@ public class Detail extends AppCompatActivity {
 
 
     private void enterEditMode() {
+        if (postReserved) {
+            showMessage("Bài đã có trao đổi nên không thể chỉnh sửa.");
+            return;
+        }
         if (postId == null || postId.trim().isEmpty()) {
             showMessage("Không tìm thấy mã bài đăng.");
             return;
@@ -1306,12 +1403,19 @@ public class Detail extends AppCompatActivity {
             favoriteListener.remove();
             favoriteListener = null;
         }
+        if (reviewsListener != null) {
+            reviewsListener.remove();
+            reviewsListener = null;
+        }
 
         super.onDestroy();
     }
 
     private void showBookingOptions() {
-        if (postReserved) { showMessage("Bài đăng đã có trao đổi và không còn mở đặt phòng."); return; }
+        if (postReserved) {
+            showMessage("Bài đăng đã có trao đổi và không còn mở đặt phòng.");
+            return;
+        }
         String[] options = {
                 "Trao đổi phòng",
                 "Thuê phòng"

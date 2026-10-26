@@ -1,11 +1,13 @@
 package com.example.mobileproject.view;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
+import android.util.Base64;
 import android.view.View;
 import android.widget.*;
-import android.app.Activity;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.example.mobileproject.MainActivity;
@@ -29,16 +31,16 @@ public class AccountUi extends HomeViews {
         this.createPost = createPost;
     }
 
-    public AccountUi(
-            Activity activity,
-            HomeViewModel vm,
-            LinearLayout content,
-            HomeViews.AccountHost accountHost
-    ) {
+    public AccountUi(Activity activity, HomeViewModel vm, LinearLayout content, AccountHost accountHost) {
+        this(activity, vm, content, null, null, accountHost);
+    }
+
+    public AccountUi(Activity activity, HomeViewModel vm, LinearLayout content, PostCards cards,
+                     Runnable createPost, AccountHost accountHost) {
         super(activity, vm, accountHost);
         this.content = content;
-        this.cards = null;
-        this.createPost = null;
+        this.cards = cards;
+        this.createPost = createPost;
     }
 
     void account() {
@@ -63,7 +65,7 @@ public class AccountUi extends HomeViews {
         avatarFrame.setClipToOutline(true);
         ImageView avatarPhoto = root.findViewById(R.id.imgAvatar);
         String avatarUrl = profile.optString("avatarUrl");
-        if (!avatarUrl.isEmpty()) Glide.with(this).load(avatarUrl).circleCrop()
+        if (!avatarUrl.isEmpty()) Glide.with(this).load(avatarImageModel(avatarUrl)).circleCrop()
                 .diskCacheStrategy(DiskCacheStrategy.ALL).into(avatarPhoto);
         root.findViewById(R.id.btnWallet).setOnClickListener(v -> activity.startActivity(new Intent(activity, WalletActivity.class)));
         root.findViewById(R.id.btnPersonalInfo).setOnClickListener(v -> {
@@ -89,18 +91,13 @@ public class AccountUi extends HomeViews {
             if (p != null) mine.add(p);
         }
         LinearLayout myPosts = root.findViewById(R.id.myPostsContainer);
-        if (cards != null) {
-            mine = new ArrayList<>();
-            array = vm.rows("mine");
-            for (int i = 0; i < array.length(); i++) {
-                JSONObject post = array.optJSONObject(i);
-                if (post != null) {mine.add(post);}
-            }
+        if (cards != null && myPosts != null) {
             cards.section(myPosts, "Bài đăng của tôi", mine, "mine", true, createPost);
-        } else {
+        } else if (myPosts != null) {
             myPosts.setVisibility(View.GONE);
         }
     }
+
     void edit() {
         if (vm.draftName == null) vm.draftName = vm.profile().optString("fullName");
         if (vm.draftPhone == null) vm.draftPhone = vm.profile().optString("phone");
@@ -110,7 +107,7 @@ public class AccountUi extends HomeViews {
         TextView txtAvatarLetters = form.findViewById(R.id.editAvatarLetters);
         txtAvatarLetters.setText(PostCardData.initials(vm.draftName));
         ImageView photo = form.findViewById(R.id.editAvatarPhoto);
-        if (!source.isEmpty()) Glide.with(this).load(source).circleCrop()
+        if (!source.isEmpty()) Glide.with(this).load(avatarImageModel(source)).circleCrop()
                 .diskCacheStrategy(DiskCacheStrategy.ALL).into(photo);
         form.findViewById(R.id.editChooseAvatar).setOnClickListener(v -> {
             if (!vm.busy) {
@@ -119,7 +116,7 @@ public class AccountUi extends HomeViews {
                 } else if (activity != null) {
                     activity.chooseAvatar();
                 }
-            };
+            }
         });
         EditText txtFullName = form.findViewById(R.id.editName);
         EditText txtEmail = form.findViewById(R.id.editEmail);
@@ -145,36 +142,45 @@ public class AccountUi extends HomeViews {
         content.addView(box);
         LinearLayout personal = box.findViewById(R.id.settingsPersonal);
         personal.addView(menuRow("user", "Thông tin cá nhân", "Cập nhật họ tên, ảnh và số điện thoại", false, () -> {
-                    vm.draftName = vm.profile().optString("fullName");
-                    vm.draftPhone = vm.profile().optString("phone");
-                    vm.draftAvatar = null;
-                    go("edit");
-                }));
+            vm.draftName = vm.profile().optString("fullName");
+            vm.draftPhone = vm.profile().optString("phone");
+            vm.draftAvatar = null;
+            go("edit");
+        }));
         ((LinearLayout) box.findViewById(R.id.settingsPrivacy)).addView(
                 menuRow("info", "Chính sách dữ liệu", "Tìm hiểu dữ liệu ứng dụng sử dụng", false, this::privacy));
-        ((LinearLayout) box.findViewById(R.id.settingsDelete)).addView(
-                menuRow(
-                        "trash",
-                        "Xóa tài khoản",
-                        "Thao tác này không thể hoàn tác",
-                        true,
-                        () -> new AlertDialog.Builder(this)
-                                .setTitle("Xóa tài khoản?")
-                                .setMessage(
-                                        "Bạn sẽ mất quyền đăng nhập bằng tài khoản này. "
-                                                + "Hãy xác minh lại danh tính để tiếp tục."
-                                )
-                                .setNegativeButton("Hủy", null)
-                                .setPositiveButton("Tiếp tục", (d, w) -> {
-                                    if (accountHost != null) {
-                                        accountHost.confirmAccountDeletion();
-                                    } else if (activity != null) {
-                                        activity.confirmAccountDeletion();
-                                    }
-                                })
-                                .show()
-                )
-        );
+        ((LinearLayout) box.findViewById(R.id.settingsDelete)).addView(menuRow("trash", "Xóa tài khoản", "Thao tác này không thể hoàn tác", true,
+                ()
+                        -> new AlertDialog.Builder(this)
+                        .setTitle("Xóa tài khoản?")
+                        .setMessage("Bạn sẽ mất quyền đăng nhập bằng tài khoản này. Hãy"
+                                + " xác minh lại danh tính để tiếp tục.")
+                        .setNegativeButton("Hủy", null)
+                        .setPositiveButton("Tiếp tục", (d, w) -> {
+                            if (accountHost != null) {
+                                accountHost.confirmAccountDeletion();
+                            } else if (activity != null) {
+                                activity.confirmAccountDeletion();
+                            }
+                        })
+                        .show()));
+    }
+
+    private Object avatarImageModel(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        String image = value.trim();
+        if (image.startsWith("http://") || image.startsWith("https://")) return image;
+        if (image.startsWith("content://") || image.startsWith("file://")) return Uri.parse(image);
+        if (image.startsWith("data:image/")) {
+            int comma = image.indexOf(',');
+            if (comma < 0) return null;
+            image = image.substring(comma + 1);
+        }
+        try {
+            return Base64.decode(image, Base64.DEFAULT);
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
     }
 
     private void privacy() {
@@ -227,9 +233,12 @@ public class AccountUi extends HomeViews {
                 if (postId.isEmpty()) postId = notice.optString("requestId");
                 if (!postId.isEmpty()) {
                     try {
-                        Intent intent = new Intent(activity, Detail.class);
+                        Activity targetActivity = hostActivity != null ? hostActivity : activity;
+                        Intent intent = new Intent(targetActivity, Detail.class);
                         intent.putExtra(Detail.EXTRA_POST_ID, postId);
-                        activity.startActivity(intent);
+                        if (targetActivity != null) {
+                            targetActivity.startActivity(intent);
+                        }
                     } catch (Exception e) {
                         new AlertDialog.Builder(this)
                                 .setTitle(notice.optString("title"))

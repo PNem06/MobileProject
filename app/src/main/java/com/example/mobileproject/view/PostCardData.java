@@ -11,18 +11,9 @@ public final class PostCardData {
 
     private PostCardData() {}
 
-    public static boolean isAvailable(JSONObject post, long now) {
-        if (post == null) return false;
-        if ("BOOKED".equals(post.optString("status")) || !post.optString("bookingKey").isEmpty()) return false;
-        long from = post.optLong("availableFrom");
-        long to = post.optLong("availableTo");
-        return from > 0 && to > from && from <= now && now < to;
-    }
-
     public static boolean matchesFilter(
-            JSONObject post, int filter, java.util.Set<String> liked, long now) {
+            JSONObject post, int filter, java.util.Set<String> liked) {
         if (post == null) return false;
-        if (filter == 1) return isAvailable(post, now);
         if (filter == 2) return liked != null && liked.contains(post.optString("id"));
         return true;
     }

@@ -1,9 +1,18 @@
 package com.example.mobileproject.viewmodel;
 
 import android.app.Application;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.ConnectivityManager;
 import android.net.NetworkCapabilities;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Base64;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MutableLiveData;
@@ -19,8 +28,6 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.MetadataChanges;
 import com.google.firebase.firestore.Query;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -33,7 +40,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 public class HomeViewModel extends AndroidViewModel {
     public final MutableLiveData<Integer> changed = new MutableLiveData<>(0);
@@ -589,34 +595,56 @@ public class HomeViewModel extends AndroidViewModel {
         values.put("fullName", name);
         values.put("phone", phone);
         if (draftAvatar == null) {
-            updateProfile(user.getUid(), values, null);
+            updateProfile(user.getUid(), values);
             return;
         }
-        StorageReference ref =
-                FirebaseStorage.getInstance()
-                        .getReference()
-                        .child("avatars/" + user.getUid() + "/" + UUID.randomUUID());
-        ref.putFile(Uri.parse(draftAvatar))
-                .continueWithTask(
-                        task -> {
-                            if (!task.isSuccessful()) throw task.getException();
-                            return ref.getDownloadUrl();
-                        })
-                .addOnSuccessListener(
-                        url -> {
-                            values.put("avatarUrl", url.toString());
-                            updateProfile(user.getUid(), values, ref);
-                        })
-                .addOnFailureListener(
-                        e -> {
-                            busy = false;
-                            tell("Tải ảnh thất bại: " + e.getMessage());
-                            refreshUi();
-                        });
+        String avatarUri = draftAvatar;
+        new Thread(() -> {
+            try {
+                String encodedAvatar = encodeAvatar(avatarUri);
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (cleared) return;
+                    values.put("avatarUrl", encodedAvatar);
+                    updateProfile(user.getUid(), values);
+                });
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    busy = false;
+                    tell("Không xử lý được ảnh đại diện: " + e.getMessage());
+                    refreshUi();
+                });
+            }
+        }, "encode-profile-avatar").start();
     }
 
-    private void updateProfile(
-            String userId, Map<String, Object> values, StorageReference uploaded) {
+    private String encodeAvatar(String uriString) throws IOException {
+        Bitmap original;
+        try (InputStream input = getApplication().getContentResolver()
+                .openInputStream(Uri.parse(uriString))) {
+            if (input == null) throw new IOException("Không mở được ảnh.");
+            original = BitmapFactory.decodeStream(input);
+        }
+        if (original == null) throw new IOException("Tệp ảnh không hợp lệ.");
+
+        Bitmap resized = original;
+        int largestSide = Math.max(original.getWidth(), original.getHeight());
+        if (largestSide > 256) {
+            float scale = 256f / largestSide;
+            resized = Bitmap.createScaledBitmap(original,
+                    Math.max(1, Math.round(original.getWidth() * scale)),
+                    Math.max(1, Math.round(original.getHeight() * scale)), true);
+        }
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        boolean compressed = resized.compress(Bitmap.CompressFormat.JPEG, 72, output);
+        if (resized != original) resized.recycle();
+        original.recycle();
+        if (!compressed) throw new IOException("Không nén được ảnh đại diện.");
+        String base64 = Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP);
+        return "data:image/jpeg;base64," + base64;
+    }
+
+    private void updateProfile(String userId, Map<String, Object> values) {
         db.collection("accounts")
                 .document(userId)
                 .update(values)
@@ -638,7 +666,6 @@ public class HomeViewModel extends AndroidViewModel {
                         })
                 .addOnFailureListener(
                         e -> {
-                            if (uploaded != null) uploaded.delete();
                             busy = false;
                             tell("Không lưu được hồ sơ: " + e.getMessage());
                             refreshUi();
