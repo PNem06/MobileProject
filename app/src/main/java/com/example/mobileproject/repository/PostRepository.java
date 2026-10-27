@@ -2,6 +2,7 @@
 package com.example.mobileproject.repository;
 
 import com.example.mobileproject.model.Post;
+import com.example.mobileproject.data.HomePostMapper;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -22,7 +23,7 @@ public class PostRepository {
 
     public com.google.firebase.firestore.ListenerRegistration listenToApprovedPosts(OnPostsLoadedListener listener) {
         return db.collection("posts")
-                .whereEqualTo("status", Post.APPROVED)
+                .whereIn("status", java.util.Arrays.asList(Post.APPROVED, "BOOKED"))
                 .addSnapshotListener((snapshot, e) -> {
                     if (e != null) {
                         listener.onError(e);
@@ -31,6 +32,7 @@ public class PostRepository {
                     if (snapshot == null) return;
                     List<Post> posts = new ArrayList<>();
                     for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                        if (isArchivedRepost(doc)) continue;
                         try {
                             Post post = mapDocumentToPost(doc);
                             posts.add(post);
@@ -44,7 +46,7 @@ public class PostRepository {
 
     public void getApprovedPosts(OnPostsLoadedListener listener) {
         db.collection("posts")
-                .whereEqualTo("status", Post.APPROVED)
+                .whereIn("status", java.util.Arrays.asList(Post.APPROVED, "BOOKED"))
                 .get()
                 .addOnSuccessListener(snapshot -> {
                     List<Post> posts = new ArrayList<>();
@@ -53,10 +55,10 @@ public class PostRepository {
                         String status = doc.getString("status");
 
                         // Chỉ hiển thị bài đã được duyệt
-                        if (!Post.APPROVED.equals(status)) {
+                        if (!Post.APPROVED.equals(status) && !"BOOKED".equals(status)) {
                             continue;
                         }
-
+                        if (isArchivedRepost(doc)) continue;
                         try {
                             Post post = mapDocumentToPost(doc);
                             posts.add(post);
@@ -150,6 +152,11 @@ public class PostRepository {
         }
 
         return post;
+    }
+
+    private boolean isArchivedRepost(DocumentSnapshot doc) {
+        org.json.JSONObject mapped = HomePostMapper.fromDocument(doc.getId(), doc.getData());
+        return HomePostMapper.isArchivedRepost(mapped);
     }
 
     private Date getDate(DocumentSnapshot doc, String field) {

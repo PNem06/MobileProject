@@ -20,6 +20,7 @@ import com.example.mobileproject.MainActivity;
 import com.example.mobileproject.R;
 import com.example.mobileproject.adapter.PostCardAdapter;
 import com.example.mobileproject.adapter.PostCardAdapter.PostViewHolder;
+import com.example.mobileproject.data.HomePostMapper;
 import com.example.mobileproject.util.PostImageUtils;
 import com.example.mobileproject.viewmodel.HomeViewModel;
 
@@ -29,6 +30,7 @@ import java.util.*;
 
 public class PostCards extends HomeViews {
     final Map<String, Integer> trackOffsets = new HashMap<>();
+    private static final int PAGE_SIZE = 8;
 
     public PostCards(MainActivity activity, HomeViewModel vm) {
         super(activity, vm);
@@ -125,6 +127,56 @@ public class PostCards extends HomeViews {
         parent.addView(section);
     }
 
+    int pagedSection(LinearLayout parent, List<JSONObject> posts, int requestedPage, boolean showAll,
+            java.util.function.IntConsumer onPageSelected) {
+        LinearLayout section = template(R.id.homePostSection);
+        section.setPadding(0, 0, 0, dp(18));
+        TextView title = section.findViewById(R.id.postSectionTitle);
+        title.setText("Tất cả bài đăng");
+        title.setTextSize(23);
+        TextView count = section.findViewById(R.id.postSectionCount);
+        count.setVisibility(View.GONE);
+        FrameLayout arrow = section.findViewById(R.id.postSectionArrow);
+        arrow.setVisibility(View.VISIBLE);
+        ImageView arrowGlyph = arrow.findViewById(R.id.postArrowGlyph);
+        arrowGlyph.setImageTintList(android.content.res.ColorStateList.valueOf(INK));
+        arrow.setContentDescription(showAll ? "Thu gọn danh sách bài đăng" : "Xem tất cả bài đăng");
+        arrow.setRotation(showAll ? 90f : 0f);
+        section.findViewById(R.id.postSectionTrack).setVisibility(View.GONE);
+        section.findViewById(R.id.postSectionEmpty).setVisibility(View.GONE);
+        int pageCount = Math.max(1, (posts.size() + PAGE_SIZE - 1) / PAGE_SIZE);
+        int page = Math.max(0, Math.min(requestedPage, pageCount - 1));
+        RecyclerView list = section.findViewById(R.id.postSectionPagedList);
+        list.setVisibility(View.VISIBLE);
+        list.setNestedScrollingEnabled(false);
+        list.setClipToPadding(false);
+        int columns = wide() ? 3 : 2;
+        int itemWidth = (activity.getResources().getDisplayMetrics().widthPixels
+                - dp(44) - dp(15 * (columns - 1))) / columns;
+        list.setLayoutManager(new androidx.recyclerview.widget.GridLayoutManager(activity, columns));
+        int start = page * PAGE_SIZE;
+        int end = Math.min(posts.size(), start + PAGE_SIZE);
+        list.setAdapter(new PostCardAdapter(posts.subList(start, end), itemWidth, dp(15), dp(145),
+                (holder, post) -> bindCard(holder, post, false)));
+        arrow.setOnClickListener(v -> onPageSelected.accept(showAll ? -1 : -2));
+        LinearLayout pager = section.findViewById(R.id.postSectionPager);
+        if (pageCount > 1) {
+            pager.setVisibility(View.VISIBLE);
+            for (int i = 0; i < pageCount; i++) {
+                final int target = i;
+                TextView pageButton = template(R.id.postPageButtonTemplate);
+                pageButton.setVisibility(View.VISIBLE);
+                pageButton.setText(String.valueOf(i + 1));
+                pageButton.setTextColor(i == page ? Color.WHITE : INK);
+                pageButton.setBackground(round(i == page ? PURPLE : 0xFFF1F0F7, 20));
+                pager.addView(pageButton);
+                pageButton.setOnClickListener(v -> onPageSelected.accept(target));
+            }
+        }
+        parent.addView(section);
+        return page;
+    }
+
     private void bindCard(PostViewHolder holder, JSONObject post, boolean mine) {
         String id = post.optString("id");
         holder.photoFrame.setBackground(round(0xFFEDEDED, 13));
@@ -154,7 +206,21 @@ public class PostCards extends HomeViews {
         String status = post.optString("status", "PENDING").trim().toUpperCase();
         String badge = "";
         if (mine) {
-            if ("APPROVED".equalsIgnoreCase(status) || "PUBLIC".equalsIgnoreCase(status) || "ACTIVE".equalsIgnoreCase(status)) {
+            String exchangeStatus = post.optString("exchangeStatus", "");
+            String bookingState = post.optString("bookingState", "");
+            boolean completed = "COMPLETE".equalsIgnoreCase(exchangeStatus)
+                    || "COMPLETED".equalsIgnoreCase(exchangeStatus)
+                    || "COMPLETE".equalsIgnoreCase(bookingState)
+                    || "COMPLETED".equalsIgnoreCase(bookingState);
+            if (HomePostMapper.isArchivedRepost(post)) {
+                badge = "Đã đăng lại";
+                holder.badge.setBackground(round(0xFFEDE7F6, 12));
+                holder.badge.setTextColor(0xFF5E35B1);
+            } else if (completed) {
+                badge = "Đã hoàn tất";
+                holder.badge.setBackground(round(0xFFECEFF1, 12));
+                holder.badge.setTextColor(0xFF455A64);
+            } else if ("APPROVED".equalsIgnoreCase(status) || "PUBLIC".equalsIgnoreCase(status) || "ACTIVE".equalsIgnoreCase(status)) {
                 badge = "Active";
                 holder.badge.setBackground(round(0xFFE8F5E9, 12));
                 holder.badge.setTextColor(0xFF2E7D32);

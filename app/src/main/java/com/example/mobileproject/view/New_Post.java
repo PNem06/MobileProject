@@ -90,6 +90,8 @@ public class New_Post extends AppCompatActivity {
     private static final int MAX_IMAGES = 8;
     private String editPostId = null;
     private boolean isEditMode = false;
+    private boolean isRepostMode = false;
+    private String repostSourcePostId = "";
     private List<String> existingAmenityIds = new ArrayList<>();
 
     @Override
@@ -113,17 +115,23 @@ public class New_Post extends AppCompatActivity {
 
         editPostId = getIntent().getStringExtra("editPostId");
         isEditMode = editPostId != null && !editPostId.trim().isEmpty();
+        String repostId = getIntent().getStringExtra("repostPostId");
+        isRepostMode = !isEditMode && repostId != null && !repostId.trim().isEmpty();
+        repostSourcePostId = isRepostMode ? repostId : "";
 
         setupLaunchers();
         setupClickListeners();
 
         if (isEditMode) {
             setEditScreenTitle();
-            loadPostForEditing();
+            loadPostForEditing(editPostId, false);
+        } else if (isRepostMode) {
+            setRepostScreenTitle();
+            loadPostForEditing(repostSourcePostId, true);
         }
     }
-    private void loadPostForEditing() {
-        db.collection("posts").document(editPostId)
+    private void loadPostForEditing(String sourcePostId, boolean repost) {
+        db.collection("posts").document(sourcePostId)
                 .get()
                 .addOnSuccessListener(doc -> {
                     if (!doc.exists()) {
@@ -132,14 +140,15 @@ public class New_Post extends AppCompatActivity {
                         return;
                     }
 
-                    if ("BOOKED".equals(doc.getString("status")) || (doc.getString("bookingKey") != null && !doc.getString("bookingKey").isEmpty())) {
+                    if (!repost && ("BOOKED".equals(doc.getString("status")) || (doc.getString("bookingKey") != null && !doc.getString("bookingKey").isEmpty()))) {
                         toast("Bài đã có trao đổi. Không thể sửa nội dung khi giao dịch đang được lưu."); finish(); return;
                     }
                     String uid = FirebaseAuth.getInstance().getUid();
                     String ownerId = doc.getString("accountId");
+                    if (ownerId == null || ownerId.isEmpty()) ownerId = doc.getString("ownerId");
 
                     if (uid == null || !uid.equals(ownerId)) {
-                        toast("Bạn không có quyền chỉnh sửa bài đăng này.");
+                        toast(repost ? "Chỉ chủ bài đăng mới có thể đăng lại." : "Bạn không có quyền chỉnh sửa bài đăng này.");
                         finish();
                         return;
                     }
@@ -188,9 +197,15 @@ public class New_Post extends AppCompatActivity {
 
                     selectPropertyType(doc.getString("propertyType"));
 
+                    if (repost) {
+                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                        setDateValue(start, doc.get("startDate"), dateFormat);
+                        setDateValue(end, doc.get("endDate"), dateFormat);
+                    }
+
                     // Tải ảnh hiện có và hiển thị sau khi hoàn thiện
                     // phần xử lý ảnh ở mục E bên dưới.
-                    loadExistingImages();
+                    loadExistingImages(sourcePostId);
                 })
                 .addOnFailureListener(e ->
                         toast("Không tải được bài đăng: " + e.getMessage()));
@@ -210,75 +225,69 @@ public class New_Post extends AppCompatActivity {
 
     }
 
-    private void loadExistingImages() {
+    private void setDateValue(EditText field, Object value, SimpleDateFormat format) {
+        if (value instanceof Timestamp) field.setText(format.format(((Timestamp) value).toDate()));
+        else if (value instanceof Date) field.setText(format.format((Date) value));
+    }
+
+    private void loadExistingImages(String sourcePostId) {
         db.collection("images")
-                .whereEqualTo("postId", editPostId)
+                .whereEqualTo("postId", sourcePostId)
                 .get()
                 .addOnSuccessListener(snapshot -> {
-                    imageUris.clear();
-
-                    List<com.google.firebase.firestore.DocumentSnapshot> docs =
-                            new ArrayList<>(snapshot.getDocuments());
-
-                    Collections.sort(docs, (a, b) -> {
-                        Long orderA = a.getLong("orderIndex");
-                        Long orderB = b.getLong("orderIndex");
-
-                        return Long.compare(
-                                orderA == null ? 0 : orderA,
-                                orderB == null ? 0 : orderB
-                        );
-                    });
-
-                    File directory = new File(
-                            getCacheDir(), "existing_post_images"
-                    );
-
-                    if (!directory.exists() && !directory.mkdirs()) {
-                        toast("Không tạo được thư mục ảnh.");
+                    if (snapshot == null || snapshot.isEmpty()) {
+                        loadLegacyImages(sourcePostId);
                         return;
                     }
-
-                    try {
-                        for (com.google.firebase.firestore.DocumentSnapshot doc : docs) {
-                            String base64 = doc.getString("imgUrl");
-
-                            if (base64 == null || base64.isEmpty()) {
-                                continue;
-                            }
-
-                            // Hỗ trợ chuỗi Base64 có hoặc không có tiền tố data:image.
-                            int commaIndex = base64.indexOf(",");
-                            if (base64.startsWith("data:image/")
-                                    && commaIndex >= 0) {
-                                base64 = base64.substring(commaIndex + 1);
-                            }
-
-                            byte[] imageBytes = Base64.decode(
-                                    base64, Base64.DEFAULT
-                            );
-
-                            File imageFile = File.createTempFile(
-                                    "existing_", ".jpg", directory
-                            );
-
-                            try (FileOutputStream output =
-                                         new FileOutputStream(imageFile)) {
-                                output.write(imageBytes);
-                            }
-
-                            imageUris.add(Uri.fromFile(imageFile));
-                        }
-
-                        refreshImages();
-
-                    } catch (Exception e) {
-                        toast("Không tải được ảnh cũ: " + e.getMessage());
-                    }
+                    decodeExistingImages(snapshot.getDocuments());
                 })
-                .addOnFailureListener(e ->
-                        toast("Lỗi tải ảnh: " + e.getMessage())
-                );
+                .addOnFailureListener(e -> loadLegacyImages(sourcePostId));
+    }
+
+    private void loadLegacyImages(String sourcePostId) {
+        db.collection("postImages").whereEqualTo("postId", sourcePostId).get()
+                .addOnSuccessListener(snapshot -> decodeExistingImages(snapshot.getDocuments()))
+                .addOnFailureListener(e -> toast("Lỗi tải ảnh: " + e.getMessage()));
+    }
+
+    private void decodeExistingImages(List<com.google.firebase.firestore.DocumentSnapshot> sourceDocs) {
+        imageUris.clear();
+        List<com.google.firebase.firestore.DocumentSnapshot> docs = new ArrayList<>(sourceDocs);
+        Collections.sort(docs, (a, b) -> {
+            Object aValue = a.get("orderIndex"), bValue = b.get("orderIndex");
+            long aOrder = aValue instanceof Number ? ((Number) aValue).longValue() : Long.MAX_VALUE;
+            long bOrder = bValue instanceof Number ? ((Number) bValue).longValue() : Long.MAX_VALUE;
+            int order = Long.compare(aOrder, bOrder);
+            return order != 0 ? order : a.getId().compareTo(b.getId());
+        });
+
+        File directory = new File(getCacheDir(), "existing_post_images");
+
+        if (!directory.exists() && !directory.mkdirs()) {
+            toast("Không tạo được thư mục ảnh.");
+            return;
+        }
+
+        try {
+            for (com.google.firebase.firestore.DocumentSnapshot doc : docs) {
+                String base64 = doc.getString("imgUrl");
+                if (base64 == null || base64.isEmpty()) base64 = doc.getString("imageUrl");
+                if (base64 == null || base64.isEmpty()) continue;
+
+                int commaIndex = base64.indexOf(",");
+                if (base64.startsWith("data:image/") && commaIndex >= 0) base64 = base64.substring(commaIndex + 1);
+
+                byte[] imageBytes = Base64.decode(base64, Base64.DEFAULT);
+                File imageFile = File.createTempFile("existing_", ".jpg", directory);
+                try (FileOutputStream output = new FileOutputStream(imageFile)) {
+                    output.write(imageBytes);
+                }
+                imageUris.add(Uri.fromFile(imageFile));
+            }
+            refreshImages();
+        } catch (Exception e) {
+            toast("Không tải được ảnh cũ: " + e.getMessage());
+        }
     }
 
     private void setEditScreenTitle() {
@@ -296,6 +305,14 @@ public class New_Post extends AppCompatActivity {
         if (publish != null) {
             publish.setText("Lưu thay đổi");
         }
+    }
+
+    private void setRepostScreenTitle() {
+        TextView titleView = findViewById(R.id.txtScreenTitle);
+        TextView subtitleView = findViewById(R.id.txtScreenSubtitle);
+        if (titleView != null) titleView.setText("Đăng lại chỗ ở");
+        if (subtitleView != null) subtitleView.setText("Thông tin bài cũ đã được điền sẵn.");
+        if (publish != null) publish.setText("Đăng lại");
     }
 
     private void bindViews() {

@@ -20,6 +20,13 @@
             app:showAsAction="never" />
 
         <item
+            android:id="@+id/menu_all_posts"
+            android:icon="@drawable/ic_multipost"
+            android:title="Tất cả bài đăng"
+            android:fontFamily="serif"
+            app:showAsAction="never" />
+
+        <item
             android:id="@+id/menu_notifications"
             android:icon="@drawable/ic_notification"
             android:title="Thông báo"

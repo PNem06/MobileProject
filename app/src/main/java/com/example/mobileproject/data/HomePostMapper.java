@@ -107,6 +107,14 @@ public final class HomePostMapper {
         return result;
     }
 
+    public static boolean isArchivedRepost(JSONObject post) {
+        if (post == null || !post.optBoolean("archivedAfterRepost", false)) return false;
+        String ownPostId = post.optString("id", "");
+        if (ownPostId.isEmpty()) ownPostId = post.optString("postId", "");
+        String replacementPostId = post.optString("repostedToPostId", "");
+        return replacementPostId.isEmpty() || !replacementPostId.equals(ownPostId);
+    }
+
     public static String imageUrl(Map<String, Object> fields) {
         return fields == null ? "" : text(fields, "imgUrl", "imageUrl").trim();
     }

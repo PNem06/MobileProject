@@ -3,6 +3,27 @@ const c=require('./core');
 const {postIds,OPEN}=require('./post-reservations');
 const upper=v=>String(v||'').toUpperCase();
 const identity=b=>JSON.stringify([b.postId,b.targetPostId,b.requester_accountId,b.requesterId,b.senderId,b.host_accountId,b.hostId,b.recipientId]);
+async function pendingRequestsForPost(service,tx,postId,acceptedKey){
+  const found=new Map();
+  for(const [collection,fields] of [['exchanges',['postId','targetPostId']],['exchangeRequests',['targetPostId']]]){
+    for(const field of fields){
+      const rows=await tx.get(service.db.collection(collection).where(field,'==',postId));
+      for(const doc of rows.docs){
+        const key=collection+'/'+doc.id,data=doc.data();
+        if(key===acceptedKey||upper(data.status)!=='PENDING'||data.walletManaged===true
+          ||upper(data.exchangeType||'RECIPROCAL')!=='RECIPROCAL')continue;
+        found.set(key,{key,collection,ref:doc.ref,data,postId});
+      }
+    }
+  }
+  const pending=[];
+  for(const entry of found.values()){
+    let requesterUid=entry.data.requesterUid||'';
+    try{requesterUid=(await service.reservations.parties(entry.data)).a.uid||requesterUid;}catch{}
+    pending.push({...entry,requesterUid});
+  }
+  return pending;
+}
 async function updateExchange(service,actor,input){
   const collection=input.collection||'exchanges';c.must(['exchanges','exchangeRequests'].includes(collection),'Nguồn yêu cầu không hợp lệ.');
   const id=c.key(input.exchangeId),ref=service.ref(collection+'/'+id),initial=await ref.get();
@@ -39,7 +60,7 @@ async function updateExchange(service,actor,input){
       if(updates.offeredPostId||updates.proposedPostId)c.must(guest&&before==='PENDING'&&after==='PENDING'&&type==='RECIPROCAL','Chỉ người gửi được đổi bài đề xuất khi đang chờ.',403);
       changes.status=collection==='exchangeRequests'?after.toLowerCase():after;
     }
-    const next={...b,...changes};let posts=[];
+    const next={...b,...changes};let posts=[],autoRejected=[];
     if(!review&&after==='ACCEPTED'){
       c.must(parties.a.uid!==parties.h.uid,'Không thể trao đổi với chính mình.',409);
       const ids=postIds(next);c.must(ids.length===2,'Trao đổi hai chiều cần hai bài đăng khác nhau.',409);
@@ -48,6 +69,12 @@ async function updateExchange(service,actor,input){
         c.must(p.exists&&[expected.uid,expected.accountId].includes(p.get('accountId')||p.get('ownerId')),'Chủ bài đăng không khớp hai bên trao đổi.',409);
       }
       posts=await service.reservations.plan(tx,next,collection+'/'+id,parties.ids,'CONFIRMED');
+      const rejectedByKey=new Map();
+      for(const acceptedPostId of postIds(next)){
+        for(const rejected of await pendingRequestsForPost(service,tx,acceptedPostId,collection+'/'+id))
+          rejectedByKey.set(rejected.key,rejected);
+      }
+      autoRejected=[...rejectedByKey.values()];
       changes.acceptedAt=b.acceptedAt||service.time();if(collection==='exchanges')Object.assign(changes,{requesterUid:parties.a.uid,hostUid:parties.h.uid});
     }else if(['CANCELLED','REJECTED'].includes(after))posts=await service.reservations.release(tx,b,collection+'/'+id);
     else if(updates.offeredPostId||updates.proposedPostId){
@@ -57,6 +84,13 @@ async function updateExchange(service,actor,input){
       changes.offeredPostId=proposed;changes.proposedPostId=proposed;
     }
     service.reservations.write(tx,posts);tx.update(ref,changes);
+    for(const rejected of autoRejected){
+      tx.update(rejected.ref,{status:rejected.collection==='exchangeRequests'?'rejected':'REJECTED',updatedAt:service.time()});
+      if(rejected.requesterUid)tx.set(service.ref('notifications/exchange_auto_reject_'+c.hash(rejected.key)),
+        {userId:rejected.requesterUid,recipientId:rejected.requesterUid,title:'Yêu cầu trao đổi bị từ chối',
+          body:'Chủ nhà đã chấp nhận một yêu cầu khác cho bài đăng này.',message:'Chủ nhà đã chấp nhận một yêu cầu khác cho bài đăng này.',
+          type:'exchange_request',exchangeId:rejected.key.split('/')[1],postId:rejected.postId,isRead:false,createdAt:service.time()});
+    }
     if(before!==after||review){
       const title=review?(input.cancelDecision?'Yêu cầu hủy đã được chấp nhận':'Yêu cầu hủy bị từ chối'):
         after==='ACCEPTED'?'Trao đổi đã được chốt':after==='REJECTED'?'Đề nghị trao đổi bị từ chối':'Trao đổi đã được hủy';

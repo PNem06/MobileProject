@@ -445,7 +445,9 @@ public class RequestsFragment extends TabContentFragment {
                 group.rejectedSubRequestsCount++;
                 rejected.put(postId, group.rejectedSubRequestsCount);
             }
-            if ("PENDING".equals(sub.status)) group.status = "PENDING";
+            if ("ACCEPTED".equals(sub.status) || "ONGOING".equals(sub.status)
+                    || "COMPLETED".equals(sub.status)) group.status = "ACCEPTED";
+            else if ("PENDING".equals(sub.status) && !"ACCEPTED".equals(group.status)) group.status = "PENDING";
         }
         receivedList.clear(); receivedList.addAll(groups.values());
         for (RequestItem group : receivedList) loadPostInfo(group, () -> selectTab(isSentTabActive));

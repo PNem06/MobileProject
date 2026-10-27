@@ -288,7 +288,37 @@
             android:paddingBottom="12dp"
             android:scrollbars="none"
             android:visibility="gone" />
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/postSectionPagedList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clipToPadding="false"
+            android:nestedScrollingEnabled="false"
+            android:paddingStart="22dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="8dp"
+            android:visibility="gone" />
+        <LinearLayout
+            android:id="@+id/postSectionPager"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="4dp"
+            android:visibility="gone" />
     </LinearLayout>
+    <TextView
+        android:id="@+id/postPageButtonTemplate"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:layout_marginHorizontal="4dp"
+        android:gravity="center"
+        android:textColor="#171719"
+        android:textSize="14sp"
+        android:visibility="gone" />
     <LinearLayout android:id="@+id/accountSignedOutTemplate" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp">
         <Space android:layout_width="1dp" android:layout_height="25dp" />
         <TextView android:id="@+id/signedOutTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="@font/sx_fraunces" android:text="Chào mừng đến StayExchange" android:textColor="#171719" android:textSize="27sp" />

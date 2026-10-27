@@ -76,7 +76,7 @@ public class RequestAdapter extends RecyclerView.Adapter<RequestAdapter.ViewHold
             // TAB "ĐÃ GỬI"
             holder.layoutReceivedSubStats.setVisibility(View.GONE);
 
-            if ("ACCEPTED".equals(status)) {
+            if ("ACCEPTED".equals(status) || "ONGOING".equals(status) || "COMPLETED".equals(status)) {
                 holder.txtStatusBadge.setText("Đã chấp nhận");
                 holder.txtStatusBadge.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_badge_accepted));
                 holder.txtStatusBadge.setTextColor(Color.parseColor("#1565C0"));
@@ -125,7 +125,7 @@ public class RequestAdapter extends RecyclerView.Adapter<RequestAdapter.ViewHold
             holder.txtSubRequestsCount.setText(item.subRequestsCount + " yêu cầu");
             holder.txtRejectedCount.setText(item.rejectedSubRequestsCount + " đã từ chối");
 
-            if ("ACCEPTED".equals(status)) {
+            if ("ACCEPTED".equals(status) || "ONGOING".equals(status) || "COMPLETED".equals(status)) {
                 holder.txtStatusBadge.setText("Đã chấp nhận");
                 holder.txtStatusBadge.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_badge_accepted));
                 holder.txtStatusBadge.setTextColor(Color.parseColor("#1565C0"));
@@ -138,6 +138,13 @@ public class RequestAdapter extends RecyclerView.Adapter<RequestAdapter.ViewHold
                 holder.btnActionRight.setText("Tiếp tục");
                 holder.btnActionRight.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_btn_primary_blue));
 
+            } else if ("REJECTED".equals(status) || "CANCELLED".equals(status)) {
+                holder.txtStatusBadge.setText("Đã từ chối");
+                holder.txtStatusBadge.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_badge_pending));
+                holder.txtStatusBadge.setTextColor(Color.parseColor("#D32F2F"));
+                holder.btnActionLeft.setVisibility(View.VISIBLE);
+                holder.btnActionLeft.setText("Xem");
+                holder.btnActionRight.setVisibility(View.GONE);
             } else {
                 // PENDING - Đang chờ
                 holder.txtStatusBadge.setText("Đang chờ");

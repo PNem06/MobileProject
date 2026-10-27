@@ -43,6 +43,7 @@ import com.google.firebase.firestore.WriteBatch;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -74,7 +75,7 @@ public class Detail extends AppCompatActivity {
     private boolean isExpanded;
     private String fullDescription = "";
     private boolean isMyPost = false;
-    private boolean postReserved, viewerAdmin, deletingPost;
+    private boolean postReserved, completedPost, viewerAdmin, deletingPost;
     private String viewerAccountId = "";
     private String postOwnerId = "";
 
@@ -301,21 +302,13 @@ public class Detail extends AppCompatActivity {
     private void renderRoom(DocumentSnapshot doc) {
         String postStatus = stringValue(doc, "status");
         String bookingKey = stringValue(doc, "bookingKey");
+        completedPost = isCompletedExchange(stringValue(doc, "exchangeStatus"))
+                || isCompletedExchange(stringValue(doc, "bookingState"));
         postReserved = "BOOKED".equalsIgnoreCase(postStatus) || !bookingKey.isEmpty();
         String uid = FirebaseAuth.getInstance().getUid();
-        Object partiesValue = doc.get("bookingPartyIds");
-        List<?> bookingParties = partiesValue instanceof List
-                ? (List<?>) partiesValue : java.util.Collections.emptyList();
         String postAccountId = nonEmpty(doc.getString("accountId"), doc.getString("ownerId"));
         boolean isOwner = (uid != null && uid.equals(postAccountId))
                 || (!viewerAccountId.isEmpty() && viewerAccountId.equals(postAccountId));
-        boolean isBookingParty = (uid != null && bookingParties.contains(uid))
-                || (!viewerAccountId.isEmpty() && bookingParties.contains(viewerAccountId));
-        if (postReserved && !viewerAdmin && !isOwner && !isBookingParty) {
-            showMessage("Bài đăng đã có trao đổi và không còn mở đặt phòng.");
-            finish();
-            return;
-        }
 
         String title = stringValue(doc, "title");
         String address = stringValue(doc, "address");
@@ -409,7 +402,23 @@ public class Detail extends AppCompatActivity {
         isMyPost = currentUid != null && !currentUid.isEmpty()
                 && (currentUid.equals(postOwnerId) || viewerAccountId.equals(postOwnerId));
 
-        if (isMyPost) {
+        if (completedPost) {
+            if (txtStatusBadge != null) {
+                txtStatusBadge.setVisibility(View.VISIBLE);
+                txtStatusBadge.setText("● Đã hoàn tất");
+            }
+            if (layoutGuestActions != null) layoutGuestActions.setVisibility(View.GONE);
+            if (layoutOwnerActions != null) layoutOwnerActions.setVisibility(isMyPost ? View.VISIBLE : View.GONE);
+            if (layoutEditActions != null) layoutEditActions.setVisibility(View.GONE);
+            if (isMyPost) {
+                if (layoutHostInfo != null) layoutHostInfo.setVisibility(View.GONE);
+                if (btnDeletePost != null) btnDeletePost.setText("Hủy");
+                if (btnEditPost != null) btnEditPost.setText("Đăng lại");
+            } else {
+                if (layoutHostInfo != null) layoutHostInfo.setVisibility(View.VISIBLE);
+                loadHostInfo(postOwnerId);
+            }
+        } else if (isMyPost) {
             if (txtStatusBadge != null) {
                 txtStatusBadge.setVisibility(View.VISIBLE);
             }
@@ -435,7 +444,7 @@ public class Detail extends AppCompatActivity {
             checkExistingSentRequest(currentUid, postId);
         }
 
-        if (postReserved) {
+        if (postReserved && !completedPost) {
             if (layoutGuestActions != null) layoutGuestActions.setVisibility(View.GONE);
             if (layoutOwnerActions != null) layoutOwnerActions.setVisibility(View.GONE);
             if (txtStatusBadge != null) {
@@ -455,6 +464,10 @@ public class Detail extends AppCompatActivity {
         }
         btnAllReviews.setText("Xem nhận xét");
         loadRoomImages(postId);
+    }
+
+    private boolean isCompletedExchange(String value) {
+        return "COMPLETE".equalsIgnoreCase(value) || "COMPLETED".equalsIgnoreCase(value);
     }
 
     private void showBlockDialogForOwner(String ownerId, String name) {
@@ -659,7 +672,7 @@ public class Detail extends AppCompatActivity {
                     if (isFinishing() || isDestroyed()) return;
                     List<String> urls = new ArrayList<>();
                     if (snap != null && !snap.isEmpty()) {
-                        for (DocumentSnapshot doc : snap.getDocuments()) {
+                        for (DocumentSnapshot doc : orderedImageDocuments(snap)) {
                             String url = doc.getString("imgUrl");
                             if (url == null || url.trim().isEmpty()) {
                                 url = doc.getString("imageUrl");
@@ -677,7 +690,7 @@ public class Detail extends AppCompatActivity {
                                 .addOnSuccessListener(snap2 -> {
                                     if (isFinishing() || isDestroyed()) return;
                                     if (snap2 != null && !snap2.isEmpty()) {
-                                        for (DocumentSnapshot doc : snap2.getDocuments()) {
+                                        for (DocumentSnapshot doc : orderedImageDocuments(snap2)) {
                                             String url = doc.getString("imgUrl");
                                             if (url == null || url.trim().isEmpty()) {
                                                 url = doc.getString("imageUrl");
@@ -695,6 +708,17 @@ public class Detail extends AppCompatActivity {
                     }
                 })
                 .addOnFailureListener(e -> setupImagesAdapter(new ArrayList<>()));
+    }
+
+    private List<DocumentSnapshot> orderedImageDocuments(QuerySnapshot snapshot) {
+        List<DocumentSnapshot> documents = new ArrayList<>(snapshot.getDocuments());
+        documents.sort(Comparator
+                .comparingLong((DocumentSnapshot doc) -> {
+                    Object value = doc.get("orderIndex");
+                    return value instanceof Number ? ((Number) value).longValue() : Long.MAX_VALUE;
+                })
+                .thenComparing(DocumentSnapshot::getId));
+        return documents;
     }
 
     private void setupImagesAdapter(List<String> urls) {
@@ -962,13 +986,16 @@ public class Detail extends AppCompatActivity {
         });
 
         if (btnDeletePost != null) {
-            btnDeletePost.setOnClickListener(v -> confirmDeletePost());
+            btnDeletePost.setOnClickListener(v -> {
+                if (completedPost) finish();
+                else confirmDeletePost();
+            });
         }
 
         if (btnEditPost != null) {
             btnEditPost.setOnClickListener(v -> {
                 Intent intent = new Intent(Detail.this, New_Post.class);
-                intent.putExtra("editPostId", postId);
+                intent.putExtra(completedPost ? "repostPostId" : "editPostId", postId);
                 startActivity(intent);
             });
         }

@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".view.All_Post">
+    <RelativeLayout
+        android:id="@+id/headerRequest"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="#FFFFFF"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <ImageView
+            android:id="@+id/btnBack"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="Quay lại"
+            android:focusable="true"
+            android:padding="4dp"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="#111111" />
+
+        <TextView
+            android:id="@+id/txtRequestTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="Tất cả bài đăng"
+            android:fontFamily="serif"
+            android:textColor="#000000"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+    </RelativeLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#EFEFEF" />
+
+    <!-- Tabs: Đã gửi | Đã nhận -->
+    <LinearLayout
+        android:id="@+id/tabLayout"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:background="#FFFFFF"
+        android:orientation="horizontal"
+        android:weightSum="3">
+
+        <LinearLayout
+            android:id="@+id/tabPENDING"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/txtPENDING"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="Chờ duyệt"
+                android:fontFamily="serif"
+                android:textColor="#0B1354"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <View
+                android:id="@+id/indicatorPENDING"
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:background="#0B1354" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tabAPPROVED"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/txtAPPROVED"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="Đang hoạt động"
+                android:fontFamily="serif"
+                android:textColor="#888888"
+                android:textSize="15sp"
+                android:textStyle="normal" />
+
+            <View
+                android:id="@+id/indicatorAPPROVED"
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:background="#0B1354"
+                android:visibility="invisible" />
+
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/tabHIDDEN"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/txtHIDDEN"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="Đã ẩn"
+                android:fontFamily="serif"
+                android:textColor="#888888"
+                android:textSize="15sp"
+                android:textStyle="normal" />
+
+            <View
+                android:id="@+id/indicatorHIDDEN"
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:background="#0B1354"
+                android:visibility="invisible" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#EFEFEF" />
+
+    <!-- Summary Row for Tab "Đã nhận" -->
+    <LinearLayout
+        android:id="@+id/layoutSummaryReceived"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FFFFFF"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="8dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_exchange"
+            app:tint="#333333"
+            tools:ignore="ContentDescription" />
+
+        <TextView
+            android:id="@+id/txtTotalReceivedCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="Tổng số yêu cầu 5"
+            android:textColor="#222222"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_delete"
+            app:tint="#D32F2F"
+            tools:ignore="ContentDescription" />
+
+        <TextView
+            android:id="@+id/txtTotalRejectedCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="Đã từ chối 1"
+            android:textColor="#222222"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/btnFilter"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="12dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="2dp"
+            android:src="@drawable/ic_filter"
+            app:tint="#111111"
+            tools:ignore="ContentDescription" />
+
+    </LinearLayout>
+
+    <!-- Main Content Container with Grid Layout support for Landscape -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerRequests"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="20dp"
+            android:clipToPadding="false"
+            android:overScrollMode="never"
+            android:paddingTop="6dp"
+            android:paddingBottom="8dp"
+            tools:listitem="@layout/post_card" />
+
+        <!-- Empty View -->
+        <LinearLayout
+            android:id="@+id/layoutEmpty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:alpha="0.4"
+                android:src="@drawable/ic_exchange"
+                app:tint="#888888"
+                tools:ignore="ContentDescription" />
+
+            <TextView
+                android:id="@+id/txtEmptyMessage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text="Không có yêu cầu nào"
+                android:textColor="#888888"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+</LinearLayout>

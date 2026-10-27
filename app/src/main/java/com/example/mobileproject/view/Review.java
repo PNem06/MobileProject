@@ -66,11 +66,26 @@ public class Review extends AppCompatActivity {
         RatingBar rating = findViewById(R.id.ratingReviewForm);
         EditText comment = findViewById(R.id.edtReviewComment);
         Button submit = findViewById(R.id.btnSubmitReview);
+        submit.setEnabled(false);
+        View reviewForm = findViewById(R.id.reviewFormSection);
         submit.setOnClickListener(v -> submitReview(rating, comment, submit));
         if (postId == null || postId.trim().isEmpty()) {
-            submit.setEnabled(false);
             return;
         }
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("posts").document(postId).get().addOnSuccessListener(post -> {
+            if (!post.exists()) return;
+            String exchangeId = post.getString("bookingExchangeId");
+            if (exchangeId == null || exchangeId.trim().isEmpty()) return;
+            db.collection("exchanges").document(exchangeId).get().addOnSuccessListener(exchange -> {
+                if (!exchange.exists()) {
+                    db.collection("exchangeRequests").document(exchangeId).get().addOnSuccessListener(legacy ->
+                            enableIfRequesterOngoing(submit, reviewForm, legacy));
+                    return;
+                }
+                enableIfRequesterOngoing(submit, reviewForm, exchange);
+            });
+        });
         reviewsListener = FirebaseFirestore.getInstance().collection("reviews")
                 .whereEqualTo("postId", postId)
                 .addSnapshotListener((snapshot, error) -> {
@@ -100,7 +115,23 @@ public class Review extends AppCompatActivity {
                 });
     }
 
+    private void enableIfRequesterOngoing(Button submit, View reviewForm, DocumentSnapshot exchange) {
+        String uid = FirebaseAuth.getInstance().getUid();
+        String requesterUid = exchange.getString("requesterId");
+        if (requesterUid == null) requesterUid = exchange.getString("senderId");
+        String requesterAccountId = exchange.getString("requester_accountId");
+        boolean requester = uid != null && (uid.equals(requesterUid) || uid.equals(requesterAccountId));
+        boolean canReview = exchange.exists() && requester
+                && "ONGOING".equalsIgnoreCase(exchange.getString("status"));
+        submit.setEnabled(canReview);
+        reviewForm.setVisibility(canReview ? View.VISIBLE : View.GONE);
+    }
+
     private void submitReview(RatingBar rating, EditText comment, Button submit) {
+        if (!submit.isEnabled()) {
+            Toast.makeText(this, "Chỉ người gửi yêu cầu mới có thể đánh giá khi trao đổi đang diễn ra.", Toast.LENGTH_SHORT).show();
+            return;
+        }
         String reviewerId = FirebaseAuth.getInstance().getUid();
         if (reviewerId == null || reviewerId.trim().isEmpty()) {
             Toast.makeText(this, "Vui lòng đăng nhập để gửi nhận xét.", Toast.LENGTH_SHORT).show();

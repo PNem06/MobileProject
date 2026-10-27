@@ -460,7 +460,9 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
                 else { Toast.makeText(this, "Đã chuyển sang thanh toán bằng tiền.", Toast.LENGTH_SHORT).show(); dialog.dismiss(); loadIntentData(); }
             });
         });
-        if ("ACCEPTED".equalsIgnoreCase(subRequest.status)) {
+        if ("ACCEPTED".equalsIgnoreCase(subRequest.status)
+                || "ONGOING".equalsIgnoreCase(subRequest.status)
+                || "COMPLETED".equalsIgnoreCase(subRequest.status)) {
             btnAccept.setText("Tiếp tục");
             btnAccept.setOnClickListener(v -> {
                 dialog.dismiss();
@@ -472,6 +474,11 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
                 startActivity(intent);
                 finish();
             });
+        } else if ("REJECTED".equalsIgnoreCase(subRequest.status)
+                || "CANCELLED".equalsIgnoreCase(subRequest.status)) {
+            btnReject.setVisibility(View.GONE);
+            btnSwitchMoney.setVisibility(View.GONE);
+            btnAccept.setVisibility(View.GONE);
         } else {
             btnAccept.setOnClickListener(v -> updateStatus(subRequest, "ACCEPTED", dialog));
         }
@@ -528,7 +535,9 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
 
         btnClose.setOnClickListener(v -> dialog.dismiss());
         btnReject.setOnClickListener(v -> updateStatus(subRequest, "REJECTED", dialog));
-        if ("ACCEPTED".equalsIgnoreCase(subRequest.status)) {
+        if ("ACCEPTED".equalsIgnoreCase(subRequest.status)
+                || "ONGOING".equalsIgnoreCase(subRequest.status)
+                || "COMPLETED".equalsIgnoreCase(subRequest.status)) {
             btnAccept.setText("Tiếp tục");
             btnAccept.setEnabled(true);
             btnAccept.setOnClickListener(v -> {
@@ -541,6 +550,10 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
                 startActivity(intent);
                 finish();
             });
+        } else if ("REJECTED".equalsIgnoreCase(subRequest.status)
+                || "CANCELLED".equalsIgnoreCase(subRequest.status)) {
+            btnReject.setVisibility(View.GONE);
+            btnAccept.setVisibility(View.GONE);
         } else {
             if (!subRequest.isPaid) btnAccept.setText("Chờ khách thanh toán ví");
             btnAccept.setEnabled(subRequest.isPaid);

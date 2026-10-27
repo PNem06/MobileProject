@@ -42,6 +42,8 @@ public class HomeUi extends HomeViews {
     private LinearLayout homeSections;
     private String builtPage = "";
     private int selectedFilter;
+    private int allPostsPage;
+    private boolean showAllPosts;
     private final View root;
     private final String rootPage;
     private ActionBarDrawerToggle drawerToggle;
@@ -105,6 +107,8 @@ public class HomeUi extends HomeViews {
             if (requireLogin()) go("account");
         } else if (id == R.id.menu_new_post) {
             openNewPost();
+        } else if (id == R.id.menu_all_posts) {
+            if (requireLogin()) activity.startActivity(new Intent(activity, All_Post.class));
         } else if (id == R.id.menu_notifications) {
             if (requireLogin()) go("notifications");
         } else if (id == R.id.menu_settings) {
@@ -340,6 +344,7 @@ public class HomeUi extends HomeViews {
         for (int i = 0; i < source.length(); i++) {
             JSONObject p = source.optJSONObject(i);
             if (p == null) continue;
+            if (!"APPROVED".equalsIgnoreCase(p.optString("status", ""))) continue;
             String searchable =
                     (cards.postTitle(p)
                             + " "
@@ -388,6 +393,18 @@ public class HomeUi extends HomeViews {
                         "feed1",
                         false);
         }
+        allPostsPage = cards.pagedSection(homeSections, posts, allPostsPage, showAllPosts, selected -> {
+            if (selected == -2) {
+                showAllPosts = true;
+                allPostsPage = 0;
+            } else if (selected == -1) {
+                showAllPosts = false;
+                allPostsPage = 0;
+            } else {
+                allPostsPage = selected;
+            }
+            renderHomeSections();
+        });
     }
 
     public void dispose() {
