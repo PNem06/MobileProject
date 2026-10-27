@@ -158,10 +158,20 @@ public class RequestAdapter extends RecyclerView.Adapter<RequestAdapter.ViewHold
             holder.btnActionLeft.setVisibility(("PENDING".equals(status) || "ACCEPTED".equals(status) || "ONGOING".equals(status)) ? View.VISIBLE : View.GONE);
             holder.btnActionLeft.setText("Chi tiết hủy");
             holder.btnActionRight.setVisibility(View.VISIBLE);
-            holder.btnActionRight.setText("Xem thanh toán");
+            if ("ACCEPTED".equals(status)) {
+                holder.btnActionRight.setText("Tiếp tục");
+                holder.btnActionRight.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_btn_primary_blue));
+            } else {
+                holder.btnActionRight.setText("Xem thanh toán");
+            }
             if ("COMPLETED".equals(status)) holder.txtStatusBadge.setText("Đã hoàn tất");
         } else if (!item.isSentTab) {
-            holder.btnActionRight.setText("Xem yêu cầu");
+            if ("ACCEPTED".equals(status)) {
+                holder.btnActionRight.setText("Tiếp tục");
+                holder.btnActionRight.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_btn_primary_blue));
+            } else {
+                holder.btnActionRight.setText("Xem yêu cầu");
+            }
         }
 
         holder.itemView.setOnClickListener(v -> {

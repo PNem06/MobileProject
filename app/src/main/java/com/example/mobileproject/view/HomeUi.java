@@ -109,6 +109,11 @@ public class HomeUi extends HomeViews {
             if (requireLogin()) go("notifications");
         } else if (id == R.id.menu_settings) {
             if (requireLogin()) go("settings");
+        } else if (id == R.id.menu_blocked_users) {
+            if (requireLogin()) {
+                Intent intent = new Intent(activity, BlockedUsersActivity.class);
+                activity.startActivity(intent);
+            }
         } else if (id == R.id.menu_about) {
             go("about");
         } else if (id == R.id.menu_logout) {

@@ -67,6 +67,18 @@ public class ReceivedSubRequestAdapter extends RecyclerView.Adapter<ReceivedSubR
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onViewDetailClick(item);
         });
+
+        View.OnLongClickListener longClickListener = v -> {
+            if (item.requesterId != null && !item.requesterId.trim().isEmpty()) {
+                com.example.mobileproject.util.BlockHelper.showBlockDialog(context, item.requesterId, holder.txtSenderName.getText().toString());
+                return true;
+            }
+            return false;
+        };
+
+        holder.imgSenderAvatar.setOnLongClickListener(longClickListener);
+        holder.txtSenderName.setOnLongClickListener(longClickListener);
+        holder.itemView.setOnLongClickListener(longClickListener);
     }
 
     @Override

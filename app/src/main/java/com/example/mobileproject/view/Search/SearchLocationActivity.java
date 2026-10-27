@@ -244,8 +244,8 @@ public class SearchLocationActivity extends AppCompatActivity {
                                 View.VISIBLE
                         );
 
-                        // Chỉ tìm khi nhập ít nhất 3 ký tự.
-                        if (query.length() < 3
+                        // Chỉ tìm khi nhập ít nhất 2 ký tự.
+                        if (query.length() < 2
                                 || placesClient == null) {
 
                             suggestionList.clear();
@@ -334,24 +334,37 @@ public class SearchLocationActivity extends AppCompatActivity {
                         );
                     }
                 })
-                .addOnFailureListener(exception -> {
 
-                    String currentQuery =
-                            edtSearchLocation.getText()
-                                    .toString()
-                                    .trim();
+                .addOnFailureListener(exception -> {
+                    String currentQuery = edtSearchLocation.getText()
+                            .toString()
+                            .trim();
 
                     if (!query.equals(currentQuery)) {
                         return;
                     }
 
+                    android.util.Log.e(
+                            "GooglePlaces",
+                            "Lỗi tìm địa điểm: " + query,
+                            exception
+                    );
+
                     suggestionList.clear();
                     suggestionAdapter.notifyDataSetChanged();
 
                     txtSuggestionTitle.setText(
-                            "Không tải được gợi ý. "
-                                    + "Hãy kiểm tra API key và kết nối mạng."
+                            "Không tải được gợi ý. Hãy kiểm tra API key và kết nối mạng."
                     );
+
+                    txtSuggestionTitle.setVisibility(View.VISIBLE);
+                    recyclerLocationSuggestions.setVisibility(View.VISIBLE);
+
+                    Toast.makeText(
+                            SearchLocationActivity.this,
+                            "Lỗi Google Places: " + exception.getMessage(),
+                            Toast.LENGTH_LONG
+                    ).show();
                 });
     }
 

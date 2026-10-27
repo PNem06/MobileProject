@@ -1,35 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="#FFFFFF"
     android:orientation="vertical"
-    android:padding="20dp">
+    android:background="#FFFFFF"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="16dp">
 
-    <!-- Handle line -->
-    <View
-        android:layout_width="40dp"
-        android:layout_height="4dp"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="16dp"
-        android:background="#CCCCCC" />
-
-    <!-- Title & Reset -->
+    <!-- Tiêu đề -->
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp">
+        android:layout_height="48dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:text="Bộ lọc"
-            android:textColor="#000000"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:text="Bộ lọc tìm kiếm"
+            android:fontFamily="serif"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#111111" />
 
         <TextView
             android:id="@+id/txtResetFilter"
@@ -37,181 +30,136 @@
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:clickable="true"
-            android:focusable="true"
+            android:gravity="center"
             android:text="Thiết lập lại"
-            android:textColor="#333333"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
+            android:textSize="13sp"
+            android:textColor="#E53935"
+            android:clickable="true"
+            android:focusable="true" />
     </RelativeLayout>
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#E5E5E5" />
+        android:layout_marginTop="8dp"
+        android:background="#EEEEEE" />
 
-    <!-- Section 1: Loại chỗ ở -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:layout_marginBottom="12dp"
-        android:text="Loại chỗ ở"
-        android:textColor="#000000"
-        android:textSize="16sp"
-        android:textStyle="bold" />
-
-    <HorizontalScrollView
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:scrollbars="none">
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:fillViewport="false"
+        android:scrollbars="vertical">
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="vertical"
+            android:paddingBottom="12dp">
 
+            <!-- Loại chỗ ở -->
             <TextView
-                android:id="@+id/chipPropAll"
-                android:layout_width="wrap_content"
-                android:layout_height="38dp"
-                android:layout_marginEnd="8dp"
-                android:background="@drawable/bg_chip_selected_dark"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center"
-                android:paddingHorizontal="18dp"
-                android:text="Tất cả"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                style="@style/FormLabel"
+                android:text="Loại chỗ ở"
+                android:fontFamily="serif" />
 
-            <TextView
-                android:id="@+id/chipPropHouse"
-                android:layout_width="wrap_content"
-                android:layout_height="38dp"
-                android:layout_marginEnd="8dp"
-                android:background="@drawable/bg_chip_unselected_white"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center"
-                android:paddingHorizontal="18dp"
-                android:text="Nhà riêng"
-                android:textColor="#111111"
-                android:textSize="14sp" />
+            <Spinner
+                android:id="@+id/spinnerFilterPropertyType"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_blank_canvas" />
 
+            <!-- Tiện nghi -->
             <TextView
-                android:id="@+id/chipPropApartment"
-                android:layout_width="wrap_content"
-                android:layout_height="38dp"
-                android:layout_marginEnd="8dp"
-                android:background="@drawable/bg_chip_unselected_white"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center"
-                android:paddingHorizontal="18dp"
-                android:text="Chung cư"
-                android:textColor="#111111"
-                android:textSize="14sp" />
+                style="@style/FormLabel"
+                android:text="Tiện nghi"
+                android:fontFamily="serif" />
 
+            <LinearLayout
+                android:id="@+id/filterAmenitiesList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_form_field"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="4dp" />
+
+            <!-- Số phòng ngủ và phòng tắm -->
             <TextView
-                android:id="@+id/chipPropRoom"
-                android:layout_width="wrap_content"
-                android:layout_height="38dp"
-                android:background="@drawable/bg_chip_unselected_white"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center"
-                android:paddingHorizontal="18dp"
-                android:text="Phòng riêng"
-                android:textColor="#111111"
-                android:textSize="14sp" />
+                style="@style/FormLabel"
+                android:text="Thông tin phòng"
+                android:fontFamily="serif" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/edtFilterBedroomCount"
+                    style="@style/FormInput"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:hint="Phòng ngủ"
+                    android:inputType="number"
+                    android:fontFamily="serif"
+                    android:background="@drawable/bg_blank_canvas" />
+
+                <EditText
+                    android:id="@+id/edtFilterBathroomCount"
+                    style="@style/FormInput"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="4dp"
+                    android:hint="Phòng tắm"
+                    android:inputType="number"
+                    android:fontFamily="serif"
+                    android:background="@drawable/bg_blank_canvas" />
+            </LinearLayout>
+
+            <!-- Số khách tối đa -->
+            <TextView
+                style="@style/FormLabel"
+                android:text="Số khách tối đa"
+                android:fontFamily="serif" />
+
+            <EditText
+                android:id="@+id/edtFilterMaxGuests"
+                style="@style/FormInput"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:hint="Nhập số khách tối thiểu cần đáp ứng"
+                android:inputType="number"
+                android:fontFamily="serif"
+                android:background="@drawable/bg_blank_canvas" />
 
         </LinearLayout>
+    </ScrollView>
 
-    </HorizontalScrollView>
-
-    <!-- Section 2: Tiện nghi -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:layout_marginBottom="12dp"
-        android:text="Tiện nghi"
-        android:textColor="#000000"
-        android:textSize="16sp"
-        android:textStyle="bold" />
-
+    <!-- Nút thao tác -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingHorizontal="4dp">
 
-        <LinearLayout
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnApplyFilter"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:orientation="horizontal">
-
-            <CheckBox
-                android:id="@+id/cbWifi"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Wifi"
-                android:textColor="#111111"
-                android:textSize="15sp" />
-
-            <CheckBox
-                android:id="@+id/cbAirConditioner"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Điều hòa"
-                android:textColor="#111111"
-                android:textSize="15sp" />
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:orientation="horizontal">
-
-            <CheckBox
-                android:id="@+id/cbElevator"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Thang máy"
-                android:textColor="#111111"
-                android:textSize="15sp" />
-
-            <CheckBox
-                android:id="@+id/cbKitchen"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Bếp"
-                android:textColor="#111111"
-                android:textSize="15sp" />
-
-        </LinearLayout>
+            android:layout_height="48dp"
+            android:text="Áp dụng bộ lọc"
+            android:textAllCaps="false"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            app:backgroundTint="#0F113D"
+            app:cornerRadius="10dp" />
 
     </LinearLayout>
-
-    <Button
-        android:id="@+id/btnApplyFilter"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:layout_marginTop="24dp"
-        android:backgroundTint="#0F113D"
-        android:text="Áp dụng"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:cornerRadius="12dp" />
 
 </LinearLayout>

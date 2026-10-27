@@ -34,6 +34,13 @@
             app:showAsAction="never" />
 
         <item
+            android:id="@+id/menu_blocked_users"
+            android:icon="@drawable/ic_user"
+            android:title="Tài khoản đã chặn"
+            android:fontFamily="serif"
+            app:showAsAction="never" />
+
+        <item
             android:id="@+id/menu_about"
             android:icon="@drawable/ic_information"
             android:title="Thông tin ứng dụng"

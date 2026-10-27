@@ -278,43 +278,52 @@ public class HomeViewModel extends AndroidViewModel {
                             }
                             // Chỉ hiển thị snapshot đã được xác nhận từ máy chủ.
                             if (snap == null || snap.getMetadata().isFromCache()) return;
-                            List<JSONObject> items = new ArrayList<>();
-                            for (DocumentSnapshot doc : snap.getDocuments())
-                                items.add(convert(doc));
-                            if ("notices".equals(key)) {
-                                items.sort(
-                                        (a, b) ->
-                                                Long.compare(
-                                                        b.optLong("createdAt"),
-                                                        a.optLong("createdAt")));
-                                // Notification alerts are delivered once by GlobalNotificationListener.
-                            } else items.sort(Comparator.comparing(a -> a.optString("title")));
-                            JSONArray array = new JSONArray();
-                            for (JSONObject item : items) array.put(item);
-                            if ("mineCurrent".equals(key) || "mineLegacy".equals(key)) {
-                                data.put(key, array);
-                                store(
-                                        "mine",
-                                        HomePostMapper.mergeMine(
-                                                rows("mineCurrent"), rows("mineLegacy"), uid));
-                            } else if ("feedPublic".equals(key) || "involvedPosts".equals(key)) {
-                                data.put(key,array);
-                                java.util.Map<String,JSONObject> merged = new java.util.LinkedHashMap<>();
-                                for (String source : new String[]{"feedPublic","involvedPosts"}) {
-                                    JSONArray values = rows(source);
-                                    for(int i=0;i<values.length();i++) {
-                                        JSONObject post=values.optJSONObject(i);
-                                        if(post==null || ("involvedPosts".equals(source) && !"BOOKED".equals(post.optString("status")))) continue;
-                                        merged.put(post.optString("id"),post);
+                            com.example.mobileproject.util.BlockHelper.getBlockedUserIds(blockedIds -> {
+                                if (!running || token != generation || !online()) return;
+                                List<JSONObject> items = new ArrayList<>();
+                                for (DocumentSnapshot doc : snap.getDocuments()) {
+                                    if (!"notices".equals(key)) {
+                                        String ownerId = doc.getString("accountId");
+                                        if (ownerId == null || ownerId.isEmpty()) ownerId = doc.getString("ownerId");
+                                        if (blockedIds.contains(ownerId)) continue;
                                     }
+                                    items.add(convert(doc));
                                 }
-                                JSONArray combined=new JSONArray(); for(JSONObject post:merged.values()) combined.put(post);
-                                store("feed",combined);
-                            } else store(key,array);
-                            if (!"notices".equals(key)) {
-                                watchImages(token);
-                                watchOwners(token);
-                            }
+                                if ("notices".equals(key)) {
+                                    items.sort(
+                                            (a, b) ->
+                                                    Long.compare(
+                                                            b.optLong("createdAt"),
+                                                            a.optLong("createdAt")));
+                                    // Notification alerts are delivered once by GlobalNotificationListener.
+                                } else items.sort(Comparator.comparing(a -> a.optString("title")));
+                                JSONArray array = new JSONArray();
+                                for (JSONObject item : items) array.put(item);
+                                if ("mineCurrent".equals(key) || "mineLegacy".equals(key)) {
+                                    data.put(key, array);
+                                    store(
+                                            "mine",
+                                            HomePostMapper.mergeMine(
+                                                    rows("mineCurrent"), rows("mineLegacy"), uid));
+                                } else if ("feedPublic".equals(key) || "involvedPosts".equals(key)) {
+                                    data.put(key,array);
+                                    java.util.Map<String,JSONObject> merged = new java.util.LinkedHashMap<>();
+                                    for (String source : new String[]{"feedPublic","involvedPosts"}) {
+                                        JSONArray values = rows(source);
+                                        for(int i=0;i<values.length();i++) {
+                                            JSONObject post=values.optJSONObject(i);
+                                            if(post==null || ("involvedPosts".equals(source) && !"BOOKED".equals(post.optString("status")))) continue;
+                                            merged.put(post.optString("id"),post);
+                                        }
+                                    }
+                                    JSONArray combined=new JSONArray(); for(JSONObject post:merged.values()) combined.put(post);
+                                    store("feed",combined);
+                                } else store(key,array);
+                                if (!"notices".equals(key)) {
+                                    watchImages(token);
+                                    watchOwners(token);
+                                }
+                            });
                         }));
     }
 

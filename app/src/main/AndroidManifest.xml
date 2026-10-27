@@ -11,7 +11,6 @@
         <package android:name="com.mbmobile" />
         <package android:name="com.vnpay.vpbankonline" />
         <package android:name="com.google.android.gms" />
-
         <intent>
             <action android:name="com.google.android.gms.settings.CODELAB" />
         </intent>
@@ -32,6 +31,7 @@
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
+
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
@@ -41,6 +41,7 @@
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
+
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
@@ -57,22 +58,27 @@
             android:name=".view.DashboardAdmin"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.AdminManagePostActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.AdminUsersActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.AdminUserDetailActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.AdminManageReportActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.AdminManageExchangeActivity"
             android:exported="false"
@@ -83,6 +89,7 @@
             android:name=".view.Request"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.ReceivedRequestsDetailActivity"
             android:exported="false"
@@ -97,6 +104,7 @@
             android:name=".view.ExchangeActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.RentalActivity"
             android:theme="@style/Theme.StayExchangeWallet"
@@ -110,12 +118,17 @@
             android:name=".view.ExchangeScheduleActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.Chat"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".view.ChatDetailActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".view.BlockedUsersActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
@@ -125,9 +138,9 @@
             android:exported="true"
             android:theme="@style/Theme.App.Starting"
             android:windowSoftInputMode="adjustResize">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -143,22 +156,22 @@
             android:name=".view.Search.SearchLocationActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.Search.SearchResultsActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.Search.SearchTimeActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
-        <activity
-            android:name=".view.Search.SearchGuestsActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.Search.SearchMapActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".view.SelectLocationMapActivity"
             android:exported="false"

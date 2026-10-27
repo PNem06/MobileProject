@@ -3,6 +3,7 @@ package com.example.mobileproject.view;
 import com.google.firebase.firestore.SetOptions;
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -85,6 +86,7 @@ public class New_Post extends AppCompatActivity {
     private ActivityResultLauncher<String> locationPermission;
     private ActivityResultLauncher<String> imagePicker;
     private ActivityResultLauncher<Uri> cameraCapture;
+    private ActivityResultLauncher<Intent> mapLocationLauncher;
     private static final int MAX_IMAGES = 8;
     private String editPostId = null;
     private boolean isEditMode = false;
@@ -358,6 +360,22 @@ public class New_Post extends AppCompatActivity {
                 toast("Bạn chưa cấp quyền vị trí.");
             }
         });
+        mapLocationLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                Intent data = result.getData();
+                latitude = data.getDoubleExtra(SelectLocationMapActivity.EXTRA_LATITUDE, latitude);
+                longitude = data.getDoubleExtra(SelectLocationMapActivity.EXTRA_LONGITUDE, longitude);
+                String selectedAddr = data.getStringExtra(SelectLocationMapActivity.EXTRA_ADDRESS);
+                if (coordinates != null) {
+                    coordinates.setText(String.format(Locale.getDefault(), "Vị trí: %.5f, %.5f", latitude, longitude));
+                }
+                if (!TextUtils.isEmpty(selectedAddr) && address != null) {
+                    address.setText(selectedAddr);
+                } else {
+                    reverseGeocode(latitude, longitude);
+                }
+            }
+        });
         loadAmenities();
     }
 
@@ -375,6 +393,15 @@ public class New_Post extends AppCompatActivity {
         View btnGetLocation = findViewById(R.id.btnGetLocation);
         if (btnGetLocation != null) {
             btnGetLocation.setOnClickListener(v -> requestLocation());
+        }
+        View btnChooseMapLocation = findViewById(R.id.btnChooseMapLocation);
+        if (btnChooseMapLocation != null) {
+            btnChooseMapLocation.setOnClickListener(v -> {
+                Intent mapIntent = new Intent(this, SelectLocationMapActivity.class);
+                mapIntent.putExtra(SelectLocationMapActivity.EXTRA_LATITUDE, latitude);
+                mapIntent.putExtra(SelectLocationMapActivity.EXTRA_LONGITUDE, longitude);
+                mapLocationLauncher.launch(mapIntent);
+            });
         }
         if (start != null) {
             start.setOnClickListener(v -> showDateRangePicker());

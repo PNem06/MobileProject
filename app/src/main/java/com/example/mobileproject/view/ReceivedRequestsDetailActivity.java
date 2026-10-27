@@ -438,6 +438,16 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
             Glide.with(this).load(PostImageUtils.asGlideModel(subRequest.proposedPostImageUrl)).into(imgProposedPost);
         }
 
+        View.OnLongClickListener blockLongClickListener = v -> {
+            if (subRequest.requesterId != null && !subRequest.requesterId.trim().isEmpty()) {
+                com.example.mobileproject.util.BlockHelper.showBlockDialog(this, subRequest.requesterId, txtSenderName.getText().toString());
+                return true;
+            }
+            return false;
+        };
+        imgAvatar.setOnLongClickListener(blockLongClickListener);
+        txtSenderName.setOnLongClickListener(blockLongClickListener);
+
         btnClose.setOnClickListener(v -> dialog.dismiss());
 
         btnReject.setOnClickListener(v -> updateStatus(subRequest, "REJECTED", dialog));
@@ -450,7 +460,21 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
                 else { Toast.makeText(this, "Đã chuyển sang thanh toán bằng tiền.", Toast.LENGTH_SHORT).show(); dialog.dismiss(); loadIntentData(); }
             });
         });
-        btnAccept.setOnClickListener(v -> updateStatus(subRequest, "ACCEPTED", dialog));
+        if ("ACCEPTED".equalsIgnoreCase(subRequest.status)) {
+            btnAccept.setText("Tiếp tục");
+            btnAccept.setOnClickListener(v -> {
+                dialog.dismiss();
+                getSharedPreferences("continued_requests", MODE_PRIVATE).edit()
+                        .putBoolean(subRequest.exchangeId, true)
+                        .putBoolean(mainRequestItem.postId + "_continued", true)
+                        .apply();
+                Intent intent = new Intent(this, ExchangeScheduleActivity.class);
+                startActivity(intent);
+                finish();
+            });
+        } else {
+            btnAccept.setOnClickListener(v -> updateStatus(subRequest, "ACCEPTED", dialog));
+        }
 
         dialog.show();
     }
@@ -492,13 +516,36 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
             Glide.with(this).load(PostImageUtils.asGlideModel(subRequest.proposedPostImageUrl)).into(imgTargetPost);
         }
 
-        btnClose.setOnClickListener(v -> dialog.dismiss());
-        btnAccept.setEnabled(subRequest.isPaid);
-        if (!subRequest.isPaid) btnAccept.setText("Chờ khách thanh toán ví");
-        if (!subRequest.isPaid) btnAccept.setText("Chờ khách thanh toán ví");
+        View.OnLongClickListener blockLongClickListener = v -> {
+            if (subRequest.requesterId != null && !subRequest.requesterId.trim().isEmpty()) {
+                com.example.mobileproject.util.BlockHelper.showBlockDialog(this, subRequest.requesterId, txtSenderName.getText().toString());
+                return true;
+            }
+            return false;
+        };
+        imgAvatar.setOnLongClickListener(blockLongClickListener);
+        txtSenderName.setOnLongClickListener(blockLongClickListener);
 
+        btnClose.setOnClickListener(v -> dialog.dismiss());
         btnReject.setOnClickListener(v -> updateStatus(subRequest, "REJECTED", dialog));
-        btnAccept.setOnClickListener(v -> updateStatus(subRequest, "ACCEPTED", dialog));
+        if ("ACCEPTED".equalsIgnoreCase(subRequest.status)) {
+            btnAccept.setText("Tiếp tục");
+            btnAccept.setEnabled(true);
+            btnAccept.setOnClickListener(v -> {
+                dialog.dismiss();
+                getSharedPreferences("continued_requests", MODE_PRIVATE).edit()
+                        .putBoolean(subRequest.exchangeId, true)
+                        .putBoolean(mainRequestItem.postId + "_continued", true)
+                        .apply();
+                Intent intent = new Intent(this, ExchangeScheduleActivity.class);
+                startActivity(intent);
+                finish();
+            });
+        } else {
+            if (!subRequest.isPaid) btnAccept.setText("Chờ khách thanh toán ví");
+            btnAccept.setEnabled(subRequest.isPaid);
+            btnAccept.setOnClickListener(v -> updateStatus(subRequest, "ACCEPTED", dialog));
+        }
 
         dialog.show();
     }

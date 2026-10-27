@@ -205,69 +205,74 @@ public class MessagesFragment extends TabContentFragment {
     private void renderConversations() {
         if (adapter == null) return;
 
-        int totalCount = 0;
-        int unreadCount = 0;
-        int readCount = 0;
+        com.example.mobileproject.util.BlockHelper.getBlockedUserIds(blockedIds -> {
+            if (!screenActive()) return;
 
-        List<ConversationRow> rows = new ArrayList<>();
-        for (DocumentSnapshot document : conversations.values()) {
-            String firstId = document.getString("participant1Id");
-            String secondId = document.getString("participant2Id");
-            String otherId = userId.equals(firstId) ? secondId : firstId;
-            if (otherId == null || otherId.trim().isEmpty()) continue;
+            int totalCount = 0;
+            int unreadCount = 0;
+            int readCount = 0;
 
-            totalCount++;
-            String lastSender = document.getString("lastMessageSenderId");
-            Boolean isReadObj = document.getBoolean("isRead");
-            if (isReadObj == null) isReadObj = document.getBoolean("read");
+            List<ConversationRow> rows = new ArrayList<>();
+            for (DocumentSnapshot document : conversations.values()) {
+                String firstId = document.getString("participant1Id");
+                String secondId = document.getString("participant2Id");
+                String otherId = userId.equals(firstId) ? secondId : firstId;
+                if (otherId == null || otherId.trim().isEmpty()) continue;
+                if (blockedIds.contains(otherId)) continue;
 
-            boolean isUnread = lastSender != null && !lastSender.equals(userId) && !Boolean.TRUE.equals(isReadObj);
+                totalCount++;
+                String lastSender = document.getString("lastMessageSenderId");
+                Boolean isReadObj = document.getBoolean("isRead");
+                if (isReadObj == null) isReadObj = document.getBoolean("read");
 
-            if (isUnread) unreadCount++;
-            else readCount++;
+                boolean isUnread = lastSender != null && !lastSender.equals(userId) && !Boolean.TRUE.equals(isReadObj);
 
-            if (activeFilterMode == 1 && !isUnread) continue;
-            if (activeFilterMode == 2 && isUnread) continue;
+                if (isUnread) unreadCount++;
+                else readCount++;
 
-            Profile profile = profiles.get(otherId);
-            String name = profile == null ? null : profile.name;
-            if (name == null || name.trim().isEmpty()) name = document.getString("otherParticipantName");
-            if (name == null || name.trim().isEmpty()) {
-                name = userId.equals(firstId)
-                        ? document.getString("participant2Name")
-                        : document.getString("participant1Name");
+                if (activeFilterMode == 1 && !isUnread) continue;
+                if (activeFilterMode == 2 && isUnread) continue;
+
+                Profile profile = profiles.get(otherId);
+                String name = profile == null ? null : profile.name;
+                if (name == null || name.trim().isEmpty()) name = document.getString("otherParticipantName");
+                if (name == null || name.trim().isEmpty()) {
+                    name = userId.equals(firstId)
+                            ? document.getString("participant2Name")
+                            : document.getString("participant1Name");
+                }
+                if (name == null || name.trim().isEmpty()) name = otherId;
+                String preview = document.getString("lastMessage");
+                if (preview == null || preview.trim().isEmpty()) preview = "Bắt đầu trò chuyện";
+
+                if (lastSender != null && lastSender.equals(userId)) {
+                    preview = "Bạn: " + preview;
+                }
+
+                Date msgDate = null;
+                Object lastAt = document.get("lastMessageAt");
+                if (lastAt instanceof com.google.firebase.Timestamp) msgDate = ((com.google.firebase.Timestamp) lastAt).toDate();
+                else if (lastAt instanceof Date) msgDate = (Date) lastAt;
+
+                String timeText = "";
+                if (msgDate != null) {
+                    java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm", new Locale("vi", "VN"));
+                    timeText = timeFormat.format(msgDate);
+                }
+
+                if (!searchText.isEmpty()
+                        && !name.toLowerCase(Locale.ROOT).contains(searchText)
+                        && !preview.toLowerCase(Locale.ROOT).contains(searchText)) continue;
+                String avatarUrl = profile == null ? null : profile.avatarUrl;
+                rows.add(new ConversationRow(otherId, name, preview, avatarUrl, timeText, isUnread));
             }
-            if (name == null || name.trim().isEmpty()) name = otherId;
-            String preview = document.getString("lastMessage");
-            if (preview == null || preview.trim().isEmpty()) preview = "Bắt đầu trò chuyện";
 
-            if (lastSender != null && lastSender.equals(userId)) {
-                preview = "Bạn: " + preview;
-            }
+            if (chipAll != null) chipAll.setText("Tất cả (" + totalCount + ")");
+            if (chipUnread != null) chipUnread.setText("Chưa đọc (" + unreadCount + ")");
+            if (chipRead != null) chipRead.setText("Đã đọc (" + readCount + ")");
 
-            Date msgDate = null;
-            Object lastAt = document.get("lastMessageAt");
-            if (lastAt instanceof com.google.firebase.Timestamp) msgDate = ((com.google.firebase.Timestamp) lastAt).toDate();
-            else if (lastAt instanceof Date) msgDate = (Date) lastAt;
-
-            String timeText = "";
-            if (msgDate != null) {
-                java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm", new Locale("vi", "VN"));
-                timeText = timeFormat.format(msgDate);
-            }
-
-            if (!searchText.isEmpty()
-                    && !name.toLowerCase(Locale.ROOT).contains(searchText)
-                    && !preview.toLowerCase(Locale.ROOT).contains(searchText)) continue;
-            String avatarUrl = profile == null ? null : profile.avatarUrl;
-            rows.add(new ConversationRow(otherId, name, preview, avatarUrl, timeText, isUnread));
-        }
-
-        if (chipAll != null) chipAll.setText("Tất cả (" + totalCount + ")");
-        if (chipUnread != null) chipUnread.setText("Chưa đọc (" + unreadCount + ")");
-        if (chipRead != null) chipRead.setText("Đã đọc (" + readCount + ")");
-
-        adapter.submit(rows);
+            adapter.submit(rows);
+        });
     }
 
     private void removeConversationListeners() {

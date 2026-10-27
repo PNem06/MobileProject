@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Locale;
 
 public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCallback {
-    private com.google.firebase.firestore.ListenerRegistration postsListener;
 
     private final List<ListingPost> posts = new ArrayList<>();
     private SearchPostAdapter adapter;
@@ -70,7 +69,7 @@ public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCa
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         if (mapFragment != null) mapFragment.getMapAsync(this);
-
+        loadPosts();
     }
 
     @Override
@@ -82,16 +81,10 @@ public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCa
     }
 
     private void loadPosts() {
-        if (postsListener != null) postsListener.remove();
-        postsListener=FirebaseFirestore.getInstance().collection("posts").whereEqualTo("status","APPROVED")
-                .addSnapshotListener((snapshot,error)->{
-                    if(isFinishing()||isDestroyed())return;
-                    if(error!=null){
-                        txtMapListHeader.setText("Không tải được danh sách chỗ ở");
-                        Toast.makeText(this, "Lỗi tải bài đăng: " + error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                    if(snapshot==null)return;
+        FirebaseFirestore.getInstance().collection("posts")
+                .whereEqualTo("status", "APPROVED")
+                .get()
+                .addOnSuccessListener(snapshot -> {
                     posts.clear();
                     String query = normalize(selectedLocation);
                     for (DocumentSnapshot doc : snapshot.getDocuments()) {
@@ -108,8 +101,13 @@ public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCa
                     adapter.notifyDataSetChanged();
                     txtMapListHeader.setText(posts.size() + " chỗ ở phù hợp");
                     addMarkers();
+                })
+                .addOnFailureListener(error -> {
+                    txtMapListHeader.setText("Không tải được danh sách chỗ ở");
+                    Toast.makeText(this, "Lỗi tải bài đăng: " + error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                 });
     }
+
 
     private void loadCoverImage(ListingPost post) {
         if (post == null || post.getPostId() == null || post.getPostId().trim().isEmpty()) return;
@@ -172,6 +170,4 @@ public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCa
     private static String normalize(String value) {
         return value == null ? "" : value.trim().toLowerCase(new Locale("vi", "VN"));
     }
-    @Override protected void onStart(){super.onStart();loadPosts();}
-    @Override protected void onStop(){if(postsListener!=null){postsListener.remove();postsListener=null;}super.onStop();}
 }
