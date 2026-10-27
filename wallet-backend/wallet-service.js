@@ -2,8 +2,19 @@
 const crypto=require('node:crypto');
 const c=require('./core');
 const {PostReservations}=require('./post-reservations');
+const {PaymentDatabase,rentalPayment}=require('./payment-storage');
 class WalletService {
-  constructor(db,Timestamp,config,clock=Date.now){this.db=db;this.T=Timestamp;this.config=config;this.clock=clock;this.reservations=new PostReservations(this);}
+  constructor(db,Timestamp,config,clock=Date.now){this.db=PaymentDatabase.from(db);this.T=Timestamp;this.config=config;this.clock=clock;this.reservations=new PostReservations(this);}
+  async storageStatus(){const state=await this.db.state();return {storageSchema:state.storageSchema,storageState:state.mode,storageAdapterVersion:1,projectId:this.config.projectId||''};}
+  savePayment(tx,booking){if(tx.storageSchema===2)tx.set(this.ref('payments/rental_'+booking.exchangeId),rentalPayment(booking));}
+  async checkPayment(tx,booking,creating=false){
+    if(tx.storageSchema!==2)return;
+    const saved=await tx.get(this.ref('payments/rental_'+booking.exchangeId));
+    c.must(!saved.exists||(!creating&&saved.get('recordType')==='RENTAL'
+      &&saved.get('exchangeId')===booking.exchangeId&&saved.get('amount')===booking.amount
+      &&saved.get('requesterUid')===booking.requesterUid&&saved.get('hostUid')===booking.hostUid),
+      'Mã thanh toán đã có dữ liệu khác; cần quản trị đối soát.',409);
+  }
   ref(path){return this.db.doc(path);}
   time(ms=this.clock()){return this.T.fromMillis(ms);}
   get bank(){const spec=c.bankSpec(this.config.bankCode);c.must(spec,'BANK_CODE cần là MBBank hoặc VPBank.');return spec;}
@@ -184,11 +195,13 @@ class WalletService {
         amount:expected,currency:'VND',status:'PENDING',settlementState:'HELD',
         startDate:this.time(q.start),endDate:this.time(q.end),paidAt:this.time(paidAt),cancelUntil:this.time(paidAt+86400000),
         releaseAt:this.time(Math.max(q.end,paidAt+86400000)),createdAt:existing?.get('createdAt')||this.time(paidAt),updatedAt:this.time(paidAt)};
+      await this.checkPayment(tx,b,true);
       this.move(tx,balances,actor.uid,'available',-expected,'Thanh toán thuê phòng',exchangeId+'_pay_A',{exchangeId,postId});
       this.move(tx,balances,this.config.adminUid,'held',expected,'Giữ tiền cho yêu cầu',exchangeId+'_pay_admin',{exchangeId,postId});
       this.saveBalances(tx,balances);
       this.reservations.write(tx,postChanges);
       if(existingId)tx.update(ref,b);else tx.create(ref,b);
+      this.savePayment(tx,b);
       tx.set(lockRef,{exchangeId,userId:actor.uid});tx.create(opRef,{userId:actor.uid,exchangeId,createdAt:this.time()});
       this.notify(tx,b.hostUid,exchangeId+'_paid_B','Khách đã thanh toán','Khách đã thanh toán '+expected.toLocaleString('vi-VN')+'đ và gửi yêu cầu thuê phòng.',b);
       this.notify(tx,b.adminUid,exchangeId+'_paid_admin','Đã giữ tiền cho yêu cầu','Đã giữ '+expected.toLocaleString('vi-VN')+'đ cho '+q.title+'.',b);
@@ -206,6 +219,7 @@ class WalletService {
       const target={ACCEPT:'ACCEPTED',REJECT:'REJECTED',CANCEL:'CANCELLED'}[action];
       if(b.status===target)return {...b,exchangeId};
       c.must(b.settlementState==='HELD','Giao dịch đã được hoàn tiền hoặc tất toán.',409);
+      await this.checkPayment(tx,{...b,exchangeId});
       if(action==='ACCEPT'){
         c.must(b.status==='PENDING','Yêu cầu không còn chờ phản hồi.',409);
         c.must(this.clock()<c.milliseconds(b.endDate),'Chuyến đi đã qua thời điểm kết thúc. Hãy từ chối để hoàn tiền.',409);
@@ -214,6 +228,7 @@ class WalletService {
         const update={status:'ACCEPTED',acceptedAt:this.time(),updatedAt:this.time()};
         this.reservations.write(tx,posts);
         tx.update(ref,update);
+        this.savePayment(tx,{...b,...update,exchangeId});
         this.notify(tx,b.requesterUid,exchangeId+'_accepted_A','Chủ nhà đã chấp nhận','Chủ nhà đã chấp nhận yêu cầu. Tiền được giữ đến khi kết thúc chuyến.',b);
         this.notify(tx,b.adminUid,exchangeId+'_accepted_admin','Yêu cầu đã được chấp nhận','Chủ nhà đã chấp nhận giao dịch '+exchangeId+'.',b);
         return {...b,...update,exchangeId};
@@ -230,6 +245,7 @@ class WalletService {
       this.saveBalances(tx,balances);
       const update={status:target,settlementState:'REFUNDED',paymentStatus:fee?'REFUNDED_PARTIAL':'REFUNDED',
         refundedAmount:refund,cancellationFee:fee,refundedAt:this.time(),updatedAt:this.time()};tx.update(ref,update);
+      this.savePayment(tx,{...b,...update,exchangeId});
       this.reservations.write(tx,posts);
       this.notify(tx,b.requesterUid,exchangeId+'_refund_notice_A','Đã hoàn tiền vào ví',refund.toLocaleString('vi-VN')+'đ đã được hoàn vào ví của bạn.'+(fee?' Phí hủy: '+fee.toLocaleString('vi-VN')+'đ.':''),b);
       this.notify(tx,b.adminUid,exchangeId+'_refund_notice_admin','Đã tự động hoàn tiền','Hoàn '+refund.toLocaleString('vi-VN')+'đ cho A; phí hủy '+fee.toLocaleString('vi-VN')+'đ.',b);
@@ -243,9 +259,12 @@ class WalletService {
       if(!b.walletManaged||b.settlementState!=='HELD'||!['ACCEPTED','ONGOING'].includes(b.status)||!Number.isFinite(c.milliseconds(b.releaseAt))||c.milliseconds(b.releaseAt)>this.clock())return false;
       const post=await tx.get(this.ref('posts/'+b.postId));
       const balances=await this.balances(tx,[b.adminUid,b.hostUid]);
+      await this.checkPayment(tx,{...b,exchangeId});
       this.move(tx,balances,b.adminUid,'held',-b.amount,'Trả tiền sau chuyến đi',exchangeId+'_settle_admin',{exchangeId});
       this.move(tx,balances,b.hostUid,'available',b.amount,'Nhận tiền thuê phòng',exchangeId+'_settle_B',{exchangeId});
-      this.saveBalances(tx,balances);tx.update(ref,{status:'COMPLETED',settlementState:'RELEASED',paymentStatus:'RELEASED',releasedAt:this.time(),updatedAt:this.time()});
+      const update={status:'COMPLETED',settlementState:'RELEASED',paymentStatus:'RELEASED',releasedAt:this.time(),updatedAt:this.time()};
+      this.saveBalances(tx,balances);tx.update(ref,update);
+      this.savePayment(tx,{...b,...update,exchangeId});
       if(post.exists&&post.get('bookingKey')==='exchanges/'+exchangeId)tx.update(post.ref,{bookingState:'COMPLETED',updatedAt:this.time()});
       for(const [uid,suffix,title,body] of [[b.hostUid,'B','Đã nhận tiền vào ví','Chuyến đi đã hoàn tất. '+b.amount.toLocaleString('vi-VN')+'đ đã được trả vào ví.'],[b.requesterUid,'A','Chuyến đi đã hoàn tất','Hệ thống đã chuyển tiền đang giữ sang ví chủ nhà.'],[b.adminUid,'admin','Đã tự động trả tiền','Giao dịch '+exchangeId+' đã được tất toán.']])this.notify(tx,uid,exchangeId+'_settled_'+suffix,title,body,b);
       return true;
@@ -273,7 +292,7 @@ class WalletService {
       bookings=all.docs.map(d=>({...d.data(),exchangeId:d.id}));events=bank.docs.map(d=>({...d.data(),eventId:d.id}));}
     const sort=(a,b)=>c.milliseconds(b.createdAt)-c.milliseconds(a.createdAt);
     const notifications=await this.db.collection('notifications').where('userId','==',actor.uid).get();
-    return c.json({apiVersion:3,postReservationVersion:1,userId:actor.uid,accountId:actor.accountId,name:actor.name,isAdmin:actor.isAdmin,bank:this.bankInfo(),serverNow:this.clock(),wallet:wallet.data(),
+    return c.json({apiVersion:3,postReservationVersion:1,...await this.storageStatus(),userId:actor.uid,accountId:actor.accountId,name:actor.name,isAdmin:actor.isAdmin,bank:this.bankInfo(),serverNow:this.clock(),wallet:wallet.data(),
       topups:topups.docs.map(d=>({...d.data(),topupId:d.id})).sort(sort).slice(0,30),
       ledger:ledger.docs.map(d=>({...d.data(),ledgerId:d.id})).sort(sort).slice(0,60),bookings:bookings.sort(sort).slice(0,100),bankEvents:events,
       notifications:notifications.docs.filter(d=>d.get('walletManaged')).map(d=>({...d.data(),notificationId:d.id})).sort(sort).slice(0,30)});
