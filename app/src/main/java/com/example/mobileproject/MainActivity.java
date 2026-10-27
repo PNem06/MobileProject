@@ -72,11 +72,6 @@ public class MainActivity extends AppCompatActivity implements MainNavigationFra
         super.onCreate(saved);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.mainNavigationHost), (view, insets) -> {
-            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.ime());
-            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
-            return insets;
-        });
         WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView()).setAppearanceLightStatusBars(true);
         WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView()).setAppearanceLightNavigationBars(true);
         connectivity = getSystemService(ConnectivityManager.class);
@@ -85,6 +80,8 @@ public class MainActivity extends AppCompatActivity implements MainNavigationFra
         if (navigation() == null) getSupportFragmentManager().beginTransaction()
                 .setReorderingAllowed(true)
                 .add(R.id.mainNavigationHost, new MainNavigationFragment(), "main-navigation").commitNow();
+        com.example.mobileproject.navigation.MainNavigationInsets.install(
+                findViewById(R.id.mainNavigationHost), R.id.mainBottomMenu);
         if (saved == null) openPageFromIntent(getIntent());
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override public void handleOnBackPressed() {

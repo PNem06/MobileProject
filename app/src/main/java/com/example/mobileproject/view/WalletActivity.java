@@ -79,13 +79,14 @@ public class WalletActivity extends AppCompatActivity {
     private final Runnable tick=new Runnable(){@Override public void run(){updateCountdown();clock.postDelayed(this,1000);}};
     @Override protected void onCreate(Bundle state){
         super.onCreate(state);EdgeToEdge.enable(this);setContentView(R.layout.activity_wallet);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.walletRoot),(v,insets)->{Insets b=insets.getInsets(WindowInsetsCompat.Type.systemBars());v.setPadding(b.left,b.top,b.right,b.bottom);return insets;});
         headingFont=ResourcesCompat.getFont(this,R.font.sx_fraunces);bodyFont=ResourcesCompat.getFont(this,R.font.sx_noto_sans);
         content=findViewById(R.id.walletContent);vm=new ViewModelProvider(this).get(WalletViewModel.class);
         findViewById(R.id.walletBack).setOnClickListener(v->{if("HOME".equals(vm.page)||"QUOTE".equals(vm.page))finish();else vm.open("HOME");});
         findViewById(R.id.walletBell).setOnClickListener(v->vm.open("NOTICES"));
         findViewById(R.id.walletBell).setOnLongClickListener(v->{if(debugBuild()){configure();return true;}return false;});
-        setupNav();vm.revision.observe(this,revision->render());
+        setupNav();
+        com.example.mobileproject.navigation.MainNavigationInsets.install(findViewById(R.id.walletRoot),R.id.walletBottomNav);
+        vm.revision.observe(this,revision->render());
         vm.init(getIntent().getStringExtra("targetPostId"),getIntent().getStringExtra(EXTRA_BOOKING_ID),getIntent().getStringExtra(EXTRA_LEGACY_ID));
     }
     private boolean debugBuild(){return (getApplicationInfo().flags&ApplicationInfo.FLAG_DEBUGGABLE)!=0;}
@@ -104,7 +105,6 @@ public class WalletActivity extends AppCompatActivity {
     private String status(String raw){switch(raw){case "PENDING":return "Đang chờ phản hồi";case "ACCEPTED":return "Đã chấp nhận";case "ONGOING":return "Đang diễn ra";case "CANCELLED":return "A đã hủy";case "REJECTED":return "B đã từ chối";case "COMPLETED":return "Đã hoàn tất";default:return raw;}}
     private void setupNav(){
         BottomNavigationView nav=findViewById(R.id.walletBottomNav);
-        ViewCompat.setOnApplyWindowInsetsListener(nav,(v,insets)->{v.setPadding(0,0,0,0);return insets;});
         nav.getMenu().findItem(R.id.menu_settings).setChecked(true);
         nav.setOnItemSelectedListener(item->{
             com.example.mobileproject.navigation.MainTab tab=com.example.mobileproject.navigation.MainTab.fromMenuId(item.getItemId());

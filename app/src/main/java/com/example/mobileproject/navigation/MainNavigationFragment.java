@@ -38,11 +38,6 @@ public class MainNavigationFragment extends Fragment {
             resetPending = state.getBoolean("resetPending");
         }
         menu = view.findViewById(R.id.mainBottomMenu);
-        // MainActivity handles system/IME insets once, outside all tab content.
-        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(menu, (v, insets) -> {
-            v.setPadding(0, 0, 0, 0);
-            return insets;
-        });
         menu.setOnItemSelectedListener(item -> {
             MainTab tab = MainTab.fromMenuId(item.getItemId());
             return tab != null && selectTab(tab);
