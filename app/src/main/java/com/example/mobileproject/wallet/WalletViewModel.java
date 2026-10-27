@@ -34,6 +34,8 @@ public class WalletViewModel extends AndroidViewModel {
     private final SharedPreferences prefs;
     private final List<ListenerRegistration> signals=new ArrayList<>();
     private int signalsSchema;
+    private String signalsOwner="";
+    private boolean signalsAdmin;
     private final Runnable poll=new Runnable(){@Override public void run(){if(!active||cleared)return;refresh();main.postDelayed(this,30000);}};
     public WalletViewModel(Application app){super(app);cache=new WalletCache(app);prefs=app.getSharedPreferences("sx_wallet_operations",0);}
     public void init(String targetPostId,String exchangeId,String legacyId){
@@ -46,7 +48,7 @@ public class WalletViewModel extends AndroidViewModel {
         topupId=prefs.getString(uid+":lastTopup","");
         io.execute(()->{JSONObject saved=cache.read(uid);main.post(()->{
             if(cleared||!sameUser())return;loaded=true;
-            if(saved!=null&&snapshot.length()==0)snapshot=saved;
+            if(saved!=null&&snapshot.length()==0&&WalletSnapshotContract.error(saved,uid).isEmpty())snapshot=saved;
             changed();if(active){refresh();if(!postId.isEmpty())loadQuote();}
         });});
     }
@@ -60,13 +62,21 @@ public class WalletViewModel extends AndroidViewModel {
     public void error(String value){message=value;changed();}
     public void start(){active=true;if(loaded){refresh();if(!postId.isEmpty()&&quote.length()==0)loadQuote();}main.removeCallbacks(poll);main.postDelayed(poll,30000);}
     public void stop(){active=false;online=false;clearSignals();main.removeCallbacks(poll);}
-    private void clearSignals(){for(ListenerRegistration r:signals)r.remove();signals.clear();signalsSchema=0;}
+    private void clearSignals(){for(ListenerRegistration r:signals)r.remove();signals.clear();signalsSchema=0;signalsOwner="";signalsAdmin=false;}
     private void attachSignals(){
         if(!active||!sameUser())return;
         int schema=snapshot.optInt("storageSchema",1);
-        if(!signals.isEmpty()&&signalsSchema==schema)return;
-        clearSignals();signalsSchema=schema;
+        String owner=snapshot.optString("walletOwnerId",uid);
+        boolean admin=snapshot.optBoolean("isAdmin");
+        if(!signals.isEmpty()&&signalsSchema==schema&&signalsOwner.equals(owner)&&signalsAdmin==admin)return;
+        clearSignals();signalsSchema=schema;signalsOwner=owner;signalsAdmin=admin;
         FirebaseFirestore db=FirebaseFirestore.getInstance();
+        if(admin){
+            // Shared balances/ledger stay behind the authenticated backend; no extra wallet Rules.
+            signals.add(db.collection("exchanges").whereEqualTo("walletManaged",true)
+                    .addSnapshotListener((s,e)->{if(e==null&&s!=null&&!s.getMetadata().isFromCache())refresh();}));
+            return;
+        }
         signals.add(db.collection("wallets").document(uid).addSnapshotListener(MetadataChanges.INCLUDE,(s,e)->{if(e==null&&s!=null&&!s.getMetadata().isFromCache())refresh();}));
         com.google.firebase.firestore.Query topups=schema==2
                 ?db.collection("payments").whereEqualTo("recordType","TOPUP").whereEqualTo("userId",uid)
@@ -82,7 +92,8 @@ public class WalletViewModel extends AndroidViewModel {
             if(cleared)return;busy=false;
             if(!sameUser()){snapshot=new JSONObject();online=false;message="Tài khoản đã thay đổi. Mở lại ví.";changed();return;}
             if(error!=null){online=false;message=error.getMessage();changed();return;}
-            if(data.optInt("apiVersion",0)<3||data.optInt("postReservationVersion",0)<1){online=false;message="Máy chủ đang chạy bản cũ. Khởi động lại backend đã cập nhật để bật chặn đặt trùng.";changed();return;}
+            String invalid=WalletSnapshotContract.error(data,uid);
+            if(!invalid.isEmpty()){snapshot=new JSONObject();clearSignals();online=false;message=invalid;changed();return;}
             snapshot=data;online=active;message="";serverMillis=data.optLong("serverNow");receivedElapsed=SystemClock.elapsedRealtime();
             final String owner=uid;final String serialized=data.toString();
             io.execute(()->{try{cache.save(owner,new JSONObject(serialized));}catch(Exception ignored){}});

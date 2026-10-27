@@ -116,8 +116,9 @@ public class WalletActivity extends AppCompatActivity {
     }
     private void render(){
         if(vm==null||content==null)return;
+        if(vm.snapshot.optBoolean("isAdmin")&&("TOPUP".equals(vm.page)||"QR".equals(vm.page)||"QUOTE".equals(vm.page)))vm.page="HOME";
         String title;
-        switch(vm.page){case "TOPUP":case "QR":title="Nạp tiền";break;case "HISTORY":title="Lịch sử giao dịch";break;case "NOTICES":title="Thông báo";break;case "QUOTE":title="Thuê phòng";break;case "BOOKING":title="Chi tiết trao đổi";break;default:title=vm.snapshot.optBoolean("isAdmin")?"Ví quản trị":"Ví của tôi";}
+        switch(vm.page){case "TOPUP":case "QR":title="Nạp tiền";break;case "HISTORY":title="Lịch sử giao dịch";break;case "NOTICES":title="Thông báo";break;case "QUOTE":title="Thuê phòng";break;case "BOOKING":title="Chi tiết trao đổi";break;default:title=vm.snapshot.length()==0?"Ví StayExchange":vm.snapshot.optBoolean("isAdmin")?"Ví quản trị":"Ví của tôi";}
         ((TextView)findViewById(R.id.walletTitle)).setText(title);
         findViewById(R.id.walletLoading).setVisibility(vm.busy?View.VISIBLE:View.INVISIBLE);
         ((TextView)findViewById(R.id.walletConnection)).setText(vm.online?"Đã đồng bộ với hệ thống":"Dữ liệu lưu để xem lại · Cần mạng để giao dịch");
@@ -135,11 +136,12 @@ public class WalletActivity extends AppCompatActivity {
         updateCountdown();
     }
     private void renderHome(){
-        boolean admin=vm.snapshot.optBoolean("isAdmin");sub(vm.snapshot.optString("name","Thành viên StayExchange"));
+        if(vm.snapshot.length()==0){heading("Đang tải dữ liệu ví");sub("Kết nối máy chủ để xác nhận ví và số dư của phiên đăng nhập hiện tại.");return;}
+        boolean admin=vm.snapshot.optBoolean("isAdmin");sub((admin?"Đang đăng nhập: ":"")+vm.snapshot.optString("name","Thành viên StayExchange"));
         JSONObject w=vm.snapshot.optJSONObject("wallet");if(w==null)w=new JSONObject();long available=w.optLong("available"),held=w.optLong("held");
-        LinearLayout balance=card();balance.setBackground(getDrawable(R.drawable.bg_black_blue));text(balance,admin?"Tổng số dư ví admin":"Số dư khả dụng",14,"#E4E0FF",false);text(balance,money(admin?available+held:available),35,"#FFFFFF",true);
+        LinearLayout balance=card();balance.setBackground(getDrawable(R.drawable.bg_black_blue));text(balance,admin?"Tổng số dư ví hệ thống":"Số dư khả dụng",14,"#E4E0FF",false);text(balance,money(admin?available+held:available),35,"#FFFFFF",true);
         if(admin){text(balance,"Đang giữ hộ: "+money(held),15,"#FFFFFF",false);text(balance,"Khả dụng (gồm phí hủy): "+money(available),15,"#FFFFFF",false);}else button(balance,"Nạp tiền vào ví",true,vm.usable(),vm::newTopup);
-        if(admin)note("Khoản giữ gắn với từng yêu cầu. Hệ thống tự hoàn cho A hoặc trả cho B theo trạng thái giao dịch.",false);
+        if(admin)note("Các quản trị viên cùng xem một ví hệ thống, gồm tiền giữ hộ và phần khả dụng. Khoản giữ gắn với từng yêu cầu; hệ thống tự hoàn cho A hoặc trả cho B theo trạng thái giao dịch.",false);
         JSONObject waiting=waitingTopup();if(waiting.length()>0){final String id=waiting.optString("topupId");button(content,"Mở yêu cầu nạp đang chờ · "+money(waiting.optLong("amount")),false,true,()->vm.viewTopup(id));}
         for(int i=0;i<vm.array("topups").length();i++){JSONObject t=vm.array("topups").optJSONObject(i);if(t!=null&&"REVIEW".equals(t.optString("status"))){final String id=t.optString("topupId");button(content,"Khoản nạp cần đối soát · "+money(t.optLong("amount")),false,true,()->vm.viewTopup(id));break;}}
         button(content,"Lịch sử giao dịch",false,true,()->vm.open("HISTORY"));
