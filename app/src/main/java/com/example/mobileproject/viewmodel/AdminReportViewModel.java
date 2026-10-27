@@ -14,7 +14,6 @@ import java.util.List;
 public class AdminReportViewModel extends AndroidViewModel {
     private final AdminManagementRepository repository;
     private final LiveData<List<ReportCacheEntity.AdminReportCacheEntity>> reports;
-
     public AdminReportViewModel(@NonNull Application application) {
         super(application);
         repository = new AdminManagementRepository(application);
