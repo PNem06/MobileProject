@@ -43,14 +43,6 @@
                     android:textSize="24sp"
                     android:textStyle="bold" />
 
-                <ImageView
-                    android:layout_width="42dp"
-                    android:layout_height="42dp"
-                    android:background="#F5F5F5"
-                    android:contentDescription="Thông báo"
-                    android:padding="9dp"
-                    android:src="@drawable/ic_notification" />
-
             </LinearLayout>
 
             <TextView
