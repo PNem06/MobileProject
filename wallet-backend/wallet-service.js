@@ -32,7 +32,9 @@ class WalletService {
       c.must(found.docs.length===1,'Chưa tìm thấy hồ sơ duy nhất cho tài khoản đăng nhập.',403);doc=found.docs[0];}
     const data=doc.data();
     c.must(String(data.status||'ACTIVE').toUpperCase()==='ACTIVE','Tài khoản đang bị khóa.',403);
-    return {uid,accountId:data.accountId||doc.id,name:data.fullName||'Thành viên',isAdmin:uid===this.config.adminUid,isModerator:String(data.role).toUpperCase()==='ADMIN'};
+    const isAdmin=String(data.role||'USER').trim().toUpperCase()==='ADMIN';
+    c.must(uid!==this.config.adminUid||isAdmin,'Tài khoản giữ ví hệ thống cần có vai trò ADMIN.',403);
+    return {uid,accountId:data.accountId||doc.id,name:data.fullName||'Thành viên',isAdmin,isModerator:isAdmin};
   }
   async owner(accountId){
     c.key(accountId);
@@ -83,6 +85,7 @@ class WalletService {
   }
   async ensureWallet(actor){await this.db.runTransaction(async tx=>{const ref=this.ref('wallets/'+actor.uid);const old=await tx.get(ref);if(!old.exists)tx.create(ref,this.zero(actor.uid));});}
   async createTopup(actor,input){
+    c.must(!actor.isAdmin,'Ví quản trị dùng để theo dõi ví hệ thống. Dùng tài khoản người dùng để nạp tiền.',403);
     const amount=c.amount(input.amount,1000),op=c.operation(input.operationId);
     const opRef=this.ref('walletOperations/'+c.hash(actor.uid+'/topup/'+op));
     const lockRef=this.ref('walletTopupLocks/'+actor.uid);
@@ -151,6 +154,7 @@ class WalletService {
     });
   }
   async pay(actor,input){
+    c.must(!actor.isAdmin,'Không dùng ví hệ thống để thuê phòng. Dùng tài khoản người dùng để thanh toán.',403);
     const postId=c.key(input.postId),op=c.operation(input.operationId);
     const saved=await this.ref('walletOperations/'+c.hash(actor.uid+'/pay/'+op)).get();
     if(saved.exists){const b=await this.ref('exchanges/'+saved.get('exchangeId')).get();return {...b.data(),exchangeId:b.id};}
@@ -280,10 +284,11 @@ class WalletService {
     }while(cursor);return count;
   }
   async snapshot(actor){
-    await this.ensureWallet(actor);
+    const walletOwnerId=actor.isAdmin?c.key(this.config.adminUid):actor.uid;
+    await this.ensureWallet({uid:walletOwnerId});
     const [wallet,topups,ledger,sent,received]=await Promise.all([
-      this.ref('wallets/'+actor.uid).get(),this.db.collection('walletTopups').where('userId','==',actor.uid).get(),
-      this.db.collection('walletLedger').where('userId','==',actor.uid).get(),
+      this.ref('wallets/'+walletOwnerId).get(),this.db.collection('walletTopups').where('userId','==',walletOwnerId).get(),
+      this.db.collection('walletLedger').where('userId','==',walletOwnerId).get(),
       this.db.collection('exchanges').where('requesterUid','==',actor.uid).get(),
       this.db.collection('exchanges').where('hostUid','==',actor.uid).get()]);
     const map=new Map();for(const d of [...sent.docs,...received.docs])if(d.get('walletManaged'))map.set(d.id,{...d.data(),exchangeId:d.id});
@@ -291,8 +296,10 @@ class WalletService {
     if(actor.isAdmin){const [all,bank]=await Promise.all([this.db.collection('exchanges').where('walletManaged','==',true).get(),this.db.collection('walletBankEvents').orderBy('createdAt','desc').limit(20).get()]);
       bookings=all.docs.map(d=>({...d.data(),exchangeId:d.id}));events=bank.docs.map(d=>({...d.data(),eventId:d.id}));}
     const sort=(a,b)=>c.milliseconds(b.createdAt)-c.milliseconds(a.createdAt);
-    const notifications=await this.db.collection('notifications').where('userId','==',actor.uid).get();
-    return c.json({apiVersion:3,postReservationVersion:1,...await this.storageStatus(),userId:actor.uid,accountId:actor.accountId,name:actor.name,isAdmin:actor.isAdmin,bank:this.bankInfo(),serverNow:this.clock(),wallet:wallet.data(),
+    const notifications=await this.db.collection('notifications').where('userId','==',walletOwnerId).get();
+    return c.json({apiVersion:3,postReservationVersion:1,sharedAdminWalletVersion:1,...await this.storageStatus(),
+      userId:actor.uid,accountId:actor.accountId,name:actor.name,isAdmin:actor.isAdmin,
+      walletOwnerId,walletScope:actor.isAdmin?'SYSTEM':'PERSONAL',bank:this.bankInfo(),serverNow:this.clock(),wallet:wallet.data(),
       topups:topups.docs.map(d=>({...d.data(),topupId:d.id})).sort(sort).slice(0,30),
       ledger:ledger.docs.map(d=>({...d.data(),ledgerId:d.id})).sort(sort).slice(0,60),bookings:bookings.sort(sort).slice(0,100),bankEvents:events,
       notifications:notifications.docs.filter(d=>d.get('walletManaged')).map(d=>({...d.data(),notificationId:d.id})).sort(sort).slice(0,30)});

@@ -67,7 +67,13 @@ public class AccountUi extends HomeViews {
         String avatarUrl = profile.optString("avatarUrl");
         if (!avatarUrl.isEmpty()) Glide.with(this).load(avatarImageModel(avatarUrl)).circleCrop()
                 .diskCacheStrategy(DiskCacheStrategy.ALL).into(avatarPhoto);
-        root.findViewById(R.id.btnWallet).setOnClickListener(v -> activity.startActivity(new Intent(activity, WalletActivity.class)));
+        boolean admin = "ADMIN".equalsIgnoreCase(profile.optString("role"));
+        ((TextView) root.findViewById(R.id.walletEntryTitle)).setText(admin ? "Ví quản trị" : "Ví của tôi");
+        ((TextView) root.findViewById(R.id.walletEntrySubtitle)).setText(admin
+                ? "Ví hệ thống dùng chung cho các quản trị viên"
+                : "Nạp tiền, thanh toán và xem lịch sử giao dịch");
+        root.findViewById(R.id.btnWallet).setOnClickListener(v ->
+                hostActivity.startActivity(new Intent(hostActivity, WalletActivity.class)));
         root.findViewById(R.id.btnPersonalInfo).setOnClickListener(v -> {
             if (vm.busy) return;
             vm.draftName = vm.profile().optString("fullName");
