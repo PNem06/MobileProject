@@ -146,20 +146,16 @@ public class AdminManagePostActivity extends AppCompatActivity {
     private void loadPosts() {
         txtPendingCount.setText("Đang tải danh sách bài đăng...");
         layoutPendingPosts.removeAllViews();
-
         db.collection("posts")
                 .get()
                 .addOnSuccessListener(snapshot -> {
                     layoutPendingPosts.removeAllViews();
-
                     int pendingCount = 0;
                     int publicCount = 0;
                     int unpublicCount = 0;
                     int visibleCount = 0;
-
                     for (DocumentSnapshot doc : snapshot.getDocuments()) {
                         String status = getStatus(doc);
-
                         switch (status) {
                             case PENDING:
                                 pendingCount++;
@@ -171,7 +167,6 @@ public class AdminManagePostActivity extends AppCompatActivity {
                                 unpublicCount++;
                                 break;
                         }
-
                         if (currentTab.equals(status)) {
                             addPostCard(doc, status);
                             visibleCount++;
@@ -369,7 +364,6 @@ public class AdminManagePostActivity extends AppCompatActivity {
         Map<String, Object> updates = new HashMap<>();
         updates.put("status", newStatus);
         updates.put("updatedAt", FieldValue.serverTimestamp());
-
         db.collection("posts").document(postId)
                 .update(updates)
                 .addOnSuccessListener(unused -> {
@@ -380,7 +374,6 @@ public class AdminManagePostActivity extends AppCompatActivity {
                                 ownerId, postTitle, isApproval, postId
                         );
                     }
-
                     String message;
 
                     if (PUBLIC.equals(newStatus)) {
@@ -392,7 +385,6 @@ public class AdminManagePostActivity extends AppCompatActivity {
                     } else {
                         message = "Đã cập nhật trạng thái bài đăng.";
                     }
-
                     Toast.makeText(
                             this, message, Toast.LENGTH_SHORT
                     ).show();

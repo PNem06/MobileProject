@@ -819,11 +819,7 @@ public class New_Post extends AppCompatActivity {
         post.put("latitude", latitude);
         post.put("longitude", longitude);
         post.put("amenityIds", selectedAmenityIds());
-        // Cả bài mới và bài chỉnh sửa đều cần Admin duyệt.
         post.put("status", "PENDING");
-
-// Chỉ tạo createdAt khi tạo bài mới.
-// Khi sửa, giữ nguyên thời gian tạo ban đầu.
         if (!isEditMode) {
             post.put("createdAt", FieldValue.serverTimestamp());
         } else {
@@ -876,14 +872,11 @@ public class New_Post extends AppCompatActivity {
                     DocumentReference imageRef = db.collection("images").document();
                     Map<String, Object> image = new HashMap<>();
                     image.put("ImgId", imageRef.getId());
-                    // Giữ tên trường mà các màn hình hiện tại đang đọc.
-                    // Giá trị giờ là Base64 thay vì URL Storage.
                     image.put("imgUrl", encodedImages.get(i));
                     image.put("orderIndex", i);
                     image.put("postId", postId);
                     batch.set(imageRef, image);
                 }
-
                 batch.commit()
                         .addOnSuccessListener(v -> {
                             finishPublish(true, "Đã gửi bài đăng! Vui lòng chờ Admin kiểm duyệt.");

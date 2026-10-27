@@ -125,6 +125,10 @@
             android:name=".view.BlockedUsersActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".view.ReportedPostsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
 
         <!-- Login: Launcher -->
         <activity

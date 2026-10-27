@@ -19,6 +19,7 @@ public class AdminReportAdapter extends RecyclerView.Adapter<AdminReportAdapter.
     public interface Listener {
         void onResolve(ReportCacheEntity.AdminReportCacheEntity item);
         void onReject(ReportCacheEntity.AdminReportCacheEntity item);
+        default void onItemClick(ReportCacheEntity.AdminReportCacheEntity item) {}
     }
     private final Listener listener;
     private final List<ReportCacheEntity.AdminReportCacheEntity> items = new ArrayList<>();
@@ -40,21 +41,24 @@ public class AdminReportAdapter extends RecyclerView.Adapter<AdminReportAdapter.
         String type = item.targetType == null ? "" : item.targetType.toUpperCase();
         String typeLabel = ("ACCOUNT".equals(type) || "USER".equals(type)) ? "Tài khoản" : "Bài đăng";
         holder.target.setText(typeLabel + ": " + (item.targetName == null || item.targetName.trim().isEmpty() ? item.targetId : item.targetName));
-        holder.id.setText("Report ID: " + item.reportId + "  •  Đối tượng: " + item.targetId);
+        holder.id.setText("Report ID: " + item.reportId);
         holder.reason.setText("Lý do: " + safe(item.reason, "Chưa cung cấp"));
-        holder.description.setText("Mô tả: " + safe(item.description, "Không có mô tả"));
-        holder.reporter.setText("Người báo cáo: " + safe(item.reporterId, "Không rõ"));
+        String reporterDisplay = item.reporterName == null || item.reporterName.trim().isEmpty() ? item.reporterId : item.reporterName;
+        holder.reporter.setText("Người báo cáo: " + reporterDisplay);
         holder.status.setText(safe(item.status, "PENDING"));
         boolean canAct = "PENDING".equalsIgnoreCase(item.status) || "REVIEWING".equalsIgnoreCase(item.status);
         holder.actions.setVisibility(canAct ? View.VISIBLE : View.GONE);
         holder.resolve.setText(("ACCOUNT".equals(type) || "USER".equals(type)) ? "Xác nhận & khóa" : "Xác nhận & ẩn bài");
         holder.resolve.setOnClickListener(v -> listener.onResolve(item));
         holder.reject.setOnClickListener(v -> listener.onReject(item));
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) listener.onItemClick(item);
+        });
     }
     private String safe(String value, String fallback) { return value == null || value.trim().isEmpty() ? fallback : value; }
     @Override public int getItemCount() { return items.size(); }
     static class ReportHolder extends RecyclerView.ViewHolder {
-        TextView target, id, reason, description, reporter, status;
+        TextView target, id, reason, reporter, status;
         LinearLayout actions;
         Button resolve, reject;
         ReportHolder(@NonNull View itemView) {
@@ -62,7 +66,6 @@ public class AdminReportAdapter extends RecyclerView.Adapter<AdminReportAdapter.
             target = itemView.findViewById(R.id.tvReportTarget);
             id = itemView.findViewById(R.id.tvReportId);
             reason = itemView.findViewById(R.id.tvReportReason);
-            description = itemView.findViewById(R.id.tvReportDescription);
             reporter = itemView.findViewById(R.id.tvReportReporter);
             status = itemView.findViewById(R.id.tvReportStatus);
             actions = itemView.findViewById(R.id.layoutReportActions);

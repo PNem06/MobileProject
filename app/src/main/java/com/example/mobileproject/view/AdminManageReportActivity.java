@@ -55,6 +55,16 @@ public class AdminManageReportActivity extends AppCompatActivity {
         adapter = new AdminReportAdapter(new AdminReportAdapter.Listener() {
             @Override public void onResolve(ReportCacheEntity.AdminReportCacheEntity item) { confirmViolation(item); }
             @Override public void onReject(ReportCacheEntity.AdminReportCacheEntity item) { rejectReport(item); }
+            @Override public void onItemClick(ReportCacheEntity.AdminReportCacheEntity item) {
+                boolean isUser = "ACCOUNT".equalsIgnoreCase(item.targetType) || "USER".equalsIgnoreCase(item.targetType);
+                if (!isUser && item.targetId != null && !item.targetId.isEmpty()) {
+                    android.content.Intent intent = new android.content.Intent(AdminManageReportActivity.this, Detail.class);
+                    intent.putExtra(Detail.EXTRA_POST_ID, item.targetId);
+                    intent.putExtra("reportId", item.reportId);
+                    intent.putExtra("fromAdminReport", true);
+                    startActivity(intent);
+                }
+            }
         });
         recycler.setAdapter(adapter);
 

@@ -118,6 +118,11 @@ public class HomeUi extends HomeViews {
                 Intent intent = new Intent(activity, BlockedUsersActivity.class);
                 activity.startActivity(intent);
             }
+        } else if (id == R.id.menu_reported_posts) {
+            if (requireLogin()) {
+                Intent intent = new Intent(activity, ReportedPostsActivity.class);
+                activity.startActivity(intent);
+            }
         } else if (id == R.id.menu_about) {
             go("about");
         } else if (id == R.id.menu_logout) {

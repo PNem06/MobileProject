@@ -73,6 +73,7 @@ public class ReportCacheEntity extends SQLiteOpenHelper {
         @NonNull
         public String reportId = "";
         public String reporterId = "";
+        public String reporterName = "";
         public String targetType = "";
         public String targetId = "";
         public String targetName = "";

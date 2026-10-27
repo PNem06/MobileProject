@@ -48,6 +48,13 @@
             app:showAsAction="never" />
 
         <item
+            android:id="@+id/menu_reported_posts"
+            android:icon="@drawable/ic_report"
+            android:title="Bài viết đã báo cáo"
+            android:fontFamily="serif"
+            app:showAsAction="never" />
+
+        <item
             android:id="@+id/menu_about"
             android:icon="@drawable/ic_information"
             android:title="Thông tin ứng dụng"

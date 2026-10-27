@@ -90,7 +90,14 @@ public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCa
                     for (DocumentSnapshot doc : snapshot.getDocuments()) {
                         ListingPost post = doc.toObject(ListingPost.class);
                         if (post == null) continue;
-                        if (post.getPostId() == null || post.getPostId().trim().isEmpty()) post.setPostId(doc.getId());
+                        if (post.getPostId() == null || post.getPostId().trim().isEmpty()) {
+                            post.setPostId(doc.getId());
+                        }
+                        Object priceObj = doc.get("price");
+
+                        if (priceObj instanceof Number) {
+                            post.setPricePerNight(((Number) priceObj).doubleValue());
+                        }
                         String address = normalize(post.getAddress());
                         String title = normalize(post.getTitle());
                         if (query.isEmpty() || matchesLocation(query, address, title)) {

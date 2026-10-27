@@ -282,32 +282,24 @@ public class SearchLocationActivity extends AppCompatActivity {
 
     private void requestPlacePredictions(String query) {
         lastRequestedQuery = query;
-
         FindAutocompletePredictionsRequest request =
                 FindAutocompletePredictionsRequest.builder()
                         .setQuery(query)
                         .setRegionCode("VN")
                         .build();
-
         placesClient.findAutocompletePredictions(request)
                 .addOnSuccessListener(response -> {
-
-                    // Không hiển thị kết quả của từ khóa cũ.
                     String currentQuery =
                             edtSearchLocation.getText()
                                     .toString()
                                     .trim();
-
                     if (!query.equals(currentQuery)
                             || !query.equals(lastRequestedQuery)) {
                         return;
                     }
-
                     suggestionList.clear();
-
                     for (AutocompletePrediction prediction :
                             response.getAutocompletePredictions()) {
-
                         String address = prediction
                                 .getFullText(null)
                                 .toString();

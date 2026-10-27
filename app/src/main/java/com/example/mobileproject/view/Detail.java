@@ -26,6 +26,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.mobileproject.R;
+import com.example.mobileproject.data.ReportCacheEntity;
+import com.example.mobileproject.repository.AdminManagementRepository;
 import com.example.mobileproject.adapter.DetailAdapter;
 import com.example.mobileproject.adapter.ReviewAdapter;
 import com.example.mobileproject.model.ReviewItem;
@@ -76,6 +78,8 @@ public class Detail extends AppCompatActivity {
     private String fullDescription = "";
     private boolean isMyPost = false;
     private boolean postReserved, completedPost, viewerAdmin, deletingPost;
+    private boolean fromAdminReport = false;
+    private String reportIdExtra = "";
     private String viewerAccountId = "";
     private String postOwnerId = "";
 
@@ -88,8 +92,8 @@ public class Detail extends AppCompatActivity {
     private TextView btnFavorite, btnShowMore, btnAllReviews;
 
     private ImageView imgHostAvatar;
-    private View layoutHostInfo, layoutGuestActions, layoutOwnerActions, layoutEditActions;
-    private TextView btnDeletePost, btnEditPost, btnCancelEdit, btnSubmitEdit;
+    private View layoutHostInfo, layoutGuestActions, layoutOwnerActions, layoutEditActions, layoutAdminReportActions;
+    private TextView btnDeletePost, btnEditPost, btnCancelEdit, btnSubmitEdit, btnAdminRejectReport, btnAdminResolveReport;
     private EditText edtRoomName, edtAddress, edtDestination, edtDescription, edtPrice;
 
     private ActivityResultLauncher<Intent> exchangeLauncher;
@@ -132,13 +136,15 @@ public class Detail extends AppCompatActivity {
             if (postId == null) {
                 postId = getIntent().getStringExtra("postId");
             }
+            fromAdminReport = getIntent().getBooleanExtra("fromAdminReport", false);
+            reportIdExtra = getIntent().getStringExtra("reportId");
+            if (reportIdExtra == null) reportIdExtra = "";
         }
 
         if (postId == null) postId = "";
 
         db = FirebaseFirestore.getInstance();
         preferences = getSharedPreferences("room_favorites", MODE_PRIVATE);
-
         initViews();
         setupRecentReviews();
         setupEvents();
@@ -155,10 +161,34 @@ public class Detail extends AppCompatActivity {
                         if (accountId != null && !accountId.trim().isEmpty()) viewerAccountId = accountId;
                         viewerAdmin = "ADMIN".equalsIgnoreCase(profile.getString("role"))
                                 && "ACTIVE".equalsIgnoreCase(profile.getString("status"));
-                        listenToRoomRealtime();
+                        if (viewerAdmin) {
+                            listenToRoomRealtime();
+                        } else {
+                            db.collection("accounts").whereEqualTo("authUid", viewerUid).limit(1).get()
+                                    .addOnSuccessListener(query -> {
+                                        if (!query.isEmpty()) {
+                                            DocumentSnapshot doc = query.getDocuments().get(0);
+                                            viewerAdmin = "ADMIN".equalsIgnoreCase(doc.getString("role"))
+                                                    && "ACTIVE".equalsIgnoreCase(doc.getString("status"));
+                                        }
+                                        listenToRoomRealtime();
+                                    })
+                                    .addOnFailureListener(e -> listenToRoomRealtime());
+                        }
                     })
                     .addOnFailureListener(error -> {
-                        if (!isFinishing() && !isDestroyed()) listenToRoomRealtime();
+                        if (!isFinishing() && !isDestroyed()) {
+                            db.collection("accounts").whereEqualTo("authUid", viewerUid).limit(1).get()
+                                    .addOnSuccessListener(query -> {
+                                        if (!query.isEmpty()) {
+                                            DocumentSnapshot doc = query.getDocuments().get(0);
+                                            viewerAdmin = "ADMIN".equalsIgnoreCase(doc.getString("role"))
+                                                    && "ACTIVE".equalsIgnoreCase(doc.getString("status"));
+                                        }
+                                        listenToRoomRealtime();
+                                    })
+                                    .addOnFailureListener(e -> listenToRoomRealtime());
+                        }
                     });
         }
     }
@@ -198,11 +228,14 @@ public class Detail extends AppCompatActivity {
         layoutGuestActions = findViewById(R.id.layoutGuestActions);
         layoutOwnerActions = findViewById(R.id.layoutOwnerActions);
         layoutEditActions = findViewById(R.id.layoutEditActions);
+        layoutAdminReportActions = findViewById(R.id.layoutAdminReportActions);
 
         btnDeletePost = findViewById(R.id.btnDeletePost);
         btnEditPost = findViewById(R.id.btnEditPost);
         btnCancelEdit = findViewById(R.id.btnCancelEdit);
         btnSubmitEdit = findViewById(R.id.btnSubmitEdit);
+        btnAdminRejectReport = findViewById(R.id.btnAdminRejectReport);
+        btnAdminResolveReport = findViewById(R.id.btnAdminResolveReport);
 
         edtRoomName = findViewById(R.id.edtRoomName);
         edtAddress = findViewById(R.id.edtAddress);
@@ -274,6 +307,10 @@ public class Detail extends AppCompatActivity {
                     if (error != null) {
                         if (error.getCode()
                                 == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                            if (viewerAdmin || fromAdminReport || !TextUtils.isEmpty(reportIdExtra)) {
+                                Toast.makeText(this, "Đang xem bài đăng với quyền Quản trị viên.", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
                             showMessage("Bài đăng không còn mở cho tài khoản này.");
                             finish();
                             return;
@@ -285,7 +322,6 @@ public class Detail extends AppCompatActivity {
                         ).show();
                         return;
                     }
-
                     if (snapshot == null || !snapshot.exists()) {
                         Toast.makeText(
                                 this,
@@ -294,7 +330,6 @@ public class Detail extends AppCompatActivity {
                         ).show();
                         return;
                     }
-
                     renderRoom(snapshot);
                 });
     }
@@ -309,6 +344,14 @@ public class Detail extends AppCompatActivity {
         String postAccountId = nonEmpty(doc.getString("accountId"), doc.getString("ownerId"));
         boolean isOwner = (uid != null && uid.equals(postAccountId))
                 || (!viewerAccountId.isEmpty() && viewerAccountId.equals(postAccountId));
+        List<String> bookingParties = stringList(doc, "bookingPartyIds");
+        boolean isBookingParty = (uid != null && bookingParties.contains(uid))
+                || (!viewerAccountId.isEmpty() && bookingParties.contains(viewerAccountId));
+        if (postReserved && !viewerAdmin && !isOwner && !isBookingParty && !fromAdminReport && TextUtils.isEmpty(reportIdExtra)) {
+            showMessage("Bài đăng đã có trao đổi và không còn mở đặt phòng.");
+            finish();
+            return;
+        }
 
         String title = stringValue(doc, "title");
         String address = stringValue(doc, "address");
@@ -426,6 +469,7 @@ public class Detail extends AppCompatActivity {
             if (layoutGuestActions != null) layoutGuestActions.setVisibility(View.GONE);
             if (layoutOwnerActions != null) layoutOwnerActions.setVisibility(View.VISIBLE);
             if (layoutEditActions != null) layoutEditActions.setVisibility(View.GONE);
+            if (layoutAdminReportActions != null) layoutAdminReportActions.setVisibility(View.GONE);
         } else {
             if (txtStatusBadge != null) {
                 txtStatusBadge.setVisibility(View.GONE);
@@ -440,6 +484,7 @@ public class Detail extends AppCompatActivity {
             if (layoutGuestActions != null) layoutGuestActions.setVisibility(View.VISIBLE);
             if (layoutOwnerActions != null) layoutOwnerActions.setVisibility(View.GONE);
             if (layoutEditActions != null) layoutEditActions.setVisibility(View.GONE);
+            if (layoutAdminReportActions != null) layoutAdminReportActions.setVisibility(View.GONE);
             loadHostInfo(postOwnerId);
             checkExistingSentRequest(currentUid, postId);
         }
@@ -463,6 +508,7 @@ public class Detail extends AppCompatActivity {
             txtReviewsEmpty.setVisibility(View.VISIBLE);
         }
         btnAllReviews.setText("Xem nhận xét");
+        setupReportButton();
         loadRoomImages(postId);
     }
 
@@ -690,7 +736,7 @@ public class Detail extends AppCompatActivity {
                                 .addOnSuccessListener(snap2 -> {
                                     if (isFinishing() || isDestroyed()) return;
                                     if (snap2 != null && !snap2.isEmpty()) {
-                                        for (DocumentSnapshot doc : orderedImageDocuments(snap2)) {
+                                        for (DocumentSnapshot doc : snap2.getDocuments()) {
                                             String url = doc.getString("imgUrl");
                                             if (url == null || url.trim().isEmpty()) {
                                                 url = doc.getString("imageUrl");
@@ -1309,8 +1355,8 @@ public class Detail extends AppCompatActivity {
             updates.put("amenityIds", amenities);
 
             // Không thay đổi các trường chủ sở hữu và thời điểm tạo.
-            updates.put("status", "PENDING");
 
+            updates.put("status", "PENDING");
             if (startDate != null) {
                 updates.put("startDate", new Timestamp(startDate));
                 updates.put("endDate", new Timestamp(endDate));
@@ -1318,7 +1364,6 @@ public class Detail extends AppCompatActivity {
                 updates.put("startDate", FieldValue.delete());
                 updates.put("endDate", FieldValue.delete());
             }
-
             db.collection("posts").document(postId)
                     .update(updates)
                     .addOnSuccessListener(unused -> {
@@ -1482,5 +1527,152 @@ public class Detail extends AppCompatActivity {
         Intent intent = new Intent(this, RentalActivity.class);
         intent.putExtra("targetPostId", postId);
         startActivity(intent);
+    }
+
+    private void setupReportButton() {
+        TextView btnShare = findViewById(R.id.btnShare);
+        if (btnShare == null) return;
+
+        if (isMyPost) {
+            btnShare.setText("");
+            btnShare.setBackgroundResource(R.drawable.ic_share);
+            btnShare.setOnClickListener(v -> {
+                Intent intent = new Intent(Intent.ACTION_SEND);
+                intent.setType("text/plain");
+                intent.putExtra(
+                        Intent.EXTRA_TEXT,
+                        txtRoomName.getText() + "\n"
+                                + txtAddress.getText() + "\n"
+                                + txtDescription.getText()
+                );
+                startActivity(Intent.createChooser(intent, "Chia sẻ chỗ ở"));
+            });
+        } else {
+            btnShare.setText("!");
+            btnShare.setBackground(null);
+            btnShare.setTextColor(Color.parseColor("#D32F2F"));
+            btnShare.setTextSize(24f);
+            btnShare.setGravity(Gravity.CENTER);
+            btnShare.setOnClickListener(v -> checkAndShowReportDialog());
+        }
+    }
+
+    private void checkAndShowReportDialog() {
+        String currentUid = FirebaseAuth.getInstance().getUid();
+        if (currentUid == null || currentUid.isEmpty() || postId.isEmpty()) return;
+
+        String reportId = currentUid + "_" + postId;
+        db.collection("reports").document(reportId).get()
+                .addOnSuccessListener(doc -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    if (doc.exists()) {
+                        Toast.makeText(this, "Bạn đã báo cáo bài viết này rồi.", Toast.LENGTH_SHORT).show();
+                    } else {
+                        showReportDialog(currentUid);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (!isFinishing() && !isDestroyed()) showReportDialog(currentUid);
+                });
+    }
+
+    private void showReportDialog(String currentUid) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Báo cáo bài viết");
+
+        final EditText input = new EditText(this);
+        input.setHint("Nhập lý do báo cáo...");
+        input.setMinLines(3);
+        int padding = (int) (16 * getResources().getDisplayMetrics().density);
+        input.setPadding(padding, padding, padding, padding);
+        builder.setView(input);
+
+        builder.setPositiveButton("Gửi", (dialog, which) -> {
+            String reason = input.getText().toString().trim();
+            if (reason.isEmpty()) {
+                Toast.makeText(this, "Vui lòng nhập lý do báo cáo.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String reportId = currentUid + "_" + postId;
+            Map<String, Object> reportData = new HashMap<>();
+            reportData.put("reportId", reportId);
+            reportData.put("reporterId", currentUid);
+            reportData.put("targetType", "POST");
+            reportData.put("targetId", postId);
+            reportData.put("reason", reason);
+            reportData.put("description", reason);
+            reportData.put("status", "PENDING");
+            reportData.put("createdAt", FieldValue.serverTimestamp());
+
+            db.collection("reports").document(reportId).set(reportData)
+                    .addOnSuccessListener(aVoid -> Toast.makeText(this, "Đã gửi báo cáo cho quản trị viên.", Toast.LENGTH_SHORT).show())
+                    .addOnFailureListener(e -> Toast.makeText(this, "Gửi báo cáo thất bại: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+        });
+
+        builder.setNegativeButton("Hủy", (dialog, which) -> dialog.cancel());
+        builder.show();
+    }
+
+    private void confirmAdminReportViolation() {
+        String rId = reportIdExtra;
+        if (rId == null || rId.isEmpty()) {
+            rId = viewerAccountId + "_" + postId;
+        }
+        ReportCacheEntity.AdminReportCacheEntity report = new ReportCacheEntity.AdminReportCacheEntity();
+        report.reportId = rId;
+        report.targetType = "POST";
+        report.targetId = postId;
+        AdminManagementRepository repo = new AdminManagementRepository(getApplication());
+        new AlertDialog.Builder(this)
+                .setTitle("Xác nhận vi phạm")
+                .setMessage("Bạn xác nhận report này đúng vi phạm và muốn ẩn bài đăng? Hệ thống sẽ cập nhật trạng thái report và tạo thông báo cho người liên quan.")
+                .setNegativeButton("Hủy", null)
+                .setPositiveButton("Xác nhận", (dialog, which) -> {
+                    repo.confirmReportViolation(report, new AdminManagementRepository.ActionCallback() {
+                        @Override public void onSuccess(String message) {
+                            if (!isFinishing()) {
+                                Toast.makeText(Detail.this, message, Toast.LENGTH_LONG).show();
+                                finish();
+                            }
+                        }
+                        @Override public void onError(String message) {
+                            if (!isFinishing()) {
+                                Toast.makeText(Detail.this, message, Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    });
+                })
+                .show();
+    }
+
+    private void rejectAdminReport() {
+        String rId = reportIdExtra;
+        if (rId == null || rId.isEmpty()) {
+            rId = viewerAccountId + "_" + postId;
+        }
+        ReportCacheEntity.AdminReportCacheEntity report = new ReportCacheEntity.AdminReportCacheEntity();
+        report.reportId = rId;
+        AdminManagementRepository repo = new AdminManagementRepository(getApplication());
+        new AlertDialog.Builder(this)
+                .setTitle("Bỏ qua report")
+                .setMessage("Xác nhận report này không đủ căn cứ vi phạm?")
+                .setNegativeButton("Quay lại", null)
+                .setPositiveButton("Từ chối report", (dialog, which) -> {
+                    repo.rejectReport(report, new AdminManagementRepository.ActionCallback() {
+                        @Override public void onSuccess(String message) {
+                            if (!isFinishing()) {
+                                Toast.makeText(Detail.this, message, Toast.LENGTH_LONG).show();
+                                finish();
+                            }
+                        }
+                        @Override public void onError(String message) {
+                            if (!isFinishing()) {
+                                Toast.makeText(Detail.this, message, Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    });
+                })
+                .show();
     }
 }

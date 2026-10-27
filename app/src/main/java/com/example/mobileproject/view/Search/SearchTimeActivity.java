@@ -267,7 +267,6 @@ public class SearchTimeActivity extends AppCompatActivity {
 
     private void handleDateSelection(Calendar selectedCal) {
         if (selectedCal == null) return;
-
         if (startDate == null || (startDate != null && endDate != null)) {
             startDate = (Calendar) selectedCal.clone();
             endDate = null;
@@ -280,7 +279,6 @@ public class SearchTimeActivity extends AppCompatActivity {
                 endDate = (Calendar) selectedCal.clone();
             }
         }
-
         calendarAdapter.setDateRange(startDate, endDate);
         updateSummaryText();
     }

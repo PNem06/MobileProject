@@ -20,7 +20,6 @@ public class PostRepository {
 
     private final FirebaseFirestore db =
             FirebaseFirestore.getInstance();
-
     public com.google.firebase.firestore.ListenerRegistration listenToApprovedPosts(OnPostsLoadedListener listener) {
         return db.collection("posts")
                 .whereIn("status", java.util.Arrays.asList(Post.APPROVED, "BOOKED"))

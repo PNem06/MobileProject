@@ -243,13 +243,10 @@ public class SearchResultsActivity extends AppCompatActivity {
     private void loadApprovedPosts() {
         progressResults.setVisibility(View.VISIBLE);
         txtEmptyResults.setVisibility(View.GONE);
-
         visiblePosts.clear();
-
         if (adapter != null) {
             adapter.notifyDataSetChanged();
         }
-
         com.example.mobileproject.util.BlockHelper.getBlockedUserIds(blockedIds -> {
             if (isFinishing() || isDestroyed()) return;
             db.collection("posts")
@@ -257,15 +254,12 @@ public class SearchResultsActivity extends AppCompatActivity {
                     .get()
                     .addOnSuccessListener(snapshot -> {
                         allApprovedPosts.clear();
-
                         for (DocumentSnapshot doc : snapshot.getDocuments()) {
                             ListingPost post =
                                     doc.toObject(ListingPost.class);
-
                             if (post == null) {
                                 continue;
                             }
-
                             String ownerId = post.getAccountId();
                             if (ownerId == null || ownerId.isEmpty()) {
                                 ownerId = doc.getString("ownerId");
@@ -273,39 +267,30 @@ public class SearchResultsActivity extends AppCompatActivity {
                             if (blockedIds.contains(ownerId)) {
                                 continue;
                             }
-
                             if (post.getPostId() == null
                                     || post.getPostId().trim().isEmpty()) {
                                 post.setPostId(doc.getId());
                             }
-
                             Object priceObj = doc.get("price");
-
                             if (priceObj instanceof Number) {
                                 post.setPricePerNight(
                                         ((Number) priceObj).doubleValue()
                                 );
                             }
-
                             allApprovedPosts.add(post);
                             loadCoverImage(post);
                         }
-
                         applyAllFilters();
                         progressResults.setVisibility(View.GONE);
                     })
                     .addOnFailureListener(error -> {
                         progressResults.setVisibility(View.GONE);
-
                         txtResultCount.setText("Không tải được kết quả");
-
                         txtEmptyResults.setText(
                                 "Không thể tải bài đăng. "
                                         + "Kiểm tra kết nối mạng rồi thử lại."
                         );
-
                         txtEmptyResults.setVisibility(View.VISIBLE);
-
                         Toast.makeText(
                                 SearchResultsActivity.this,
                                 "Lỗi tải bài đăng: "

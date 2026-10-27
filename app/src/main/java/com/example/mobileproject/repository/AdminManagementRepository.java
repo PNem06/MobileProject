@@ -56,6 +56,7 @@ public class AdminManagementRepository {
             if (error != null || snapshot == null) return;
 
             List<ReportCacheEntity.AdminReportCacheEntity> result = new ArrayList<>();
+            List<com.google.android.gms.tasks.Task<Void>> enrichmentTasks = new ArrayList<>();
 
             for (DocumentSnapshot doc : snapshot.getDocuments()) {
                 ReportCacheEntity.AdminReportCacheEntity item = new ReportCacheEntity.AdminReportCacheEntity();
@@ -95,15 +96,65 @@ public class AdminManagementRepository {
                 }
 
                 item.targetName = firstString(doc, "targetName", "targetTitle", "target_name");
+                item.reporterName = firstString(doc, "reporterName", "reporter_name");
                 item.reason = firstString(doc, "reason", "reportReason");
                 item.description = firstString(doc, "description", "detail");
                 item.status = firstString(doc, "status");
                 if (item.status.isEmpty()) item.status = "PENDING";
                 item.updatedAt = dateMillis(doc.get("updatedAt"));
                 result.add(item);
+
+                List<com.google.android.gms.tasks.Task<Void>> subTasks = new ArrayList<>();
+
+                if (item.reporterId != null && !item.reporterId.trim().isEmpty()) {
+                    try {
+                        subTasks.add(firestore.collection("accounts").document(item.reporterId.trim()).get()
+                                .addOnSuccessListener(accDoc -> {
+                                    if (accDoc.exists()) {
+                                        String name = firstString(accDoc, "fullName", "username", "name", "displayName");
+                                        if (!name.isEmpty()) item.reporterName = name;
+                                    }
+                                }).continueWith(t -> null));
+                    } catch (Exception ignored) {}
+                }
+
+                if (item.targetId != null && !item.targetId.trim().isEmpty()) {
+                    try {
+                        if ("POST".equalsIgnoreCase(item.targetType)) {
+                            subTasks.add(firestore.collection("posts").document(item.targetId.trim()).get()
+                                    .addOnSuccessListener(postDoc -> {
+                                        if (postDoc.exists()) {
+                                            String title = firstString(postDoc, "title", "postTitle");
+                                            if (!title.isEmpty()) item.targetName = title;
+                                        } else {
+                                            firestore.collection("posts").whereEqualTo("postId", item.targetId.trim()).limit(1).get()
+                                                    .addOnSuccessListener(q -> {
+                                                        if (!q.isEmpty()) {
+                                                            String title = firstString(q.getDocuments().get(0), "title", "postTitle");
+                                                            if (!title.isEmpty()) item.targetName = title;
+                                                        }
+                                                    });
+                                        }
+                                    }).continueWith(t -> null));
+                        } else {
+                            subTasks.add(firestore.collection("accounts").document(item.targetId.trim()).get()
+                                    .addOnSuccessListener(accDoc -> {
+                                        if (accDoc.exists()) {
+                                            String name = firstString(accDoc, "fullName", "username", "name", "displayName");
+                                            if (!name.isEmpty()) item.targetName = name;
+                                        }
+                                    }).continueWith(t -> null));
+                        }
+                    } catch (Exception ignored) {}
+                }
+
+                if (!subTasks.isEmpty()) {
+                    enrichmentTasks.add(com.google.android.gms.tasks.Tasks.whenAllComplete(subTasks).continueWith(t -> null));
+                }
             }
 
-            io.execute(() -> dao.replaceReports(result));
+            com.google.android.gms.tasks.Tasks.whenAllComplete(enrichmentTasks)
+                    .addOnCompleteListener(t -> io.execute(() -> dao.replaceReports(result)));
         });
     }
 
@@ -288,22 +339,92 @@ public class AdminManagementRepository {
     }
 
     public void rejectReport(ReportCacheEntity.AdminReportCacheEntity report, ActionCallback callback) {
+        if (report == null || (report.reportId.trim().isEmpty() && report.targetId.trim().isEmpty())) {
+            if (callback != null) callback.onError("Report không hợp lệ.");
+            return;
+        }
+
+        if (report.reportId.trim().isEmpty()) {
+            firestore.collection("reports")
+                    .whereEqualTo("targetId", report.targetId)
+                    .limit(1)
+                    .get()
+                    .addOnSuccessListener(query -> {
+                        if (!query.isEmpty()) {
+                            String rId = query.getDocuments().get(0).getId();
+                            firestore.collection("reports").document(rId)
+                                    .update("status", "REJECTED", "updatedAt", FieldValue.serverTimestamp())
+                                    .addOnSuccessListener(unused -> {
+                                        if (callback != null) callback.onSuccess("Đã từ chối báo cáo.");
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        if (callback != null) callback.onError("Không thể cập nhật report: " + e.getMessage());
+                                    });
+                        } else {
+                            if (callback != null) callback.onError("Không tìm thấy report tương ứng.");
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        if (callback != null) callback.onError("Không tìm thấy report: " + e.getMessage());
+                    });
+            return;
+        }
+
         firestore.collection("reports").document(report.reportId)
                 .update("status", "REJECTED", "updatedAt", FieldValue.serverTimestamp())
-                .addOnSuccessListener(unused -> callback.onSuccess("Đã từ chối báo cáo."))
-                .addOnFailureListener(e -> callback.onError("Không thể cập nhật report: " + e.getMessage()));
+                .addOnSuccessListener(unused -> {
+                    if (callback != null) callback.onSuccess("Đã từ chối báo cáo.");
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) callback.onError("Không thể cập nhật report: " + e.getMessage());
+                });
     }
 
     public void confirmReportViolation(ReportCacheEntity.AdminReportCacheEntity report, ActionCallback callback) {
-        boolean isAccount = "ACCOUNT".equalsIgnoreCase(report.targetType)
-                || "USER".equalsIgnoreCase(report.targetType);
-
-        if (report.targetId == null || report.targetId.trim().isEmpty()) {
-            callback.onError(
-                    "Report chưa có mã đối tượng hợp lệ. Hãy kiểm tra target_accountId/target_postId."
-            );
+        if (report == null || report.targetId == null || report.targetId.trim().isEmpty()) {
+            if (callback != null) callback.onError("Report chưa có mã đối tượng hợp lệ.");
             return;
         }
+
+        if (report.reportId == null || report.reportId.trim().isEmpty()) {
+            firestore.collection("reports")
+                    .whereEqualTo("targetId", report.targetId)
+                    .limit(1)
+                    .get()
+                    .addOnSuccessListener(query -> {
+                        if (!query.isEmpty()) {
+                            report.reportId = query.getDocuments().get(0).getId();
+                            executeConfirmViolation(report, callback);
+                        } else {
+                            firestore.collection("reports")
+                                    .whereEqualTo("target_postId", report.targetId)
+                                    .limit(1)
+                                    .get()
+                                    .addOnSuccessListener(query2 -> {
+                                        if (!query2.isEmpty()) {
+                                            report.reportId = query2.getDocuments().get(0).getId();
+                                            executeConfirmViolation(report, callback);
+                                        } else {
+                                            if (callback != null) callback.onError("Không tìm thấy report tương ứng với bài đăng này.");
+                                        }
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        if (callback != null) callback.onError("Không tìm thấy report: " + e.getMessage());
+                                    });
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        if (callback != null) callback.onError("Không tìm thấy report: " + e.getMessage());
+                    });
+            return;
+        }
+
+        executeConfirmViolation(report, callback);
+    }
+
+    private void executeConfirmViolation(ReportCacheEntity.AdminReportCacheEntity report, ActionCallback callback) {
+        boolean isAccount = "ACCOUNT".equalsIgnoreCase(report.targetType)
+                || "USER".equalsIgnoreCase(report.targetType);
 
         if (isAccount) {
             String targetId = report.targetId;
@@ -315,15 +436,12 @@ public class AdminManagementRepository {
                     "Tài khoản của bạn đã bị khóa do vi phạm quy định của StayExchange.");
 
             batch.commit()
-                    .addOnSuccessListener(unused ->
-                            callback.onSuccess("Đã khóa tài khoản và tạo thông báo cho User."))
-                    .addOnFailureListener(e ->
-                            callback.onError("Không thể xử lý report: " + e.getMessage()));
-            return;
-        }
-
-        if (!"POST".equalsIgnoreCase(report.targetType)) {
-            callback.onError("Loại report không hợp lệ: " + report.targetType);
+                    .addOnSuccessListener(unused -> {
+                        if (callback != null) callback.onSuccess("Đã khóa tài khoản và tạo thông báo cho User.");
+                    })
+                    .addOnFailureListener(e -> {
+                        if (callback != null) callback.onError("Không thể xử lý report: " + e.getMessage());
+                    });
             return;
         }
 
@@ -336,9 +454,11 @@ public class AdminManagementRepository {
                 );
 
                 if (ownerId.isEmpty()) {
-                    callback.onError(
-                            "Đã tìm thấy bài đăng nhưng không có trường accountId/ownerId để gửi thông báo."
-                    );
+                    if (callback != null) {
+                        callback.onError(
+                                "Đã tìm thấy bài đăng nhưng không có trường accountId/ownerId để gửi thông báo."
+                        );
+                    }
                     return;
                 }
 
@@ -362,17 +482,23 @@ public class AdminManagementRepository {
                 );
 
                 batch.commit()
-                        .addOnSuccessListener(unused ->
+                        .addOnSuccessListener(unused -> {
+                            if (callback != null) {
                                 callback.onSuccess(
                                         "Đã ẩn bài đăng và tạo thông báo cho chủ bài đăng."
-                                ))
-                        .addOnFailureListener(e ->
-                                callback.onError("Không thể xử lý report: " + e.getMessage()));
+                                );
+                            }
+                        })
+                        .addOnFailureListener(e -> {
+                            if (callback != null) {
+                                callback.onError("Không thể xử lý report: " + e.getMessage());
+                            }
+                        });
             }
 
             @Override
             public void onError(String message) {
-                callback.onError(message);
+                if (callback != null) callback.onError(message);
             }
         });
     }
@@ -392,10 +518,11 @@ public class AdminManagementRepository {
         addNotification(batch, accountId, type, title, body, "");
     }
     private void addNotification(WriteBatch batch, String accountId, String type, String title, String body, String postId) {
+        if (accountId == null || accountId.trim().isEmpty()) return;
         com.google.firebase.firestore.DocumentReference ref = firestore.collection("notifications").document();
         Map<String, Object> data = new HashMap<>();
         data.put("notificationId", ref.getId());
-        if (!postId.isEmpty()) data.put("postId", postId);
+        if (postId != null && !postId.isEmpty()) data.put("postId", postId);
         data.put("accountId", accountId);
         String recipientUid=accountId;
         for(DocumentSnapshot account:latestAccounts){
