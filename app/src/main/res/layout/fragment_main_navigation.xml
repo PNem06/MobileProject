@@ -16,6 +16,6 @@
         style="@style/Widget.StayExchange.BottomNavigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:elevation="8dp"
+        android:elevation="0dp"
         app:menu="@menu/menu_bottom" />
 </LinearLayout>

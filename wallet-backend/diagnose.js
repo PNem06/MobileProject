@@ -7,10 +7,11 @@ function time(value){
 }
 const last4=value=>String(value||'').slice(-4);
 async function report(db,env,{ids=[],recent=5}={},now=Date.now()){
+  db=require('./payment-storage').PaymentDatabase.from(db);
   const spec=c.bankSpec(env.BANK_CODE),bank=spec?.code||'UNKNOWN';
   const expectedConfiguration=c.hash(JSON.stringify([bank,env.BANK_ACCOUNT_NUMBER,env.RECEIVE_ACCOUNT_NUMBER,env.BANK_SUB_ACCOUNT||'']));
   const docs=ids.length?await Promise.all(ids.map(id=>db.doc('walletTopups/'+id).get())):
-    (await db.collection('walletTopups').orderBy('createdAt','desc').limit(recent).get()).docs;
+    (await db.collection('walletTopups').get()).docs.sort((a,b)=>c.milliseconds(b.get('createdAt'))-c.milliseconds(a.get('createdAt'))).slice(0,recent);
   const rows=[];
   for(const doc of docs){
     if(!doc.exists){rows.push({topupId:doc.id,missing:true});continue;}

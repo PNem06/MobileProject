@@ -8,6 +8,7 @@ public class MobileProjectApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        // Register lifecycle handling only. No notification query starts on the login screen.
         GlobalNotificationListener.init(this);
     }
 }

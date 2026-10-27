@@ -232,8 +232,10 @@ public class AdminManagementRepository {
     private void syncExchangeCache() {
         Map<String, DocumentSnapshot> paymentByExchange = new HashMap<>();
         for (DocumentSnapshot payment : latestPayments) {
+            if ("TOPUP".equals(payment.getString("recordType")) || "WALLET_SYSTEM".equals(payment.getString("recordType"))) continue;
             String exchangeId = firstString(payment, "exchangeId", "exchange_id");
-            if (!exchangeId.isEmpty()) paymentByExchange.put(exchangeId, payment);
+            if (!exchangeId.isEmpty() && (!paymentByExchange.containsKey(exchangeId)
+                    || "RENTAL".equals(payment.getString("recordType")))) paymentByExchange.put(exchangeId, payment);
         }
         List<ExchangeCacheEntity> result = new ArrayList<>();
         Map<String, DocumentSnapshot> accountById = new HashMap<>();

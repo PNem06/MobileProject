@@ -33,6 +33,7 @@ public class WalletViewModel extends AndroidViewModel {
     private final WalletCache cache;
     private final SharedPreferences prefs;
     private final List<ListenerRegistration> signals=new ArrayList<>();
+    private int signalsSchema;
     private final Runnable poll=new Runnable(){@Override public void run(){if(!active||cleared)return;refresh();main.postDelayed(this,30000);}};
     public WalletViewModel(Application app){super(app);cache=new WalletCache(app);prefs=app.getSharedPreferences("sx_wallet_operations",0);}
     public void init(String targetPostId,String exchangeId,String legacyId){
@@ -58,12 +59,19 @@ public class WalletViewModel extends AndroidViewModel {
     public void newTopup(){draftAmount="";open("TOPUP");}
     public void error(String value){message=value;changed();}
     public void start(){active=true;if(loaded){refresh();if(!postId.isEmpty()&&quote.length()==0)loadQuote();}main.removeCallbacks(poll);main.postDelayed(poll,30000);}
-    public void stop(){active=false;online=false;for(ListenerRegistration r:signals)r.remove();signals.clear();main.removeCallbacks(poll);}
+    public void stop(){active=false;online=false;clearSignals();main.removeCallbacks(poll);}
+    private void clearSignals(){for(ListenerRegistration r:signals)r.remove();signals.clear();signalsSchema=0;}
     private void attachSignals(){
-        if(!active||!sameUser()||!signals.isEmpty())return;
+        if(!active||!sameUser())return;
+        int schema=snapshot.optInt("storageSchema",1);
+        if(!signals.isEmpty()&&signalsSchema==schema)return;
+        clearSignals();signalsSchema=schema;
         FirebaseFirestore db=FirebaseFirestore.getInstance();
         signals.add(db.collection("wallets").document(uid).addSnapshotListener(MetadataChanges.INCLUDE,(s,e)->{if(e==null&&s!=null&&!s.getMetadata().isFromCache())refresh();}));
-        signals.add(db.collection("walletTopups").whereEqualTo("userId",uid).addSnapshotListener((s,e)->{if(e==null&&s!=null&&!s.getMetadata().isFromCache())refresh();}));
+        com.google.firebase.firestore.Query topups=schema==2
+                ?db.collection("payments").whereEqualTo("recordType","TOPUP").whereEqualTo("userId",uid)
+                :db.collection("walletTopups").whereEqualTo("userId",uid);
+        signals.add(topups.addSnapshotListener((s,e)->{if(e==null&&s!=null&&!s.getMetadata().isFromCache())refresh();}));
         signals.add(db.collection("exchanges").whereEqualTo("requesterUid",uid).addSnapshotListener((s,e)->{if(e==null&&s!=null&&!s.getMetadata().isFromCache())refresh();}));
         signals.add(db.collection("exchanges").whereEqualTo("hostUid",uid).addSnapshotListener((s,e)->{if(e==null&&s!=null&&!s.getMetadata().isFromCache())refresh();}));
     }

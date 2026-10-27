@@ -48,6 +48,43 @@ test('wallet notices are created only by the server and recipients may mark them
 test('locked admins lose report and payment moderation access',async()=>{
  await assertFails(getDocs(collection(db('locked'),'payments')));await assertFails(updateDoc(doc(db('locked'),'reports/report'),{status:'RESOLVED'}));await assertFails(updateDoc(doc(db('locked'),'exchanges/legacy'),{status:'CANCELLED'}));
 });
+test('consolidated topups allow only owner-filtered reads and deny every client write',async()=>{
+ await env.withSecurityRulesDisabled(async ctx=>{
+  await setDoc(doc(ctx.firestore(),'payments/NAP0123456789ABCDEF'),{recordType:'TOPUP',userId:'A',amount:10000,status:'PAID'});
+  await setDoc(doc(ctx.firestore(),'payments/NAPAAAAAAAAAAAAAAAA'),{recordType:'TOPUP',userId:'B',amount:20000,status:'PENDING'});
+ });
+ const p='payments/NAP0123456789ABCDEF';
+ await assertSucceeds(getDoc(doc(db('A'),p)));await assertFails(getDoc(doc(db('B'),p)));
+ await assertSucceeds(getDocs(query(collection(db('A'),'payments'),where('recordType','==','TOPUP'),where('userId','==','A'))));
+ await assertFails(getDocs(collection(db('A'),'payments')));
+ for(const uid of ['A','admin']){await assertFails(updateDoc(doc(db(uid),p),{status:'PAID',amount:999999}));await assertFails(deleteDoc(doc(db(uid),p)));}
+ await assertFails(setDoc(doc(db('A'),'payments/forged'),{recordType:'TOPUP',userId:'A',status:'PAID',amount:999999}));
+});
+test('consolidated rental payments are visible to both participants and active admin only',async()=>{
+ const p='payments/rental_WXTEST';await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),p),{recordType:'RENTAL',requesterUid:'A',hostUid:'B',adminUid:'admin',amount:10000,status:'PAID'}));
+ for(const uid of ['A','B','admin'])await assertSucceeds(getDoc(doc(db(uid),p)));
+ for(const uid of ['C','locked'])await assertFails(getDoc(doc(db(uid),p)));
+ await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(),p)));
+ await assertFails(updateDoc(doc(db('admin'),p),{status:'REFUNDED'}));
+});
+test('nested payment ledger remains private and balances cannot be forged',async()=>{
+ const p='payments/_system/ledger/topup_1';await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),p),{userId:'A',pocket:'available',amount:10000}));
+ await assertSucceeds(getDoc(doc(db('A'),p)));await assertFails(getDoc(doc(db('B'),p)));
+ await assertSucceeds(getDocs(query(collection(db('A'),'payments/_system/ledger'),where('userId','==','A'))));
+ await assertFails(getDocs(collection(db('A'),'payments/_system/ledger')));
+ for(const uid of ['A','admin'])await assertFails(setDoc(doc(db(uid),'payments/_system/ledger/fake'),{userId:'A',amount:999999}));
+});
+test('bank events, retry markers and locks under payments stay server-only',async()=>{
+ for(const group of ['bankEvents','operations','topupLocks','bookingLocks']){
+  const p='payments/_system/'+group+'/internal';await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),p),{userId:'A',secret:'internal'}));
+  for(const uid of ['A','admin']){await assertFails(getDoc(doc(db(uid),p)));await assertFails(updateDoc(doc(db(uid),p),{userId:'B'}));await assertFails(deleteDoc(doc(db(uid),p)));}
+ }
+});
+test('payment schema control cannot be read by a normal client or changed by an admin client',async()=>{
+ const p='payments/_system';await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),p),{recordType:'WALLET_SYSTEM',storageSchema:2,mode:'READY'}));
+ await assertFails(getDoc(doc(db('A'),p)));await assertSucceeds(getDoc(doc(db('admin'),p)));
+ for(const uid of ['A','admin'])await assertFails(updateDoc(doc(db(uid),p),{storageSchema:1}));
+});
 const pending={requester_accountId:'A',requesterId:'A',host_accountId:'B',hostId:'B',postId:'room',offeredPostId:'offered',status:'PENDING',exchangeType:'RECIPROCAL'};
 test('pending reciprocal creation checks ownership and refuses paid or forged participant fields',async()=>{
  await assertSucceeds(setDoc(doc(db('A'),'exchanges/newSwap'),pending));await assertFails(setDoc(doc(db('A'),'exchanges/fakePaid'),{...pending,walletManaged:true,paymentStatus:'PAID'}));await assertFails(setDoc(doc(db('A'),'exchanges/fakeGuest'),{...pending,requesterId:'C'}));await assertFails(setDoc(doc(db('A'),'exchanges/fakeHost'),{...pending,hostId:'C'}));
@@ -82,11 +119,18 @@ test('legacy exchangeRequests recipient queries remain available to their partic
  await env.withSecurityRulesDisabled(async ctx=>{await setDoc(doc(ctx.firestore(),'exchangeRequests/old'),{senderId:'A',recipientId:'B',targetPostId:'room',offeredPostId:'offered',status:'pending'});});await assertSucceeds(getDocs(query(collection(db('B'),'exchangeRequests'),where('recipientId','==','B'))));await assertFails(getDocs(query(collection(db('C'),'exchangeRequests'),where('recipientId','==','B'))));
 });
 async function lockedPost(){await env.withSecurityRulesDisabled(async ctx=>{const store=ctx.firestore();await setDoc(doc(store,'posts/room'),{accountId:'B',status:'BOOKED',title:'Reserved',bookingKey:'exchanges/wallet',bookingExchangeId:'wallet',bookingPartyIds:['A','B'],bookingState:'CONFIRMED',bookingPreviousStatus:'APPROVED'});for(const source of ['images','postImages'])await setDoc(doc(store,source+'/cover'),{postId:'room',imageUrl:'https://example.com/room.jpg'});});}
-test('only the booked parties and active admin can read the hidden post and image documents',async()=>{
- await lockedPost();for(const uid of ['A','B','admin']){await assertSucceeds(getDoc(doc(db(uid),'posts/room')));await assertSucceeds(getDocs(query(collection(db(uid),'images'),where('postId','==','room'))));await assertSucceeds(getDoc(doc(db(uid),'postImages/cover')));}for(const uid of ['C','locked']){await assertFails(getDoc(doc(db(uid),'posts/room')));await assertFails(getDoc(doc(db(uid),'images/cover')));await assertFails(getDocs(query(collection(db(uid),'images'),where('postId','==','room'))));}
+test('preserved Console policy: unfinished BOOKED posts and photos remain readable',async()=>{
+ await lockedPost();
+ for(const store of [db('A'),db('B'),db('C'),db('admin'),db('locked'),env.unauthenticatedContext().firestore()]){
+  await assertSucceeds(getDoc(doc(store,'posts/room')));
+  await assertSucceeds(getDoc(doc(store,'images/cover')));
+  await assertSucceeds(getDoc(doc(store,'postImages/cover')));
+ }
 });
-test('public search excludes booked posts while owner and participant queries keep working',async()=>{
- await lockedPost();const rows=await assertSucceeds(getDocs(query(collection(db('C'),'posts'),where('status','==','APPROVED'))));if(rows.docs.some(d=>d.id==='room'))throw Error('Booked post leaked to search');await assertSucceeds(getDocs(query(collection(db('A'),'posts'),where('bookingPartyIds','array-contains','A'))));await assertSucceeds(getDocs(query(collection(db('B'),'posts'),where('accountId','==','B'))));await assertSucceeds(getDocs(query(collection(db('B'),'posts'),where('ownerId','==','B'))));await assertSucceeds(getDocs(collection(db('admin'),'posts')));await assertFails(getDocs(collection(db('C'),'posts')));
+test('preserved Console policy: status-filtered public search excludes BOOKED posts',async()=>{
+ await lockedPost();
+ const rows=await assertSucceeds(getDocs(query(collection(db('C'),'posts'),where('status','==','APPROVED'))));
+ if(rows.docs.some(d=>d.id==='room'))throw Error('Status-filtered search included a booked post');
 });
 test('clients cannot remove locks, republish, edit images or delete reserved posts',async()=>{
  await lockedPost();for(const uid of ['A','B','admin']){await assertFails(updateDoc(doc(db(uid),'posts/room'),{bookingKey:'',bookingPartyIds:[]}));await assertFails(updateDoc(doc(db(uid),'posts/room'),{status:'APPROVED'}));await assertFails(deleteDoc(doc(db(uid),'posts/room')));}await assertFails(updateDoc(doc(db('B'),'posts/room'),{title:'Changed'}));await assertFails(deleteDoc(doc(db('B'),'images/cover')));await assertFails(updateDoc(doc(db('B'),'images/cover'),{imageUrl:'https://example.com/other.jpg'}));await assertSucceeds(updateDoc(doc(db('admin'),'posts/room'),{status:'HIDDEN'}));
@@ -104,7 +148,7 @@ async function emulatorService(t){
  const service=new WalletService(store,Timestamp,{adminUid:'admin',bankCode:'MBBank',bankAccount:'123456789',receiveAccount:'123456789',accountName:'ADMIN',topupMinutes:15},()=>now);const actor=uid=>({uid,accountId:uid,name:uid,isAdmin:false,isModerator:false});const pay=uid=>service.pay(actor(uid),{postId:'raceRoom',expectedAmount:10000,operationId:'emulator_pay_'+uid+'_0001'});return {store,service,actor,pay,updateExchange};
 }
 test('real Firestore transactions: two guests produce exactly one booking and one debit',async t=>{
- const h=await emulatorService(t),results=await Promise.allSettled([h.pay('A'),h.pay('C')]);if(results.filter(x=>x.status==='fulfilled').length!==1)throw Error('Expected one successful booking: '+JSON.stringify(results));const [a,c,admin,post]=await Promise.all(['wallets/A','wallets/C','wallets/admin','posts/raceRoom'].map(p=>h.store.doc(p).get()));if(a.get('available')+c.get('available')!==50000||admin.get('held')!==10000||post.get('status')!=='BOOKED')throw Error('Reservation and wallet were not atomic');await assertFails(getDoc(doc(db('locked'),'posts/raceRoom')));
+ const h=await emulatorService(t),results=await Promise.allSettled([h.pay('A'),h.pay('C')]);if(results.filter(x=>x.status==='fulfilled').length!==1)throw Error('Expected one successful booking: '+JSON.stringify(results));const [a,c,admin,post]=await Promise.all(['wallets/A','wallets/C','wallets/admin','posts/raceRoom'].map(p=>h.store.doc(p).get()));if(a.get('available')+c.get('available')!==50000||admin.get('held')!==10000||post.get('status')!=='BOOKED')throw Error('Reservation and wallet were not atomic');await assertSucceeds(getDoc(doc(db('locked'),'posts/raceRoom')));
 });
 test('real Firestore transactions: wallet payment and reciprocal acceptance cannot both win',async t=>{
  const h=await emulatorService(t);await h.store.doc('exchanges/raceSwap').set({requester_accountId:'A',host_accountId:'B',postId:'raceRoom',offeredPostId:'raceOffer',status:'PENDING',exchangeType:'RECIPROCAL'});const results=await Promise.allSettled([h.pay('C'),h.updateExchange(h.service,h.actor('B'),{exchangeId:'raceSwap',updates:{status:'ACCEPTED'}})]);if(results.filter(x=>x.status==='fulfilled').length!==1)throw Error('Expected one winning flow: '+JSON.stringify(results));const post=await h.store.doc('posts/raceRoom').get(),offer=await h.store.doc('posts/raceOffer').get(),guest=await h.store.doc('wallets/C').get(),paid=results[0].status==='fulfilled';if(offer.get('status')!==(paid?'APPROVED':'BOOKED')||post.get('status')!=='BOOKED'||guest.get('available')!==(paid?20000:30000))throw Error('Losing flow changed a post or charged the guest');
@@ -124,12 +168,11 @@ test('Console compatibility: registration rejects forged roles, balances and ide
  await assertSucceeds(updateDoc(doc(db('D'),'accounts/D'),{fullName:'Updated',googleUid:'D'}));
  await assertFails(updateDoc(doc(db('D'),'accounts/D'),{googleUid:'C'}));await assertFails(updateDoc(doc(db('admin'),'accounts/D'),{walletBalance:123}));await assertFails(deleteDoc(doc(db('D'),'accounts/D')));
 });
-test('Console compatibility: public listings and amenities remain public while pending and booked posts are private',async()=>{
+test('preserved Console policy: approved listings and amenities are public, pending posts require ownership',async()=>{
  await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'posts/draft'),{accountId:'A',status:'PENDING'});await setDoc(doc(c.firestore(),'amenities/wifi'),{name:'WiFi'});await setDoc(doc(c.firestore(),'images/publicCover'),{postId:'room',imgUrl:'public'});});
  const anonymous=env.unauthenticatedContext().firestore();
  await assertSucceeds(getDoc(doc(anonymous,'posts/room')));await assertSucceeds(getDocs(query(collection(anonymous,'posts'),where('status','==','APPROVED'))));await assertSucceeds(getDoc(doc(anonymous,'images/publicCover')));await assertSucceeds(getDocs(collection(anonymous,'amenities')));
  await assertFails(getDoc(doc(anonymous,'posts/draft')));await assertFails(getDoc(doc(db('C'),'posts/draft')));await assertSucceeds(getDoc(doc(db('A'),'posts/draft')));
- await lockedPost();await assertFails(getDoc(doc(anonymous,'posts/room')));await assertFails(getDoc(doc(anonymous,'images/cover')));
 });
 test('New_Post can create its parent and both image schemas in one batch',async()=>{
  const store=db('A'),batch=writeBatch(store);
@@ -156,10 +199,10 @@ test('a stale Detail delete cannot remove any image after a concurrent booking',
  const batch=writeBatch(store);for(const image of photos.docs)batch.delete(image.ref);batch.delete(doc(store,'posts/room'));await assertFails(batch.commit());
  await env.withSecurityRulesDisabled(async c=>{if(!(await getDoc(doc(c.firestore(),'images/stale'))).exists())throw Error('Rejected delete removed a reserved photo');});
 });
-test('orphan photos do not become public after their parent disappears',async()=>{
+test('preserved Console policy: orphan photos remain unreadable including for admin',async()=>{
  await env.withSecurityRulesDisabled(async c=>setDoc(doc(c.firestore(),'images/orphan'),{postId:'missingParent',imgUrl:'private'}));
  for(const store of [db('A'),env.unauthenticatedContext().firestore()])await assertFails(getDoc(doc(store,'images/orphan')));
- await assertSucceeds(getDoc(doc(db('admin'),'images/orphan')));
+ await assertFails(getDoc(doc(db('admin'),'images/orphan')));
 });
 test('Console compatibility: missing favorite subscriptions and owner toggles still work',async()=>{
  const store=db('A');await assertSucceeds(getDoc(doc(store,'favorites/A_room')));await assertSucceeds(setDoc(doc(store,'favorites/A_room'),{userId:'A',postId:'room'}));
@@ -203,15 +246,87 @@ test('conversations require two distinct string participants and a truthful send
  await assertFails(setDoc(doc(db('A'),'conversations/self'),{participant1Id:'A',participant2Id:'A'}));await assertFails(setDoc(doc(db('A'),'conversations/number'),{participant1Id:'A',participant2Id:42}));await assertFails(setDoc(doc(db('A'),'conversations/forgedSender'),{...participants,lastMessageSenderId:'B'}));
  await assertSucceeds(messageBatch(db('A'),'truthful','A').commit());await assertFails(updateDoc(doc(db('A'),'conversations/A_B'),{lastMessage:'Forged',lastMessageSenderId:'B'}));
 });
-test('reports and reviews retain Console author and rating validation',async()=>{
+test('reports and the current Review screen retain submitted Console author and rating validation',async()=>{
  await assertSucceeds(setDoc(doc(db('A'),'reports/new'),{reporterId:'A',target_postId:'room'}));await assertFails(setDoc(doc(db('A'),'reports/forged'),{reporterId:'B'}));
- await assertSucceeds(setDoc(doc(db('A'),'reviews/new'),{reviewerId:'A',rating:4,comment:'Good'}));await assertSucceeds(updateDoc(doc(db('A'),'reviews/new'),{rating:5,comment:'Updated'}));await assertFails(setDoc(doc(db('A'),'reviews/forged'),{reviewerId:'B',rating:5}));await assertFails(updateDoc(doc(db('A'),'reviews/new'),{rating:6}));await assertFails(updateDoc(doc(db('B'),'reviews/new'),{comment:'Replaced'}));
+ const review={reviewId:'new',postId:'room',reviewer_accountId:'A',rating:4,comment:'Good',createdAt:serverTimestamp()};
+ await assertSucceeds(setDoc(doc(db('A'),'reviews/new'),review));
+ await assertFails(setDoc(doc(db('B'),'reviews/forged'),review));
+ await assertFails(setDoc(doc(db('A'),'reviews/range'),{...review,rating:6}));
+ await assertFails(setDoc(doc(db('A'),'reviews/extra'),{...review,reviewerName:'A'}));
+ await assertFails(updateDoc(doc(db('A'),'reviews/new'),{rating:5,comment:'Updated'}));
+ await assertFails(updateDoc(doc(db('B'),'reviews/new'),{comment:'Replaced'}));
+ await assertFails(deleteDoc(doc(db('admin'),'reviews/new')));
 });
-test('booked posts honor trusted legacy account aliases without granting outsiders access',async()=>{
+test('preserved Console policy: readable BOOKED posts do not permit forged account aliases',async()=>{
  await env.withSecurityRulesDisabled(async c=>{const s=c.firestore();await updateDoc(doc(s,'accounts/A'),{accountId:'legacyA'});await updateDoc(doc(s,'accounts/B'),{accountId:'legacyB'});await setDoc(doc(s,'posts/aliasRoom'),{accountId:'legacyB',status:'BOOKED',bookingKey:'exchanges/alias',bookingPartyIds:['legacyA','legacyB']});});
- for(const uid of ['A','B','admin'])await assertSucceeds(getDoc(doc(db(uid),'posts/aliasRoom')));await assertFails(getDoc(doc(db('C'),'posts/aliasRoom')));await assertFails(updateDoc(doc(db('C'),'accounts/C'),{accountId:'legacyA'}));
+ for(const uid of ['A','B','C','admin'])await assertSucceeds(getDoc(doc(db(uid),'posts/aliasRoom')));
+ await assertFails(updateDoc(doc(db('C'),'accounts/C'),{accountId:'legacyA'}));
 });
-test('old conflict locks stay closed until server-side review resolves the history',async()=>{
+test('conflict booking locks remain server-only with the submitted post visibility unchanged',async()=>{
  await env.withSecurityRulesDisabled(async c=>setDoc(doc(c.firestore(),'posts/conflict'),{accountId:'B',status:'BOOKED',bookingKey:'conflict/conflict',bookingState:'CONFLICT',bookingPartyIds:[]}));
- for(const uid of ['B','admin'])await assertSucceeds(getDoc(doc(db(uid),'posts/conflict')));await assertFails(getDoc(doc(db('C'),'posts/conflict')));await assertFails(updateDoc(doc(db('admin'),'posts/conflict'),{bookingKey:'',bookingPartyIds:['A','B'],status:'APPROVED'}));await assertFails(setDoc(doc(db('A'),'exchanges/conflictRequest'),{...pending,postId:'conflict'}));
+ for(const uid of ['B','C','admin'])await assertSucceeds(getDoc(doc(db(uid),'posts/conflict')));
+ await assertFails(updateDoc(doc(db('admin'),'posts/conflict'),{bookingKey:'',bookingPartyIds:['A','B'],status:'APPROVED'}));
+ await assertFails(setDoc(doc(db('A'),'exchanges/conflictRequest'),{...pending,postId:'conflict'}));
+});
+
+
+test('payment migration compatibility: rental list queries require a participant UID and type',async()=>{
+ await env.withSecurityRulesDisabled(async ctx=>{
+  const s=ctx.firestore();
+  await setDoc(doc(s,'payments/rental_one'),{recordType:'RENTAL',requesterUid:'A',hostUid:'B',amount:10000});
+  await setDoc(doc(s,'payments/rental_other'),{recordType:'RENTAL',requesterUid:'C',hostUid:'B',amount:20000});
+ });
+ await assertSucceeds(getDocs(query(collection(db('A'),'payments'),where('recordType','==','RENTAL'),where('requesterUid','==','A'))));
+ await assertSucceeds(getDocs(query(collection(db('B'),'payments'),where('recordType','==','RENTAL'),where('hostUid','==','B'))));
+ await assertFails(getDocs(query(collection(db('C'),'payments'),where('recordType','==','RENTAL'),where('requesterUid','==','A'))));
+ await assertFails(getDocs(query(collection(db('A'),'payments'),where('recordType','==','RENTAL'))));
+});
+test('payment migration compatibility: topup queries cannot omit the owner or payment type',async()=>{
+ await assertFails(getDocs(query(collection(db('A'),'payments'),where('recordType','==','TOPUP'))));
+ await assertFails(getDocs(query(collection(db('A'),'payments'),where('userId','==','A'))));
+ await assertFails(getDocs(query(collection(env.unauthenticatedContext().firestore(),'payments'),where('recordType','==','TOPUP'),where('userId','==','A'))));
+});
+test('payment migration compatibility: original wallet collections remain private and client read-only',async()=>{
+ await env.withSecurityRulesDisabled(async ctx=>{
+  for(const group of ['walletTopups','walletLedger'])await setDoc(doc(ctx.firestore(),group+'/old'),{userId:'A',amount:10000});
+ });
+ for(const group of ['walletTopups','walletLedger']){
+  await assertSucceeds(getDocs(query(collection(db('A'),group),where('userId','==','A'))));
+  await assertFails(getDoc(doc(db('B'),group+'/old')));
+  for(const uid of ['A','admin'])await assertFails(updateDoc(doc(db(uid),group+'/old'),{amount:999999}));
+ }
+ for(const group of ['walletBankEvents','walletOperations','walletTopupLocks','walletBookingLocks']){
+  await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),group+'/old'),{userId:'A'}));
+  for(const uid of ['A','admin'])await assertFails(getDoc(doc(db(uid),group+'/old')));
+ }
+});
+test('payment migration compatibility: unknown payment kinds and unlisted descendants fail closed',async()=>{
+ await env.withSecurityRulesDisabled(async ctx=>{
+  await setDoc(doc(ctx.firestore(),'payments/unknown'),{recordType:'OTHER',userId:'A'});
+  await setDoc(doc(ctx.firestore(),'payments/_system/unknown/private'),{userId:'A'});
+  await setDoc(doc(ctx.firestore(),'payments/NAPONE/details/private'),{userId:'A'});
+ });
+ await assertFails(getDoc(doc(db('A'),'payments/unknown')));
+ await assertSucceeds(getDoc(doc(db('admin'),'payments/unknown')));
+ for(const uid of ['A','admin'])for(const path of ['payments/_system/unknown/private','payments/NAPONE/details/private'])await assertFails(getDoc(doc(db(uid),path)));
+});
+test('payment migration compatibility: notices reject anonymous reads and cross-user queries',async()=>{
+ const anon=env.unauthenticatedContext().firestore();
+ await assertFails(getDoc(doc(anon,'notifications/walletNotice')));
+ await assertFails(getDoc(doc(anon,'accounts/A/notifications/oldNotice')));
+ await assertSucceeds(getDocs(query(collection(db('A'),'notifications'),where('userId','==','A'))));
+ await assertFails(getDocs(query(collection(db('B'),'notifications'),where('userId','==','A'))));
+ await assertFails(updateDoc(doc(db('B'),'notifications/walletNotice'),{isRead:true}));
+});
+
+test('preserved Console policy: COMPLETED plus BOOKED denies every client including parties and admin',async()=>{
+ await lockedPost();
+ for(const field of ['bookingState','exchangeStatus'])for(const state of ['COMPLETE','COMPLETED']){
+  await env.withSecurityRulesDisabled(ctx=>updateDoc(doc(ctx.firestore(),'posts/room'),{bookingState:'CONFIRMED',exchangeStatus:'', [field]:state}));
+  for(const store of [db('A'),db('B'),db('C'),db('admin'),env.unauthenticatedContext().firestore()]){
+   await assertFails(getDoc(doc(store,'posts/room')));
+   await assertFails(getDoc(doc(store,'images/cover')));
+   await assertFails(getDoc(doc(store,'postImages/cover')));
+  }
+ }
 });

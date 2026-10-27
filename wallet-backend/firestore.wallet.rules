@@ -7,6 +7,21 @@ service cloud.firestore {
         ? get(/databases/$(database)/documents/accounts/$(request.auth.uid)).data.get('accountId',request.auth.uid)
         : request.auth.uid;
     }
+    function completedPost(p) {
+  return p.get('bookingState', '') in ['COMPLETE', 'COMPLETED']
+      || p.get('exchangeStatus', '') in ['COMPLETE', 'COMPLETED'];
+}
+
+function visiblePost(p) {
+  return (p.get('status', '') == 'BOOKED' && !completedPost(p))
+      || (p.get('status', '') != 'BOOKED'
+          && (publicPost(p)
+              || (signed() && (admin()
+                  || p.get('accountId', '') in [request.auth.uid, myId()]
+                  || p.get('ownerId', '') in [request.auth.uid, myId()]
+                  || request.auth.uid in p.get('bookingPartyIds', [])
+                  || myId() in p.get('bookingPartyIds', [])))));
+}
     function admin() {
       return signed() && exists(/databases/$(database)/documents/accounts/$(request.auth.uid))
         && get(/databases/$(database)/documents/accounts/$(request.auth.uid)).data.get('role','') == 'ADMIN'
@@ -17,12 +32,6 @@ service cloud.firestore {
       return p.get('accountId',p.get('ownerId','')) in [request.auth.uid,myId()];
     }
     function publicPost(p) { return p.get('status','') in ['APPROVED','PUBLIC','ACTIVE']; }
-    function visiblePost(p) {
-      // Approved public listings remain public; reserved/private posts require membership.
-      return publicPost(p) || (signed() && (admin()
-        || p.get('accountId','') in [request.auth.uid,myId()] || p.get('ownerId','') in [request.auth.uid,myId()]
-        || request.auth.uid in p.get('bookingPartyIds',[]) || myId() in p.get('bookingPartyIds',[])));
-    }
     function availablePost(id) {
       let p = get(/databases/$(database)/documents/posts/$(id)).data;
       return publicPost(p) && p.get('bookingKey','') == '';
@@ -174,13 +183,17 @@ service cloud.firestore {
       allow delete: if signed() && resource.data.get('bookingKey','') == '' && (admin() || own(resource.data));
     }
     match /images/{id} {
-      allow read: if admin() || visiblePost(get(/databases/$(database)/documents/posts/$(resource.data.postId)).data);
+      allow read: if visiblePost(
+  get(/databases/$(database)/documents/posts/$(resource.data.postId)).data
+);
       allow create: if signed() && ownUnreservedPostAfter(request.resource.data.postId);
       allow update: if signed() && (admin() || ownsPost(resource.data.postId)) && unreservedPost(resource.data.postId) && request.resource.data.postId == resource.data.postId;
       allow delete: if signed() && unreservedPost(resource.data.postId) && (admin() || ownsPost(resource.data.postId));
     }
     match /postImages/{id} {
-      allow read: if admin() || visiblePost(get(/databases/$(database)/documents/posts/$(resource.data.postId)).data);
+      allow read: if visiblePost(
+  get(/databases/$(database)/documents/posts/$(resource.data.postId)).data
+);
       allow create: if signed() && ownUnreservedPostAfter(request.resource.data.postId);
       allow update: if signed() && (admin() || ownsPost(resource.data.postId)) && unreservedPost(resource.data.postId) && request.resource.data.postId == resource.data.postId;
       allow delete: if signed() && unreservedPost(resource.data.postId) && (admin() || ownsPost(resource.data.postId));
@@ -275,16 +288,43 @@ service cloud.firestore {
         && request.resource.data.get('reporterId', request.auth.uid) in [request.auth.uid, myId()];
       allow update, delete: if admin();
     }
-    match /payments/{id} { allow read: if admin(); allow write: if false; }
-    match /reviews/{id} {
-      allow read: if true;
-      allow create: if signed() && request.resource.data.reviewerId in [request.auth.uid, myId()]
-        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
-      allow update: if signed() && (admin() || resource.data.reviewerId in [request.auth.uid, myId()])
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comment', 'rating'])
-        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
-      allow delete: if admin();
+    match /payments/{id} {
+      allow read: if admin() || (signed() && (
+        (resource.data.get('recordType','') == 'TOPUP' && resource.data.userId == request.auth.uid)
+        || (resource.data.get('recordType','') == 'RENTAL'
+          && request.auth.uid in [resource.data.get('requesterUid',''),resource.data.get('hostUid','')])
+      ));
+      allow write: if false;
     }
+    match /payments/_system/ledger/{id} {
+      allow read: if signed() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+    match /payments/_system/{internalCollection}/{id} {
+      allow read,write: if false;
+    }
+    match /reviews/{reviewId} {
+  allow read: if request.auth != null;
+
+  allow create: if request.auth != null
+    && request.resource.data.reviewer_accountId == request.auth.uid
+    && request.resource.data.postId is string
+    && request.resource.data.rating is int
+    && request.resource.data.rating >= 1
+    && request.resource.data.rating <= 5
+    && request.resource.data.comment is string
+    && request.resource.data.createdAt is timestamp
+    && request.resource.data.keys().hasOnly([
+      "reviewId",
+      "postId",
+      "reviewer_accountId",
+      "rating",
+      "comment",
+      "createdAt"
+    ]);
+
+  allow update, delete: if false;
+}
     match /{document=**} { allow read,write: if false; }
   }
 }

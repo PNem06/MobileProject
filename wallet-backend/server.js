@@ -10,7 +10,7 @@ function createServer({service,authenticate,webhookKey,logger=console}){
     const send=(status,data)=>{res.writeHead(status);res.end(JSON.stringify(data));};
     try{
       const path=new URL(req.url,'http://localhost').pathname;
-      if(req.method==='GET'&&path==='/health')return send(200,{ok:true,apiVersion:3,postReservationVersion:1,app:'StayExchange Wallet',bank:service.bankInfo().code,backendVersion});
+      if(req.method==='GET'&&path==='/health')return send(200,{ok:true,apiVersion:3,postReservationVersion:1,app:'StayExchange Wallet',bank:service.bankInfo().code,backendVersion,...(service.storageStatus?await service.storageStatus():{})});
       c.must(req.method==='POST','Chỉ hỗ trợ POST.',405);
       const webhook=path==='/webhooks/sepay';
       if(webhook)c.must(c.authorization(req.headers.authorization,webhookKey),'Webhook chưa được xác thực.',401);
@@ -55,11 +55,13 @@ async function main(){
   c.must(env.SEPAY_WEBHOOK_KEY.length>=32,'Khóa webhook cần tối thiểu 32 ký tự.');
   const topupMinutes=Number(env.TOPUP_TTL_MINUTES||15);c.must(Number.isInteger(topupMinutes)&&topupMinutes>=1&&topupMinutes<=60,'TOPUP_TTL_MINUTES phải từ 1 đến 60.');
   initializeApp({credential:applicationDefault(),projectId:env.FIREBASE_PROJECT_ID});
-  const service=new WalletService(getFirestore(),Timestamp,{adminUid:env.ADMIN_UID,bankCode:bank.code,bankAccount:env.BANK_ACCOUNT_NUMBER,receiveAccount:env.RECEIVE_ACCOUNT_NUMBER,
+  const service=new WalletService(getFirestore(),Timestamp,{projectId:env.FIREBASE_PROJECT_ID,adminUid:env.ADMIN_UID,bankCode:bank.code,bankAccount:env.BANK_ACCOUNT_NUMBER,receiveAccount:env.RECEIVE_ACCOUNT_NUMBER,
     bankSubAccount:env.BANK_SUB_ACCOUNT||'',accountName:env.BANK_ACCOUNT_NAME,topupMinutes});
   const admin=await service.actor(env.ADMIN_UID);c.must(admin.isAdmin,'Không tìm thấy tài khoản admin.');
-  await service.ensureWallet(admin);
-  console.log('Post reservations:',JSON.stringify(await service.reservations.synchronize()));
+  if((await service.storageStatus()).storageState==='READY'){
+    await service.ensureWallet(admin);
+    console.log('Post reservations:',JSON.stringify(await service.reservations.synchronize()));
+  }else console.log('Payment storage migration in progress; financial requests will retry.');
   const server=createServer({service,webhookKey:env.SEPAY_WEBHOOK_KEY,authenticate:async token=>{
     try{return await getAuth().verifyIdToken(token,true);}catch(_){throw new c.ApiError(401,'Phiên đăng nhập đã hết hạn hoặc không thuộc Firebase project này.');}
   }});
