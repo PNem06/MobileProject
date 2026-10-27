@@ -149,6 +149,11 @@ public class AuthService {
                 .addOnFailureListener(e -> { auth.signOut(); callback.onError("Không đọc được hồ sơ: " + e.getMessage()); });
     }
     private void validateProfile(DocumentSnapshot doc, Callback callback) {
+        FirebaseUser current = auth.getCurrentUser();
+        if (current == null || !doc.getId().equals(current.getUid())) {
+            callback.onError("Phiên đăng nhập đã thay đổi. Vui lòng đăng nhập lại.");
+            return;
+        }
         if (!doc.exists()) { auth.signOut(); callback.onError("Tài khoản chưa có hồ sơ accounts tương ứng."); return; }
         String status = doc.getString("status");
         String role = doc.getString("role");
@@ -162,6 +167,7 @@ public class AuthService {
             return;
         }
         if (!"USER".equals(role) && !"ADMIN".equals(role)) { auth.signOut(); callback.onError("Vai trò tài khoản không hợp lệ."); return; }
+        com.example.mobileproject.util.GlobalNotificationListener.onLoginValidated(current.getUid());
         callback.onSuccess(role);
     }
     public void signOut() {
