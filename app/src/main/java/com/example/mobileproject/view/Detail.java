@@ -25,6 +25,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.example.mobileproject.data.LocalCache;
 import com.example.mobileproject.R;
 import com.example.mobileproject.data.ReportCacheEntity;
 import com.example.mobileproject.repository.AdminManagementRepository;
@@ -57,13 +58,16 @@ import android.view.Gravity;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
-
+import org.json.JSONObject;
 import java.text.ParseException;
 
 public class Detail extends AppCompatActivity {
     public static final String EXTRA_POST_ID = "postId";
 
     private FirebaseFirestore db;
+    private LocalCache offlineCache;
+    private String offlineScope;
+    private boolean cachedRoomRestored;
     private ListenerRegistration roomListener;
     private ListenerRegistration favoriteListener;
     private ListenerRegistration reviewsListener;
@@ -147,8 +151,12 @@ public class Detail extends AppCompatActivity {
         if (postId == null) postId = "";
 
         db = FirebaseFirestore.getInstance();
+        offlineCache = new LocalCache(getApplicationContext());
+        offlineScope = "post_detail:" + postId;
         preferences = getSharedPreferences("room_favorites", MODE_PRIVATE);
         initViews();
+        restoreCachedRoom();
+        restoreCachedImages();
         setupRecentReviews();
         setupEvents();
         setupFavorite();
@@ -332,6 +340,10 @@ public class Detail extends AppCompatActivity {
                         return;
                     }
                     if (snapshot == null || !snapshot.exists()) {
+                        // Khi offline, snapshot cache có thể không chứa bài đăng dù SQLite đã lưu.
+                        // Giữ nội dung đã khôi phục thay vì báo bài đăng không tồn tại.
+                        if (cachedRoomRestored
+                                && (snapshot == null || snapshot.getMetadata().isFromCache())) return;
                         Toast.makeText(
                                 this,
                                 "Bài đăng không tồn tại hoặc đã bị xóa",
@@ -339,8 +351,70 @@ public class Detail extends AppCompatActivity {
                         ).show();
                         return;
                     }
+                    cacheRoom(snapshot);
                     renderRoom(snapshot);
                 });
+    }
+
+    private void cacheRoom(DocumentSnapshot doc) {
+        if (offlineCache == null || doc == null || !doc.exists()) return;
+        try {
+            JSONObject cached = new JSONObject();
+            cached.put("id", doc.getId());
+            Map<String, Object> values = doc.getData();
+            if (values != null) {
+                for (Map.Entry<String, Object> entry : values.entrySet()) {
+                    Object value = entry.getValue();
+                    if (value instanceof com.google.firebase.Timestamp) value = ((com.google.firebase.Timestamp) value).toDate().getTime();
+                    if (value instanceof Date) value = ((Date) value).getTime();
+                    if (value instanceof String || value instanceof Number || value instanceof Boolean || value == null) {
+                        cached.put(entry.getKey(), value);
+                    } else if (value instanceof List) {
+                        org.json.JSONArray array = new org.json.JSONArray();
+                        for (Object item : (List<?>) value) {
+                            if (item instanceof String || item instanceof Number || item instanceof Boolean) array.put(item);
+                        }
+                        cached.put(entry.getKey(), array);
+                    }
+                }
+            }
+            offlineCache.write(offlineScope, "room", cached.toString());
+        } catch (Exception ignored) { }
+    }
+
+    private void restoreCachedRoom() {
+        if (offlineCache == null || offlineScope == null) return;
+        String raw = offlineCache.read(offlineScope).get("room");
+        if (raw == null || raw.trim().isEmpty()) return;
+        try {
+            JSONObject cached = new JSONObject(raw);
+            txtRoomName.setText(cached.optString("title", "Chi tiết chỗ ở"));
+            txtAddress.setText("Địa chỉ: " + cached.optString("address", "Chưa cập nhật"));
+            txtDestination.setText("Điểm đến: " + cached.optString("destination", cached.optString("address", "Chưa cập nhật")));
+            int bedrooms = cached.optInt("bedroomCount", 0);
+            int bathrooms = cached.optInt("bathroomCount", 0);
+            int guests = cached.optInt("maxGuests", 0);
+            txtBedInfo.setText(bedrooms + " phòng ngủ • " + bathrooms + " phòng tắm • Tối đa " + guests + " khách");
+            txtRoomCounts.setText("Phòng ngủ: " + bedrooms + "  |  Phòng tắm: " + bathrooms + "\nSố khách tối đa: " + guests);
+            txtDescription.setText(cached.optString("description", "Chưa có mô tả cho chỗ ở này."));
+            txtAdditionalInformation.setText(cached.optString("additionalInformation", "Chưa có thông tin bổ sung."));
+            txtPrice.setText(priceLabel(cached.opt("price")));
+            double latitude = cached.optDouble("latitude", 0);
+            double longitude = cached.optDouble("longitude", 0);
+            txtLocation.setText("Vị trí: " + latitude + ", " + longitude);
+            Object start = cached.opt("startDate");
+            Object end = cached.opt("endDate");
+            Date startDate = start instanceof Number ? new Date(((Number) start).longValue()) : null;
+            Date endDate = end instanceof Number ? new Date(((Number) end).longValue()) : null;
+            txtDates.setText("Ngày bắt đầu: " + formatDate(startDate) + "\nNgày kết thúc: " + formatDate(endDate));
+            if (txtStatusBadge != null) {
+                txtStatusBadge.setVisibility(View.VISIBLE);
+                txtStatusBadge.setText("Đang xem dữ liệu đã lưu trên thiết bị");
+            }
+            fullDescription = cached.optString("description", "Chưa có mô tả cho chỗ ở này.");
+            updateDescription();
+            cachedRoomRestored = true;
+        } catch (Exception ignored) { }
     }
 
     private void renderRoom(DocumentSnapshot doc) {
@@ -853,7 +927,27 @@ public class Detail extends AppCompatActivity {
         return documents;
     }
 
+    private void restoreCachedImages() {
+        if (offlineCache == null || offlineScope == null) return;
+        String raw = offlineCache.read(offlineScope).get("images");
+        if (raw == null) return;
+        try {
+            org.json.JSONArray array = new org.json.JSONArray(raw);
+            List<String> urls = new ArrayList<>();
+            for (int i = 0; i < array.length(); i++) {
+                String url = array.optString(i, "");
+                if (!url.isEmpty()) urls.add(url);
+            }
+            if (!urls.isEmpty()) setupImagesAdapter(urls);
+        } catch (Exception ignored) { }
+    }
+
     private void setupImagesAdapter(List<String> urls) {
+        if (urls != null && !urls.isEmpty() && offlineCache != null && offlineScope != null) {
+            org.json.JSONArray cached = new org.json.JSONArray();
+            for (String url : urls) if (url != null && !url.trim().isEmpty()) cached.put(url.trim());
+            offlineCache.write(offlineScope, "images", cached.toString());
+        }
         if (urls == null || urls.isEmpty()) {
             txtImageCount.setVisibility(View.GONE);
             return;

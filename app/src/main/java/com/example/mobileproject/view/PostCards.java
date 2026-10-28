@@ -128,7 +128,7 @@ public class PostCards extends HomeViews {
     }
 
     int pagedSection(LinearLayout parent, List<JSONObject> posts, int requestedPage, boolean showAll,
-            java.util.function.IntConsumer onPageSelected) {
+                     java.util.function.IntConsumer onPageSelected) {
         LinearLayout section = template(R.id.homePostSection);
         section.setPadding(0, 0, 0, dp(18));
         TextView title = section.findViewById(R.id.postSectionTitle);
@@ -309,10 +309,34 @@ public class PostCards extends HomeViews {
             vm.tell("Không xác định được bài đăng.");
             return;
         }
-        if (!vm.online()) {
-            vm.tell("Kết nối mạng để xem chi tiết bài đăng.");
-            return;
+
+        android.net.ConnectivityManager connectivity =
+                (android.net.ConnectivityManager) activity.getSystemService(
+                        android.content.Context.CONNECTIVITY_SERVICE);
+        android.net.Network network = connectivity == null ? null : connectivity.getActiveNetwork();
+        android.net.NetworkCapabilities capabilities = network == null ? null
+                : connectivity.getNetworkCapabilities(network);
+        boolean online = capabilities != null
+                && capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                && capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+
+        if (!online) {
+            com.example.mobileproject.data.LocalCache cache =
+                    new com.example.mobileproject.data.LocalCache(activity.getApplicationContext());
+            String savedRoom = cache.read("post_detail:" + postId).get("room");
+            cache.close();
+            if (savedRoom == null || savedRoom.trim().isEmpty()) {
+                vm.tell("Bài đăng này chưa được lưu. Vui lòng kết nối mạng để xem chi tiết.");
+                return;
+            }
+            try {
+                new org.json.JSONObject(savedRoom);
+            } catch (org.json.JSONException error) {
+                vm.tell("Dữ liệu chi tiết đã lưu không hợp lệ. Vui lòng kết nối mạng để xem lại.");
+                return;
+            }
         }
+
         try {
             activity.startActivity(
                     new Intent(activity, Detail.class).putExtra(Detail.EXTRA_POST_ID, postId));

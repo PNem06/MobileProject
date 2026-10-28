@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.mobileproject.R;
+import com.example.mobileproject.data.LocalCache;
 import com.example.mobileproject.adapter.PostCardAdapter;
 import com.example.mobileproject.adapter.PostCardAdapter.PostViewHolder;
 import com.example.mobileproject.util.PostImageUtils;
@@ -34,10 +35,12 @@ import org.json.JSONObject;
 /** Displays the signed-in user's posts in Pending, Active, and Hidden categories. */
 public class All_Post extends AppCompatActivity {
     private static final int PENDING = 0, ACTIVE = 1, HIDDEN = 2;
-    private final Map<String, DocumentSnapshot> currentOwnerPosts = new LinkedHashMap<>();
-    private final Map<String, DocumentSnapshot> legacyOwnerPosts = new LinkedHashMap<>();
+    private final Map<String, JSONObject> currentOwnerPosts = new LinkedHashMap<>();
+    private final Map<String, JSONObject> legacyOwnerPosts = new LinkedHashMap<>();
     private final Map<String, String> photoCache = new HashMap<>();
     private FirebaseFirestore db;
+    private LocalCache localCache;
+    private String cacheScope;
     private String uid;
     private ListenerRegistration currentListener, legacyListener;
     private RecyclerView recycler;
@@ -64,6 +67,9 @@ public class All_Post extends AppCompatActivity {
         }
         if (savedInstanceState != null) selectedCategory = savedInstanceState.getInt("category", PENDING);
         db = FirebaseFirestore.getInstance();
+        localCache = new LocalCache(getApplicationContext());
+        cacheScope = "all_posts:" + uid;
+        restoreCachedPosts();
         recycler = findViewById(R.id.recyclerRequests);
         empty = findViewById(R.id.layoutEmpty);
         emptyMessage = findViewById(R.id.txtEmptyMessage);
@@ -73,6 +79,7 @@ public class All_Post extends AppCompatActivity {
         findViewById(R.id.layoutSummaryReceived).setVisibility(View.GONE);
         setupCategoryTabs();
         updateCategoryUi();
+        renderPosts();
     }
 
     @Override protected void onStart() { super.onStart(); attachPostListeners(); }
@@ -122,7 +129,8 @@ public class All_Post extends AppCompatActivity {
                         hasLoadedAny = true;
                     } else if (snapshot != null) {
                         currentOwnerPosts.clear();
-                        for (DocumentSnapshot doc : snapshot.getDocuments()) currentOwnerPosts.put(doc.getId(), doc);
+                        for (DocumentSnapshot doc : snapshot.getDocuments()) currentOwnerPosts.put(doc.getId(), toPost(doc));
+                        saveCachedPosts();
                         hasLoadedAny = true;
                         loadError = "";
                     }
@@ -137,7 +145,8 @@ public class All_Post extends AppCompatActivity {
                         hasLoadedAny = true;
                     } else if (snapshot != null) {
                         legacyOwnerPosts.clear();
-                        for (DocumentSnapshot doc : snapshot.getDocuments()) legacyOwnerPosts.put(doc.getId(), doc);
+                        for (DocumentSnapshot doc : snapshot.getDocuments()) legacyOwnerPosts.put(doc.getId(), toPost(doc));
+                        saveCachedPosts();
                         hasLoadedAny = true;
                     }
                     renderPosts();
@@ -157,12 +166,12 @@ public class All_Post extends AppCompatActivity {
             showEmpty("Đang tải bài đăng...");
             return;
         }
-        Map<String, DocumentSnapshot> combined = new LinkedHashMap<>(legacyOwnerPosts);
+        Map<String, JSONObject> combined = new LinkedHashMap<>(legacyOwnerPosts);
         combined.putAll(currentOwnerPosts);
         List<JSONObject> posts = new ArrayList<>();
-        for (DocumentSnapshot doc : combined.values()) {
-            String status = doc.getString("status");
-            if (belongsToCategory(status, selectedCategory)) posts.add(toPost(doc));
+        for (JSONObject post : combined.values()) {
+            String status = post.optString("status");
+            if (belongsToCategory(status, selectedCategory)) posts.add(post);
         }
         posts.sort((a, b) -> Long.compare(b.optLong("createdAt"), a.optLong("createdAt")));
         if (posts.isEmpty()) {
@@ -178,6 +187,56 @@ public class All_Post extends AppCompatActivity {
         int available = getResources().getDisplayMetrics().widthPixels - dp(40);
         int width = Math.max(dp(130), (available - gap) / 2);
         recycler.setAdapter(new PostCardAdapter(posts, width, gap, dp(126), this::bindPostCard));
+    }
+
+    private void restoreCachedPosts() {
+        if (localCache == null || cacheScope == null) return;
+        Map<String, String> saved = localCache.read(cacheScope);
+        readCachedArray(saved.get("current"), currentOwnerPosts);
+        readCachedArray(saved.get("legacy"), legacyOwnerPosts);
+        String photos = saved.get("photos");
+        if (photos != null) {
+            try {
+                org.json.JSONArray array = new org.json.JSONArray(photos);
+                for (int i = 0; i < array.length(); i++) {
+                    JSONObject item = array.optJSONObject(i);
+                    if (item != null) photoCache.put(item.optString("id"), item.optString("url"));
+                }
+            } catch (Exception ignored) { }
+        }
+        hasLoadedAny = !currentOwnerPosts.isEmpty() || !legacyOwnerPosts.isEmpty();
+        renderPosts();
+    }
+
+    private void readCachedArray(String raw, Map<String, JSONObject> target) {
+        if (raw == null) return;
+        try {
+            org.json.JSONArray array = new org.json.JSONArray(raw);
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject post = array.optJSONObject(i);
+                if (post != null && !post.optString("id").isEmpty()) target.put(post.optString("id"), post);
+            }
+        } catch (Exception ignored) { }
+    }
+
+    private void saveCachedPosts() {
+        if (localCache == null || cacheScope == null) return;
+        try {
+            org.json.JSONArray current = new org.json.JSONArray();
+            for (JSONObject post : currentOwnerPosts.values()) current.put(post);
+            org.json.JSONArray legacy = new org.json.JSONArray();
+            for (JSONObject post : legacyOwnerPosts.values()) legacy.put(post);
+            localCache.write(cacheScope, "current", current.toString());
+            localCache.write(cacheScope, "legacy", legacy.toString());
+            org.json.JSONArray photos = new org.json.JSONArray();
+            for (Map.Entry<String, String> entry : photoCache.entrySet()) {
+                JSONObject photo = new JSONObject();
+                photo.put("id", entry.getKey());
+                photo.put("url", entry.getValue());
+                photos.put(photo);
+            }
+            localCache.write(cacheScope, "photos", photos.toString());
+        } catch (Exception ignored) { }
     }
 
     private boolean belongsToCategory(String raw, int category) {
@@ -255,6 +314,7 @@ public class All_Post extends AppCompatActivity {
         }));
         String image = photos.isEmpty() ? "" : photos.get(0).getString("imgUrl");
         photoCache.put(postId, image == null ? "" : image);
+        saveCachedPosts();
         showPhoto(holder, postId, image == null ? "" : image);
     }
 

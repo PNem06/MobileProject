@@ -216,16 +216,9 @@ public class HomeUi extends HomeViews {
         progress.setVisibility(vm.busy ? View.VISIBLE : View.GONE);
         buildHeader();
         buildHomeFilters();
-        if (!vm.online() && !Arrays.asList("settings", "about").contains(vm.page)) {
-            builtPage = "";
-            homeSections = null;
-            pageContent.removeAllViews();
-            empty(
-                    pageContent,
-                    "Chưa có kết nối mạng",
-                    "Kết nối Wi-Fi hoặc dữ liệu di động để tiếp tục.");
-            return;
-        }
+        // Offline mode must not replace the whole screen with an empty-state message.
+        // Continue rendering cached SQLite content; network-dependent actions validate
+        // connectivity separately before performing writes.
         if ("edit".equals(vm.page) && "edit".equals(builtPage)) {
             enable(pageContent, !vm.busy);
             return;
@@ -327,6 +320,19 @@ public class HomeUi extends HomeViews {
     private void renderHomeSections() {
         if (homeSections == null) return;
         homeSections.removeAllViews();
+        if (!vm.online()) {
+            TextView offlineNotice = new TextView(activity);
+            offlineNotice.setText("Bạn đang ngoại tuyến. Đang hiển thị bài đăng đã lưu trên thiết bị.");
+            offlineNotice.setTextColor(Color.rgb(110, 76, 20));
+            offlineNotice.setTextSize(13);
+            offlineNotice.setPadding(16, 12, 16, 12);
+            offlineNotice.setBackgroundColor(Color.rgb(255, 246, 220));
+            LinearLayout.LayoutParams noticeParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            noticeParams.setMargins(12, 8, 12, 12);
+            homeSections.addView(offlineNotice, noticeParams);
+        }
         if (selectedFilter == 2 && !vm.signedIn()) {
             empty(
                     homeSections,

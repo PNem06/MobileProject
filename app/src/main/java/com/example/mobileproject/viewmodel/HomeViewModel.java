@@ -18,6 +18,7 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MutableLiveData;
 
 import com.example.mobileproject.data.HomePostMapper;
+import com.example.mobileproject.data.LocalCache;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -61,10 +62,32 @@ public class HomeViewModel extends AndroidViewModel {
     private boolean running, cleared, active;
     private int generation;
 
+    private LocalCache localCache;
+
     public HomeViewModel(Application app) {
         super(app);
-        // Dọn database SQLite của phiên bản Home cũ.
-        app.deleteDatabase("long_home_cache.db");
+        localCache = new LocalCache(app.getApplicationContext());
+    }
+
+    private String cacheScope() {
+        return "home:" + (uid == null || uid.isEmpty() ? "guest" : uid);
+    }
+
+    private void restoreCachedData() {
+        if (localCache == null) localCache = new LocalCache(getApplication());
+        Map<String, String> saved = localCache.read(cacheScope());
+        data.clear();
+        for (Map.Entry<String, String> entry : saved.entrySet()) {
+            try {
+                data.put(entry.getKey(), new JSONArray(entry.getValue()));
+            } catch (JSONException ignored) { }
+        }
+        refreshUi();
+    }
+
+    private void persistCachedData(String key, JSONArray value) {
+        if (localCache == null) localCache = new LocalCache(getApplication());
+        if (key != null && value != null) localCache.write(cacheScope(), key, value.toString());
     }
 
     public JSONArray rows(String key) {
@@ -204,28 +227,30 @@ public class HomeViewModel extends AndroidViewModel {
         if (!active || cleared) return;
         if (!online()) {
             stop();
-            clearData();
-            refreshUi();
+            restoreCachedData();
         } else if (!running) start();
     }
 
     private void start() {
         if (running || cleared || !active) return;
-        if (!online()) {
-            clearData();
-            refreshUi();
-            return;
-        }
-        running = true;
-        int token = ++generation;
         FirebaseUser user = auth.getCurrentUser();
         String nextUid = user == null ? "" : user.getUid();
         if (!nextUid.equals(uid)) {
             clearData();
+            uid = nextUid;
             draftName = draftPhone = draftAvatar = null;
             scrollY = 0;
+        } else {
+            uid = nextUid;
         }
-        uid = nextUid;
+        // Hiển thị dữ liệu SQLite trước, kể cả khi đang có mạng.
+        // Danh sách đã xem sẽ không bị trống khi mở Detail rồi quay lại lúc offline.
+        restoreCachedData();
+        if (!online()) {
+            return;
+        }
+        running = true;
+        int token = ++generation;
         lastError = "";
         warnedOwnerRead = false;
         refreshUi();
@@ -270,13 +295,20 @@ public class HomeViewModel extends AndroidViewModel {
                 query.addSnapshotListener(
                         MetadataChanges.INCLUDE,
                         (snap, e) -> {
-                            if (!running || token != generation || !online()) return;
+                            if (!running || token != generation) return;
                             if (e != null) {
-                                error("Không đồng bộ được " + key + ": " + e.getMessage());
+                                // Mất mạng không được làm mất dữ liệu đã lưu cục bộ.
+                                if (online()) error("Không đồng bộ được " + key + ": " + e.getMessage());
                                 return;
                             }
-                            // Chỉ hiển thị snapshot đã được xác nhận từ máy chủ.
-                            if (snap == null || snap.getMetadata().isFromCache()) return;
+                            if (snap == null) return;
+
+                            // Firestore có thể gửi snapshot từ cache trước khi máy chủ phản hồi.
+                            // Lưu cả snapshot này để vẫn có dữ liệu nếu kết nối bị ngắt đột ngột.
+                            if (snap.getMetadata().isFromCache() && snap.isEmpty()) {
+                                String existingKey = "feedPublic".equals(key) ? "feed" : key;
+                                if (rows(existingKey).length() > 0) return;
+                            }
                             List<JSONObject> items = new ArrayList<>();
                             for (DocumentSnapshot doc : snap.getDocuments())
                                 items.add(convert(doc));
@@ -367,6 +399,7 @@ public class HomeViewModel extends AndroidViewModel {
             if (photo != null && needed.contains(photo.optString("id"))) retained.put(photo);
         }
         data.put("photos", retained);
+        persistCachedData("photos", retained);
         for (String postId : needed) {
             for (String source : new String[] {"images", "postImages"}) {
                 String listenerKey = source + "/" + postId;
@@ -438,8 +471,9 @@ public class HomeViewModel extends AndroidViewModel {
     }
 
     private void store(String key, JSONArray value) {
-        if (!online()) return;
+        if (value == null) return;
         data.put(key, value);
+        persistCachedData(key, value);
         refreshUi();
     }
 
