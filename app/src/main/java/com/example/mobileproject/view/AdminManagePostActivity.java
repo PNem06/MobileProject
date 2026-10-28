@@ -83,6 +83,12 @@ public class AdminManagePostActivity extends AppCompatActivity {
         selectTab(PENDING);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadPosts();
+    }
+
     private int dp(int value) {
         return (int) (value * getResources()
                 .getDisplayMetrics().density + 0.5f);
@@ -177,7 +183,7 @@ public class AdminManagePostActivity extends AppCompatActivity {
                             "Tổng bài đăng: " + snapshot.size()
                                     + "\nChờ duyệt: " + pendingCount
                                     + "    •    Public: " + publicCount
-                                    + "    •    Unpublic: " + unpublicCount
+                                    + "    •    Hidden: " + unpublicCount
                                     + "\nĐang xem: " + visibleCount + " bài"
                     );
 
@@ -265,6 +271,13 @@ public class AdminManagePostActivity extends AppCompatActivity {
         btnUnpublic.setVisibility(View.GONE);
         btnMakePublic.setVisibility(View.GONE);
 
+        card.setOnClickListener(v -> {
+            android.content.Intent intent = new android.content.Intent(this, Detail.class);
+            intent.putExtra(Detail.EXTRA_POST_ID, postId);
+            intent.putExtra("fromAdminManage", true);
+            startActivity(intent);
+        });
+
         final String finalOwnerId = ownerId;
         final String finalTitle = title;
 
@@ -322,7 +335,7 @@ public class AdminManagePostActivity extends AppCompatActivity {
             case PUBLIC:
                 return "●  APPROVED - Public";
             case UNPUBLIC:
-                return "●  UNPUBLIC - Đã ẩn / từ chối";
+                return "●  HIDDEN - Đã ẩn / từ chối";
             default:
                 return status;
         }
@@ -380,8 +393,8 @@ public class AdminManagePostActivity extends AppCompatActivity {
                         message = "Bài đăng đã chuyển sang Public.";
                     } else if (UNPUBLIC.equals(newStatus)) {
                         message = Boolean.FALSE.equals(isApproval)
-                                ? "Đã từ chối bài đăng và chuyển sang Unpublic."
-                                : "Bài đăng đã chuyển sang Unpublic.";
+                                ? "Đã từ chối bài đăng và chuyển sang Hidden."
+                                : "Bài đăng đã chuyển sang Hidden.";
                     } else {
                         message = "Đã cập nhật trạng thái bài đăng.";
                     }
@@ -426,7 +439,7 @@ public class AdminManagePostActivity extends AppCompatActivity {
                         ? "Bài đăng '" + postTitle
                           + "' đã được duyệt và công khai."
                         : "Bài đăng '" + postTitle
-                          + "' đã bị từ chối và chuyển sang Unpublic."
+                          + "' đã bị từ chối và chuyển sang Hidden."
         );
         notif.put("isRead", false);
         notif.put("createdAt", FieldValue.serverTimestamp());

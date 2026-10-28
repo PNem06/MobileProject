@@ -464,7 +464,6 @@ public final class AdminUserRepository {
                                     if (!valid(token)
                                             || error != null
                                             || snapshot == null
-                                            || snapshot.getMetadata().isFromCache()
                                             || snapshot.getMetadata()
                                             .hasPendingWrites()) {
                                         return;

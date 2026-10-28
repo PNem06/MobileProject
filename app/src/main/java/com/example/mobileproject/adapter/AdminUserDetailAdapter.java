@@ -14,6 +14,7 @@ import com.example.mobileproject.R;
 import com.example.mobileproject.model.AdminUserItem;
 import com.example.mobileproject.model.AdminUserPostItem;
 import com.example.mobileproject.repository.AdminUserRepository;
+import com.example.mobileproject.util.PostImageUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -163,12 +164,10 @@ public final class AdminUserDetailAdapter
                 R.id.adminUserPostCover
         );
 
+        Object imageModel = PostImageUtils.asGlideModel(post.coverImageUrl);
+
         Glide.with(view)
-                .load(
-                        post.coverImageUrl.isEmpty()
-                                ? null
-                                : post.coverImageUrl
-                )
+                .load(imageModel)
                 .placeholder(R.drawable.ic_photo)
                 .error(R.drawable.ic_photo)
                 .centerCrop()

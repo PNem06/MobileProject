@@ -79,6 +79,7 @@ public class Detail extends AppCompatActivity {
     private boolean isMyPost = false;
     private boolean postReserved, completedPost, viewerAdmin, deletingPost;
     private boolean fromAdminReport = false;
+    private boolean fromAdminManage = false;
     private String reportIdExtra = "";
     private String viewerAccountId = "";
     private String postOwnerId = "";
@@ -92,8 +93,9 @@ public class Detail extends AppCompatActivity {
     private TextView btnFavorite, btnShowMore, btnAllReviews;
 
     private ImageView imgHostAvatar;
-    private View layoutHostInfo, layoutGuestActions, layoutOwnerActions, layoutEditActions, layoutAdminReportActions;
+    private View layoutHostInfo, layoutGuestActions, layoutOwnerActions, layoutEditActions, layoutAdminReportActions, layoutAdminManageActions;
     private TextView btnDeletePost, btnEditPost, btnCancelEdit, btnSubmitEdit, btnAdminRejectReport, btnAdminResolveReport;
+    private TextView btnAdminRejectPost, btnAdminApprovePost, btnAdminHidePost, btnAdminUnhidePost;
     private EditText edtRoomName, edtAddress, edtDestination, edtDescription, edtPrice;
 
     private ActivityResultLauncher<Intent> exchangeLauncher;
@@ -137,6 +139,7 @@ public class Detail extends AppCompatActivity {
                 postId = getIntent().getStringExtra("postId");
             }
             fromAdminReport = getIntent().getBooleanExtra("fromAdminReport", false);
+            fromAdminManage = getIntent().getBooleanExtra("fromAdminManage", false);
             reportIdExtra = getIntent().getStringExtra("reportId");
             if (reportIdExtra == null) reportIdExtra = "";
         }
@@ -229,6 +232,7 @@ public class Detail extends AppCompatActivity {
         layoutOwnerActions = findViewById(R.id.layoutOwnerActions);
         layoutEditActions = findViewById(R.id.layoutEditActions);
         layoutAdminReportActions = findViewById(R.id.layoutAdminReportActions);
+        layoutAdminManageActions = findViewById(R.id.layoutAdminManageActions);
 
         btnDeletePost = findViewById(R.id.btnDeletePost);
         btnEditPost = findViewById(R.id.btnEditPost);
@@ -236,6 +240,11 @@ public class Detail extends AppCompatActivity {
         btnSubmitEdit = findViewById(R.id.btnSubmitEdit);
         btnAdminRejectReport = findViewById(R.id.btnAdminRejectReport);
         btnAdminResolveReport = findViewById(R.id.btnAdminResolveReport);
+
+        btnAdminRejectPost = findViewById(R.id.btnAdminRejectPost);
+        btnAdminApprovePost = findViewById(R.id.btnAdminApprovePost);
+        btnAdminHidePost = findViewById(R.id.btnAdminHidePost);
+        btnAdminUnhidePost = findViewById(R.id.btnAdminUnhidePost);
 
         edtRoomName = findViewById(R.id.edtRoomName);
         edtAddress = findViewById(R.id.edtAddress);
@@ -307,7 +316,7 @@ public class Detail extends AppCompatActivity {
                     if (error != null) {
                         if (error.getCode()
                                 == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-                            if (viewerAdmin || fromAdminReport || !TextUtils.isEmpty(reportIdExtra)) {
+                            if (viewerAdmin || fromAdminReport || fromAdminManage || !TextUtils.isEmpty(reportIdExtra)) {
                                 Toast.makeText(this, "Đang xem bài đăng với quyền Quản trị viên.", Toast.LENGTH_SHORT).show();
                                 return;
                             }
@@ -347,7 +356,7 @@ public class Detail extends AppCompatActivity {
         List<String> bookingParties = stringList(doc, "bookingPartyIds");
         boolean isBookingParty = (uid != null && bookingParties.contains(uid))
                 || (!viewerAccountId.isEmpty() && bookingParties.contains(viewerAccountId));
-        if (postReserved && !viewerAdmin && !isOwner && !isBookingParty && !fromAdminReport && TextUtils.isEmpty(reportIdExtra)) {
+        if (postReserved && !viewerAdmin && !isOwner && !isBookingParty && !fromAdminReport && !fromAdminManage && TextUtils.isEmpty(reportIdExtra)) {
             showMessage("Bài đăng đã có trao đổi và không còn mở đặt phòng.");
             finish();
             return;
@@ -365,20 +374,20 @@ public class Detail extends AppCompatActivity {
         if (status.isEmpty()) status = "PENDING";
 
         if (txtStatusBadge != null) {
-            txtStatusBadge.setVisibility(View.GONE);
-
             if ("ACTIVE".equalsIgnoreCase(status)
                     || "APPROVED".equalsIgnoreCase(status)
                     || "PUBLIC".equalsIgnoreCase(status)) {
 
-                txtStatusBadge.setText("● Đang hoạt động");
+                txtStatusBadge.setText("● Public");
                 txtStatusBadge.setTextColor(Color.parseColor("#1B5E20"));
                 txtStatusBadge.setBackgroundColor(Color.parseColor("#E8F5E9"));
 
             } else if ("REJECTED".equalsIgnoreCase(status)
+                    || "UNPUBLIC".equalsIgnoreCase(status)
+                    || "HIDDEN".equalsIgnoreCase(status)
                     || "PRIVATE".equalsIgnoreCase(status)) {
 
-                txtStatusBadge.setText("● Bị từ chối");
+                txtStatusBadge.setText("● Hidden");
                 txtStatusBadge.setTextColor(Color.parseColor("#B3261E"));
                 txtStatusBadge.setBackgroundColor(Color.parseColor("#FDECEA"));
 
@@ -386,6 +395,12 @@ public class Detail extends AppCompatActivity {
                 txtStatusBadge.setText("● Chờ Admin duyệt");
                 txtStatusBadge.setTextColor(Color.parseColor("#8D4E00"));
                 txtStatusBadge.setBackgroundColor(Color.parseColor("#FFF3E0"));
+            }
+
+            if (fromAdminManage || fromAdminReport || isMyPost || completedPost || postReserved) {
+                txtStatusBadge.setVisibility(View.VISIBLE);
+            } else {
+                txtStatusBadge.setVisibility(View.GONE);
             }
         }
 
@@ -445,7 +460,74 @@ public class Detail extends AppCompatActivity {
         isMyPost = currentUid != null && !currentUid.isEmpty()
                 && (currentUid.equals(postOwnerId) || viewerAccountId.equals(postOwnerId));
 
-        if (completedPost) {
+        if (fromAdminManage) {
+            if (btnFavorite != null) btnFavorite.setVisibility(View.GONE);
+            if (layoutGuestActions != null) layoutGuestActions.setVisibility(View.GONE);
+            if (layoutOwnerActions != null) layoutOwnerActions.setVisibility(View.GONE);
+            if (layoutEditActions != null) layoutEditActions.setVisibility(View.GONE);
+            if (layoutAdminReportActions != null) layoutAdminReportActions.setVisibility(View.GONE);
+            if (layoutHostInfo != null) {
+                layoutHostInfo.setVisibility(View.VISIBLE);
+                loadHostInfo(postOwnerId);
+            }
+
+            if (layoutAdminManageActions != null) {
+                layoutAdminManageActions.setVisibility(View.VISIBLE);
+
+                boolean isPublic = "APPROVED".equalsIgnoreCase(status)
+                        || "PUBLIC".equalsIgnoreCase(status)
+                        || "ACTIVE".equalsIgnoreCase(status);
+
+                boolean isHidden = "UNPUBLIC".equalsIgnoreCase(status)
+                        || "REJECTED".equalsIgnoreCase(status)
+                        || "HIDDEN".equalsIgnoreCase(status)
+                        || "PRIVATE".equalsIgnoreCase(status);
+
+                if (isPublic) {
+                    if (btnAdminRejectPost != null) btnAdminRejectPost.setVisibility(View.GONE);
+                    if (btnAdminApprovePost != null) btnAdminApprovePost.setVisibility(View.GONE);
+                    if (btnAdminHidePost != null) btnAdminHidePost.setVisibility(View.VISIBLE);
+                    if (btnAdminUnhidePost != null) btnAdminUnhidePost.setVisibility(View.GONE);
+                } else if (isHidden) {
+                    if (btnAdminRejectPost != null) btnAdminRejectPost.setVisibility(View.GONE);
+                    if (btnAdminApprovePost != null) btnAdminApprovePost.setVisibility(View.GONE);
+                    if (btnAdminHidePost != null) btnAdminHidePost.setVisibility(View.GONE);
+                    if (btnAdminUnhidePost != null) btnAdminUnhidePost.setVisibility(View.VISIBLE);
+                } else {
+                    if (btnAdminRejectPost != null) btnAdminRejectPost.setVisibility(View.VISIBLE);
+                    if (btnAdminApprovePost != null) btnAdminApprovePost.setVisibility(View.VISIBLE);
+                    if (btnAdminHidePost != null) btnAdminHidePost.setVisibility(View.GONE);
+                    if (btnAdminUnhidePost != null) btnAdminUnhidePost.setVisibility(View.GONE);
+                }
+
+                final String finalOwnerId = postOwnerId;
+                final String finalTitle = title;
+
+                if (btnAdminApprovePost != null) {
+                    btnAdminApprovePost.setOnClickListener(v ->
+                            updatePostStatusAdmin(postId, "APPROVED", finalOwnerId, finalTitle, true)
+                    );
+                }
+
+                if (btnAdminRejectPost != null) {
+                    btnAdminRejectPost.setOnClickListener(v ->
+                            updatePostStatusAdmin(postId, "UNPUBLIC", finalOwnerId, finalTitle, false)
+                    );
+                }
+
+                if (btnAdminHidePost != null) {
+                    btnAdminHidePost.setOnClickListener(v ->
+                            updatePostStatusAdmin(postId, "UNPUBLIC", finalOwnerId, finalTitle, null)
+                    );
+                }
+
+                if (btnAdminUnhidePost != null) {
+                    btnAdminUnhidePost.setOnClickListener(v ->
+                            updatePostStatusAdmin(postId, "APPROVED", finalOwnerId, finalTitle, null)
+                    );
+                }
+            }
+        } else if (completedPost) {
             if (txtStatusBadge != null) {
                 txtStatusBadge.setVisibility(View.VISIBLE);
                 txtStatusBadge.setText("● Đã hoàn tất");
@@ -453,6 +535,8 @@ public class Detail extends AppCompatActivity {
             if (layoutGuestActions != null) layoutGuestActions.setVisibility(View.GONE);
             if (layoutOwnerActions != null) layoutOwnerActions.setVisibility(isMyPost ? View.VISIBLE : View.GONE);
             if (layoutEditActions != null) layoutEditActions.setVisibility(View.GONE);
+            if (layoutAdminReportActions != null) layoutAdminReportActions.setVisibility(View.GONE);
+            if (layoutAdminManageActions != null) layoutAdminManageActions.setVisibility(View.GONE);
             if (isMyPost) {
                 if (layoutHostInfo != null) layoutHostInfo.setVisibility(View.GONE);
                 if (btnDeletePost != null) btnDeletePost.setText("Hủy");
@@ -470,6 +554,7 @@ public class Detail extends AppCompatActivity {
             if (layoutOwnerActions != null) layoutOwnerActions.setVisibility(View.VISIBLE);
             if (layoutEditActions != null) layoutEditActions.setVisibility(View.GONE);
             if (layoutAdminReportActions != null) layoutAdminReportActions.setVisibility(View.GONE);
+            if (layoutAdminManageActions != null) layoutAdminManageActions.setVisibility(View.GONE);
         } else {
             if (txtStatusBadge != null) {
                 txtStatusBadge.setVisibility(View.GONE);
@@ -485,6 +570,7 @@ public class Detail extends AppCompatActivity {
             if (layoutOwnerActions != null) layoutOwnerActions.setVisibility(View.GONE);
             if (layoutEditActions != null) layoutEditActions.setVisibility(View.GONE);
             if (layoutAdminReportActions != null) layoutAdminReportActions.setVisibility(View.GONE);
+            if (layoutAdminManageActions != null) layoutAdminManageActions.setVisibility(View.GONE);
             loadHostInfo(postOwnerId);
             checkExistingSentRequest(currentUid, postId);
         }
@@ -1533,6 +1619,11 @@ public class Detail extends AppCompatActivity {
         TextView btnShare = findViewById(R.id.btnShare);
         if (btnShare == null) return;
 
+        if (fromAdminManage) {
+            btnShare.setVisibility(View.GONE);
+            return;
+        }
+
         if (isMyPost) {
             btnShare.setText("");
             btnShare.setBackgroundResource(R.drawable.ic_share);
@@ -1555,6 +1646,68 @@ public class Detail extends AppCompatActivity {
             btnShare.setGravity(Gravity.CENTER);
             btnShare.setOnClickListener(v -> checkAndShowReportDialog());
         }
+    }
+
+    private void updatePostStatusAdmin(
+            String postId,
+            String newStatus,
+            String ownerId,
+            String postTitle,
+            Boolean isApproval
+    ) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("status", newStatus);
+        updates.put("updatedAt", FieldValue.serverTimestamp());
+
+        db.collection("posts").document(postId)
+                .update(updates)
+                .addOnSuccessListener(unused -> {
+                    if (ownerId != null && !ownerId.isEmpty() && isApproval != null) {
+                        sendNotificationToOwner(ownerId, postTitle, isApproval, postId);
+                    }
+                    String message;
+                    if ("APPROVED".equalsIgnoreCase(newStatus)) {
+                        message = "Bài đăng đã chuyển sang Public.";
+                    } else if ("UNPUBLIC".equalsIgnoreCase(newStatus)) {
+                        message = Boolean.FALSE.equals(isApproval)
+                                ? "Đã từ chối bài đăng và chuyển sang Hidden."
+                                : "Bài đăng đã chuyển sang Hidden.";
+                    } else {
+                        message = "Đã cập nhật trạng thái bài đăng.";
+                    }
+                    Toast.makeText(Detail.this, message, Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(Detail.this, "Cập nhật thất bại: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                );
+    }
+
+    private void sendNotificationToOwner(
+            String ownerId,
+            String postTitle,
+            boolean isApproved,
+            String postId
+    ) {
+        Map<String, Object> notif = new HashMap<>();
+
+        notif.put("userId", ownerId);
+        notif.put("postId", postId);
+        notif.put("type", isApproved ? "post_approved" : "post_rejected");
+        notif.put("title", isApproved ? "Bài viết đã được duyệt" : "Bài viết bị từ chối");
+        notif.put(
+                "body",
+                isApproved
+                        ? "Bài đăng '" + postTitle + "' đã được duyệt và công khai."
+                        : "Bài đăng '" + postTitle + "' đã bị từ chối và chuyển sang Hidden."
+        );
+        notif.put("isRead", false);
+        notif.put("createdAt", FieldValue.serverTimestamp());
+
+        db.collection("notifications")
+                .add(notif)
+                .addOnFailureListener(e ->
+                        android.util.Log.e("DetailAdmin", "Không gửi được thông báo", e)
+                );
     }
 
     private void checkAndShowReportDialog() {
