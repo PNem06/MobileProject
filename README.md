@@ -13,7 +13,7 @@
 | 1 | Phạm Thị Phương Nam| 31241027015| PNem06|
 | 2 | Trần Thị Thanh Hiền | 31241023381 | birb109|
 | 3 | Trần Thị Tuyết Như | 31241023442 | tuyetnhu2006 |
-| 4 | Võ Doãn Hoàng Long | 31241027904 | cuntaplaptrinh24 |
+| 4 | Võ Doãn Hoàng Long | 31241027904 | longvo-31241027904 |
 | 5 | Nguyễn Quốc Hưng | 31241024126 | QuocHung0901 |
 
 ## Giới thiệu đề tài
