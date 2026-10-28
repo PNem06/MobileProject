@@ -23,6 +23,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.mobileproject.R;
 import com.example.mobileproject.adapter.RecentSearchAdapter;
 import com.example.mobileproject.model.RecentSearch;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.AutocompletePrediction;
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest;
@@ -33,6 +35,7 @@ import org.json.JSONException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class SearchLocationActivity extends AppCompatActivity {
 
@@ -233,7 +236,7 @@ public class SearchLocationActivity extends AppCompatActivity {
                         );
 
                         txtSuggestionTitle.setText(
-                                "Địa điểm gợi ý từ Google Maps"
+                                "Địa điểm gợi ý"
                         );
 
                         txtSuggestionTitle.setVisibility(
@@ -245,17 +248,15 @@ public class SearchLocationActivity extends AppCompatActivity {
                         );
 
                         // Chỉ tìm khi nhập ít nhất 2 ký tự.
-                        if (query.length() < 2
-                                || placesClient == null) {
-
+                        if (query.length() < 2) {
                             suggestionList.clear();
                             suggestionAdapter.notifyDataSetChanged();
                             return;
                         }
 
-                        // Chờ người dùng ngừng gõ trước khi gọi API.
+                        // Chờ người dùng ngừng gõ trước khi tìm kiếm.
                         pendingSearch = () ->
-                                requestPlacePredictions(query);
+                                performSearchSuggestions(query);
 
                         searchHandler.postDelayed(
                                 pendingSearch,
@@ -280,8 +281,73 @@ public class SearchLocationActivity extends AppCompatActivity {
         );
     }
 
-    private void requestPlacePredictions(String query) {
+    private void performSearchSuggestions(String query) {
         lastRequestedQuery = query;
+        suggestionList.clear();
+        suggestionAdapter.notifyDataSetChanged();
+
+        // 1. Gợi ý vị trí trên bản đồ (posts trong Firestore chứa từ khóa)
+        queryFirestoreLocationSuggestions(query);
+
+        // 2. Gợi ý từ Google Maps (nếu có PlacesClient)
+        if (placesClient != null) {
+            requestPlacePredictions(query);
+        }
+    }
+
+    private void queryFirestoreLocationSuggestions(String query) {
+        String normalizedQuery = query.toLowerCase(Locale.ROOT);
+        FirebaseFirestore.getInstance().collection("posts")
+                .whereEqualTo("status", "APPROVED")
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    String currentQuery = edtSearchLocation.getText().toString().trim();
+                    if (!query.equals(currentQuery)) return;
+
+                    for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                        String destination = doc.getString("destination");
+                        String address = doc.getString("address");
+
+                        if (destination != null && !destination.trim().isEmpty()) {
+                            String normDest = destination.toLowerCase(Locale.ROOT);
+                            if (normDest.contains(normalizedQuery)) {
+                                addSuggestionUnique(destination.trim(), "Địa điểm trên bản đồ");
+                            }
+                        }
+                        if (address != null && !address.trim().isEmpty()) {
+                            String normAddr = address.toLowerCase(Locale.ROOT);
+                            if (normAddr.contains(normalizedQuery)) {
+                                addSuggestionUnique(address.trim(), "Địa chỉ trên bản đồ");
+                            }
+                        }
+                    }
+                    suggestionAdapter.notifyDataSetChanged();
+                    updateSuggestionTitle();
+                })
+                .addOnFailureListener(e -> {
+                    updateSuggestionTitle();
+                });
+    }
+
+    private void addSuggestionUnique(String locationName, String details) {
+        for (RecentSearch item : suggestionList) {
+            if (item.getLocationName().equalsIgnoreCase(locationName)) {
+                return;
+            }
+        }
+        suggestionList.add(new RecentSearch(locationName, details));
+    }
+
+    private void updateSuggestionTitle() {
+        if (suggestionList.isEmpty()) {
+            txtSuggestionTitle.setText("Không tìm thấy địa điểm phù hợp");
+        } else {
+            txtSuggestionTitle.setText("Địa điểm gợi ý từ bản đồ & Google Maps");
+        }
+    }
+
+    private void requestPlacePredictions(String query) {
         FindAutocompletePredictionsRequest request =
                 FindAutocompletePredictionsRequest.builder()
                         .setQuery(query)
@@ -297,7 +363,6 @@ public class SearchLocationActivity extends AppCompatActivity {
                             || !query.equals(lastRequestedQuery)) {
                         return;
                     }
-                    suggestionList.clear();
                     for (AutocompletePrediction prediction :
                             response.getAutocompletePredictions()) {
                         String address = prediction
@@ -305,58 +370,19 @@ public class SearchLocationActivity extends AppCompatActivity {
                                 .toString();
 
                         if (!address.trim().isEmpty()) {
-                            suggestionList.add(
-                                    new RecentSearch(
-                                            address,
-                                            "Google Maps"
-                                    )
-                            );
+                            addSuggestionUnique(address.trim(), "Google Maps");
                         }
                     }
 
                     suggestionAdapter.notifyDataSetChanged();
-
-                    if (suggestionList.isEmpty()) {
-                        txtSuggestionTitle.setText(
-                                "Không tìm thấy địa điểm phù hợp"
-                        );
-                    } else {
-                        txtSuggestionTitle.setText(
-                                "Địa điểm gợi ý từ Google Maps"
-                        );
-                    }
+                    updateSuggestionTitle();
                 })
-
                 .addOnFailureListener(exception -> {
-                    String currentQuery = edtSearchLocation.getText()
-                            .toString()
-                            .trim();
-
-                    if (!query.equals(currentQuery)) {
-                        return;
-                    }
-
                     android.util.Log.e(
                             "GooglePlaces",
                             "Lỗi tìm địa điểm: " + query,
                             exception
                     );
-
-                    suggestionList.clear();
-                    suggestionAdapter.notifyDataSetChanged();
-
-                    txtSuggestionTitle.setText(
-                            "Không tải được gợi ý. Hãy kiểm tra API key và kết nối mạng."
-                    );
-
-                    txtSuggestionTitle.setVisibility(View.VISIBLE);
-                    recyclerLocationSuggestions.setVisibility(View.VISIBLE);
-
-                    Toast.makeText(
-                            SearchLocationActivity.this,
-                            "Lỗi Google Places: " + exception.getMessage(),
-                            Toast.LENGTH_LONG
-                    ).show();
                 });
     }
 
@@ -403,9 +429,8 @@ public class SearchLocationActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private void loadRecentSearches() {
-        recentSearchList.clear();
-
+    private List<RecentSearch> loadRecentSearchesList() {
+        List<RecentSearch> list = new ArrayList<>();
         SharedPreferences prefs = getSharedPreferences(
                 PREFS_NAME,
                 MODE_PRIVATE
@@ -419,26 +444,37 @@ public class SearchLocationActivity extends AppCompatActivity {
         try {
             JSONArray array = new JSONArray(saved);
 
-            for (int i = 0;
-                 i < array.length()
-                         && recentSearchList.size()
-                         < MAX_RECENT_LOCATIONS;
-                 i++) {
-
-                String location = array.optString(i, "").trim();
-
-                if (!location.isEmpty()) {
-                    recentSearchList.add(
-                            new RecentSearch(
-                                    location,
-                                    "Tìm kiếm gần đây"
-                            )
-                    );
+            for (int i = 0; i < array.length(); i++) {
+                Object item = array.get(i);
+                if (item instanceof org.json.JSONObject) {
+                    org.json.JSONObject obj = (org.json.JSONObject) item;
+                    String loc = obj.optString("locationName", "").trim();
+                    long time = obj.optLong("timestamp", 0L);
+                    if (!loc.isEmpty()) {
+                        list.add(new RecentSearch(loc, "Tìm kiếm gần đây", time));
+                    }
+                } else if (item instanceof String) {
+                    String location = ((String) item).trim();
+                    if (!location.isEmpty()) {
+                        list.add(new RecentSearch(location, "Tìm kiếm gần đây", System.currentTimeMillis() - i));
+                    }
                 }
             }
 
         } catch (JSONException e) {
             // Nếu lịch sử bị lỗi, bắt đầu với danh sách rỗng.
+        }
+
+        // Sắp xếp theo thời gian mới nhất (timestamp giảm dần)
+        list.sort((a, b) -> Long.compare(b.getTimestamp(), a.getTimestamp()));
+        return list;
+    }
+
+    private void loadRecentSearches() {
+        recentSearchList.clear();
+        List<RecentSearch> loaded = loadRecentSearchesList();
+        for (int i = 0; i < loaded.size() && recentSearchList.size() < MAX_RECENT_LOCATIONS; i++) {
+            recentSearchList.add(loaded.get(i));
         }
 
         if (recentAdapter != null) {
@@ -447,26 +483,24 @@ public class SearchLocationActivity extends AppCompatActivity {
     }
 
     private void saveRecentSearch(String location) {
-        List<String> updated = new ArrayList<>();
+        List<RecentSearch> list = loadRecentSearchesList();
+        list.removeIf(item -> item.getLocationName().equalsIgnoreCase(location));
+        list.add(0, new RecentSearch(location, "Tìm kiếm gần đây", System.currentTimeMillis()));
 
-        // Địa điểm mới nhất luôn đứng đầu.
-        updated.add(location);
-
-        for (RecentSearch item : recentSearchList) {
-            String oldLocation = item.getLocationName();
-
-            // Không lưu trùng địa điểm.
-            if (!oldLocation.equalsIgnoreCase(location)
-                    && updated.size() < MAX_RECENT_LOCATIONS) {
-
-                updated.add(oldLocation);
-            }
+        if (list.size() > MAX_RECENT_LOCATIONS) {
+            list = list.subList(0, MAX_RECENT_LOCATIONS);
         }
 
         JSONArray array = new JSONArray();
-
-        for (String item : updated) {
-            array.put(item);
+        try {
+            for (RecentSearch item : list) {
+                org.json.JSONObject obj = new org.json.JSONObject();
+                obj.put("locationName", item.getLocationName());
+                obj.put("timestamp", item.getTimestamp());
+                array.put(obj);
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
 
         getSharedPreferences(

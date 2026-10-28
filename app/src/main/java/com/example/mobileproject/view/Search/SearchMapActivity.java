@@ -7,9 +7,12 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.LinearSnapHelper;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SnapHelper;
 
 import com.example.mobileproject.R;
 import com.example.mobileproject.adapter.SearchPostAdapter;
@@ -20,6 +23,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -34,6 +38,7 @@ public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCa
     private SearchPostAdapter adapter;
     private GoogleMap googleMap;
     private TextView txtMapTitle, txtMapListHeader, chipMapTime, chipMapGuests;
+    private RecyclerView recyclerMapPosts;
     private String selectedLocation = "";
     private String timeSummary = "";
 
@@ -51,7 +56,7 @@ public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCa
         txtMapListHeader = findViewById(R.id.txtMapListHeader);
         chipMapTime = findViewById(R.id.chipMapTime);
         chipMapGuests = findViewById(R.id.chipMapGuests);
-        RecyclerView recyclerMapPosts = findViewById(R.id.recyclerMapPosts);
+        recyclerMapPosts = findViewById(R.id.recyclerMapPosts);
 
         txtMapTitle.setText(selectedLocation.isEmpty() ? "Xem trên bản đồ" : selectedLocation);
         chipMapTime.setText(timeSummary.isEmpty() ? "Thời gian" : timeSummary);
@@ -66,6 +71,29 @@ public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCa
         });
         recyclerMapPosts.setLayoutManager(new LinearLayoutManager(this));
         recyclerMapPosts.setAdapter(adapter);
+
+        SnapHelper snapHelper = new LinearSnapHelper();
+        snapHelper.attachToRecyclerView(recyclerMapPosts);
+
+        recyclerMapPosts.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+                if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                    RecyclerView.LayoutManager lm = recyclerView.getLayoutManager();
+                    if (lm != null) {
+                        View snapView = snapHelper.findSnapView(lm);
+                        if (snapView != null) {
+                            int pos = lm.getPosition(snapView);
+                            if (pos >= 0 && pos < posts.size()) {
+                                ListingPost post = posts.get(pos);
+                                panMapToPost(post);
+                            }
+                        }
+                    }
+                }
+            }
+        });
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         if (mapFragment != null) mapFragment.getMapAsync(this);
@@ -115,7 +143,6 @@ public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCa
                 });
     }
 
-
     private void loadCoverImage(ListingPost post) {
         if (post == null || post.getPostId() == null || post.getPostId().trim().isEmpty()) return;
 
@@ -153,16 +180,45 @@ public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCa
         if (googleMap == null) return;
         googleMap.clear();
         LatLng firstPoint = null;
-        for (ListingPost post : posts) {
+        for (int i = 0; i < posts.size(); i++) {
+            ListingPost post = posts.get(i);
             double latitude = post.getLatitude();
             double longitude = post.getLongitude();
             if (latitude == 0 || longitude == 0) continue;
             LatLng point = new LatLng(latitude, longitude);
             String title = post.getTitle() == null || post.getTitle().trim().isEmpty() ? "Chỗ ở" : post.getTitle();
-            googleMap.addMarker(new MarkerOptions().position(point).title(title));
+            Marker marker = googleMap.addMarker(new MarkerOptions().position(point).title(title));
+            if (marker != null) {
+                marker.setTag(i);
+            }
             if (firstPoint == null) firstPoint = point;
         }
-        if (firstPoint != null) googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(firstPoint, 12f));
+        if (firstPoint != null) {
+            googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(firstPoint, 12f));
+        }
+
+        googleMap.setOnMarkerClickListener(marker -> {
+            Object tag = marker.getTag();
+            if (tag instanceof Integer) {
+                int pos = (Integer) tag;
+                if (pos >= 0 && pos < posts.size()) {
+                    if (recyclerMapPosts != null) {
+                        recyclerMapPosts.smoothScrollToPosition(pos);
+                    }
+                    panMapToPost(posts.get(pos));
+                }
+            }
+            return false;
+        });
+    }
+
+    private void panMapToPost(ListingPost post) {
+        if (post == null || googleMap == null) return;
+        double latitude = post.getLatitude();
+        double longitude = post.getLongitude();
+        if (latitude == 0 || longitude == 0) return;
+        LatLng point = new LatLng(latitude, longitude);
+        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(point, 14f));
     }
 
     private static boolean matchesLocation(String query, String address, String title) {
@@ -175,6 +231,6 @@ public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCa
     }
 
     private static String normalize(String value) {
-        return value == null ? "" : value.trim().toLowerCase(new Locale("vi", "VN"));
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     }
 }
