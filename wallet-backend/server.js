@@ -10,7 +10,7 @@ function createServer({service,authenticate,webhookKey,logger=console}){
     const send=(status,data)=>{res.writeHead(status);res.end(JSON.stringify(data));};
     try{
       const path=new URL(req.url,'http://localhost').pathname;
-      if(req.method==='GET'&&path==='/health')return send(200,{ok:true,apiVersion:3,postReservationVersion:1,sharedAdminWalletVersion:1,app:'StayExchange Wallet',bank:service.bankInfo().code,backendVersion,...(service.storageStatus?await service.storageStatus():{})});
+      if(req.method==='GET'&&path==='/health')return send(200,{ok:true,apiVersion:3,postReservationVersion:1,sharedAdminWalletVersion:1,withdrawalVersion:1,app:'StayExchange Wallet',bank:service.bankInfo().code,backendVersion,...(service.storageStatus?await service.storageStatus():{})});
       c.must(req.method==='POST','Chỉ hỗ trợ POST.',405);
       const webhook=path==='/webhooks/sepay';
       if(webhook)c.must(c.authorization(req.headers.authorization,webhookKey),'Webhook chưa được xác thực.',401);
@@ -28,6 +28,9 @@ function createServer({service,authenticate,webhookKey,logger=console}){
       else if(path==='/v1/topups/cancel')data=await service.cancelTopup(actor,body);
       else if(path==='/v1/bookings/pay')data=await service.pay(actor,body);
       else if(path==='/v1/bookings/action')data=await service.action(actor,body);
+      else if(path==='/v1/withdrawals')data=await service.withdrawals.create(actor,body);
+      else if(path==='/v1/withdrawals/get')data=await service.withdrawals.get(actor,body.withdrawalId);
+      else if(path==='/v1/withdrawals/action')data=await service.withdrawals.action(actor,body);
       else if(path==='/v1/exchanges/update')data=await require('./exchange-service').updateExchange(service,actor,body);
       else throw new c.ApiError(404,'Không tìm thấy chức năng.');
       return send(200,{ok:true,data:c.json(data)});

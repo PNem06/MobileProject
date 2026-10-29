@@ -91,5 +91,5 @@ test('HTTP snapshots authorize by verified identity and profile, ignoring forged
   const user=await(await request('customer')).json();assert.equal(user.data.isAdmin,false);assert.equal(user.data.walletOwnerId,'customer');
   assert.equal(user.data.wallet.available,50000);assert.deepEqual(user.data.bankEvents,[]);
   h.db.docs.get('accounts/admin2').status='LOCKED';assert.equal((await request('admin2')).status,403);
-  const health=await(await fetch(base+'/health')).json();assert.equal(health.sharedAdminWalletVersion,1);assert.equal(health.backendVersion,'1.4.1');
+  const health=await(await fetch(base+'/health')).json();assert.equal(health.sharedAdminWalletVersion,1);assert.equal(health.backendVersion,require('../package.json').version);
 });
