@@ -33,7 +33,8 @@ public final class NotificationNavigator {
                 break;
             case WALLET:
                 Intent wallet = new Intent(activity,WalletActivity.class);
-                if (!target.id.isEmpty()) wallet.putExtra(WalletActivity.EXTRA_BOOKING_ID,target.id);
+                if (!target.id.isEmpty()) wallet.putExtra("withdrawals".equals(target.collection)
+                        ? WalletActivity.EXTRA_WITHDRAWAL_ID : WalletActivity.EXTRA_BOOKING_ID,target.id);
                 launch(activity,uid,notice,wallet);
                 break;
             case CHAT:
