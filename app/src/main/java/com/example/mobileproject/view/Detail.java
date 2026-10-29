@@ -69,6 +69,10 @@ public class Detail extends AppCompatActivity {
     private String offlineScope;
     private boolean cachedRoomRestored;
     private ListenerRegistration roomListener;
+    private ListenerRegistration imagesListener;
+    private ListenerRegistration legacyImagesListener;
+    private ListenerRegistration hostListener;
+    private ListenerRegistration sentRequestListener;
     private ListenerRegistration favoriteListener;
     private ListenerRegistration reviewsListener;
     private ReviewAdapter recentReviewsAdapter;
@@ -89,6 +93,16 @@ public class Detail extends AppCompatActivity {
     private String postOwnerId = "";
 
     private ViewPager2 viewPagerImages;
+    private ViewPager2.OnPageChangeCallback imagePageChangeCallback;
+    private List<String> currentImageUrls = new ArrayList<>();
+    private List<String> currentCollectionImageUrls = new ArrayList<>();
+    private List<String> legacyCollectionImageUrls = new ArrayList<>();
+    private final Map<String, ListenerRegistration> amenityListeners = new HashMap<>();
+    private final Map<String, String> amenityNames = new HashMap<>();
+    private List<String> currentAmenityIds = new ArrayList<>();
+    private String listeningImagePostId = "";
+    private String listeningHostId = "";
+    private String listeningRequestKey = "";
     private TextView txtRoomName, txtStatusBadge, txtAddress, txtDestination, txtBedInfo;
     private TextView txtRating, txtReviewCount, txtHostName, txtHostEmail, txtHostPhone, txtHostDescription;
     private TextView txtDescription, txtDates, txtRoomCounts;
@@ -713,12 +727,20 @@ public class Detail extends AppCompatActivity {
                 || postId == null || postId.isEmpty()) {
             return;
         }
-
-        db.collection("exchanges")
+        String requestKey = currentUid + "_" + postId;
+        if (requestKey.equals(listeningRequestKey)) return;
+        if (sentRequestListener != null) sentRequestListener.remove();
+        listeningRequestKey = requestKey;
+        sentRequestListener = db.collection("exchanges")
                 .whereEqualTo("requester_accountId", currentUid)
-                .get()
-                .addOnSuccessListener(snapshot -> {
+                .addSnapshotListener((snapshot, error) -> {
                     if (isFinishing() || isDestroyed()) return;
+                    if (error != null) {
+                        Toast.makeText(Detail.this,
+                                "Không kiểm tra được yêu cầu đã gửi: " + error.getLocalizedMessage(),
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
 
                     DocumentSnapshot activeRequest = null;
 
@@ -781,16 +803,6 @@ public class Detail extends AppCompatActivity {
                         btnBooking.setText("Đặt phòng");
                         btnBooking.setOnClickListener(v -> showBookingOptions());
                     }
-                })
-                .addOnFailureListener(error -> {
-                    if (isFinishing() || isDestroyed()) return;
-
-                    Toast.makeText(
-                            Detail.this,
-                            "Không kiểm tra được yêu cầu đã gửi: "
-                                    + error.getLocalizedMessage(),
-                            Toast.LENGTH_SHORT
-                    ).show();
                 });
     }
 
@@ -870,61 +882,77 @@ public class Detail extends AppCompatActivity {
             txtImageCount.setVisibility(View.GONE);
             return;
         }
+        if (postId.equals(listeningImagePostId)) return;
+        removeImageListeners();
+        listeningImagePostId = postId;
+        currentCollectionImageUrls.clear();
+        legacyCollectionImageUrls.clear();
 
-        db.collection("images")
+        imagesListener = db.collection("images")
                 .whereEqualTo("postId", postId)
-                .get()
-                .addOnSuccessListener(snap -> {
-                    if (isFinishing() || isDestroyed()) return;
-                    List<String> urls = new ArrayList<>();
-                    if (snap != null && !snap.isEmpty()) {
-                        for (DocumentSnapshot doc : orderedImageDocuments(snap)) {
-                            String url = doc.getString("imgUrl");
-                            if (url == null || url.trim().isEmpty()) {
-                                url = doc.getString("imageUrl");
-                            }
-                            if (url != null && !url.trim().isEmpty()) {
-                                urls.add(url.trim());
-                            }
-                        }
-                    }
+                .addSnapshotListener((snapshot, error) -> {
+                    if (isFinishing() || isDestroyed() || !postId.equals(listeningImagePostId)) return;
+                    if (error != null) return;
+                    currentCollectionImageUrls = extractImageUrls(snapshot, true);
+                    renderCurrentRoomImages();
+                });
+        legacyImagesListener = db.collection("postImages")
+                .whereEqualTo("postId", postId)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (isFinishing() || isDestroyed() || !postId.equals(listeningImagePostId)) return;
+                    if (error != null) return;
+                    legacyCollectionImageUrls = extractImageUrls(snapshot, false);
+                    renderCurrentRoomImages();
+                });
+    }
 
-                    if (urls.isEmpty()) {
-                        db.collection("postImages")
-                                .whereEqualTo("postId", postId)
-                                .get()
-                                .addOnSuccessListener(snap2 -> {
-                                    if (isFinishing() || isDestroyed()) return;
-                                    if (snap2 != null && !snap2.isEmpty()) {
-                                        for (DocumentSnapshot doc : snap2.getDocuments()) {
-                                            String url = doc.getString("imgUrl");
-                                            if (url == null || url.trim().isEmpty()) {
-                                                url = doc.getString("imageUrl");
-                                            }
-                                            if (url != null && !url.trim().isEmpty()) {
-                                                urls.add(url.trim());
-                                            }
-                                        }
-                                    }
-                                    setupImagesAdapter(urls);
-                                })
-                                .addOnFailureListener(e -> setupImagesAdapter(urls));
-                    } else {
-                        setupImagesAdapter(urls);
-                    }
-                })
-                .addOnFailureListener(e -> setupImagesAdapter(new ArrayList<>()));
+    private List<String> extractImageUrls(QuerySnapshot snapshot, boolean ordered) {
+        List<String> urls = new ArrayList<>();
+        if (snapshot == null) return urls;
+        List<DocumentSnapshot> documents = ordered
+                ? orderedImageDocuments(snapshot)
+                : snapshot.getDocuments();
+        for (DocumentSnapshot doc : documents) {
+            String url = doc.getString("imgUrl");
+            if (url == null || url.trim().isEmpty()) url = doc.getString("imageUrl");
+            if (url != null && !url.trim().isEmpty()) urls.add(url.trim());
+        }
+        return urls;
+    }
+
+    private void renderCurrentRoomImages() {
+        List<String> urls = currentCollectionImageUrls.isEmpty()
+                ? legacyCollectionImageUrls : currentCollectionImageUrls;
+        setupImagesAdapter(new ArrayList<>(urls));
+    }
+
+    private void removeImageListeners() {
+        if (imagesListener != null) {
+            imagesListener.remove();
+            imagesListener = null;
+        }
+        if (legacyImagesListener != null) {
+            legacyImagesListener.remove();
+            legacyImagesListener = null;
+        }
     }
 
     private List<DocumentSnapshot> orderedImageDocuments(QuerySnapshot snapshot) {
         List<DocumentSnapshot> documents = new ArrayList<>(snapshot.getDocuments());
         documents.sort(Comparator
-                .comparingLong((DocumentSnapshot doc) -> {
-                    Object value = doc.get("orderIndex");
-                    return value instanceof Number ? ((Number) value).longValue() : Long.MAX_VALUE;
-                })
+                .comparingLong((DocumentSnapshot doc) -> imageOrderIndex(doc.get("orderIndex")))
                 .thenComparing(DocumentSnapshot::getId));
         return documents;
+    }
+
+    private long imageOrderIndex(Object value) {
+        if (value instanceof Number) return ((Number) value).longValue();
+        if (value instanceof String) {
+            try {
+                return Long.parseLong(((String) value).trim());
+            } catch (NumberFormatException ignored) { }
+        }
+        return Long.MAX_VALUE;
     }
 
     private void restoreCachedImages() {
@@ -943,29 +971,40 @@ public class Detail extends AppCompatActivity {
     }
 
     private void setupImagesAdapter(List<String> urls) {
+        List<String> safeUrls = urls == null ? new ArrayList<>() : new ArrayList<>(urls);
+        if (safeUrls.equals(currentImageUrls)) return;
+        int selectedPosition = viewPagerImages.getCurrentItem();
+        if (imagePageChangeCallback != null) {
+            viewPagerImages.unregisterOnPageChangeCallback(imagePageChangeCallback);
+            imagePageChangeCallback = null;
+        }
+        currentImageUrls = safeUrls;
         if (urls != null && !urls.isEmpty() && offlineCache != null && offlineScope != null) {
             org.json.JSONArray cached = new org.json.JSONArray();
-            for (String url : urls) if (url != null && !url.trim().isEmpty()) cached.put(url.trim());
+            for (String url : safeUrls) if (url != null && !url.trim().isEmpty()) cached.put(url.trim());
             offlineCache.write(offlineScope, "images", cached.toString());
         }
-        if (urls == null || urls.isEmpty()) {
+        if (safeUrls.isEmpty()) {
+            viewPagerImages.setAdapter(null);
             txtImageCount.setVisibility(View.GONE);
             return;
         }
 
-        DetailAdapter adapter = new DetailAdapter(urls, true);
+        DetailAdapter adapter = new DetailAdapter(safeUrls, true);
         viewPagerImages.setAdapter(adapter);
+        viewPagerImages.setCurrentItem(Math.min(selectedPosition, safeUrls.size() - 1), false);
 
         txtImageCount.setVisibility(View.VISIBLE);
-        txtImageCount.setText("1/" + urls.size());
+        txtImageCount.setText((viewPagerImages.getCurrentItem() + 1) + "/" + safeUrls.size());
 
-        viewPagerImages.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+        imagePageChangeCallback = new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
                 super.onPageSelected(position);
-                txtImageCount.setText((position + 1) + "/" + urls.size());
+                txtImageCount.setText((position + 1) + "/" + currentImageUrls.size());
             }
-        });
+        };
+        viewPagerImages.registerOnPageChangeCallback(imagePageChangeCallback);
     }
 
     private void loadHostInfo(String hostId) {
@@ -981,9 +1020,14 @@ public class Detail extends AppCompatActivity {
             return;
         }
 
-        db.collection("accounts").document(hostId.trim()).get()
-                .addOnSuccessListener(doc -> {
+        String normalizedHostId = hostId.trim();
+        if (normalizedHostId.equals(listeningHostId)) return;
+        if (hostListener != null) hostListener.remove();
+        listeningHostId = normalizedHostId;
+        hostListener = db.collection("accounts").document(normalizedHostId)
+                .addSnapshotListener((doc, error) -> {
                     if (isFinishing() || isDestroyed()) return;
+                    if (error != null) return;
                     if (doc.exists()) {
                         String name = doc.getString("fullName");
                         if (name == null || name.trim().isEmpty()) {
@@ -1019,59 +1063,49 @@ public class Detail extends AppCompatActivity {
                         if (txtHostEmail != null) txtHostEmail.setText("Email: Chưa cập nhật");
                         if (txtHostPhone != null) txtHostPhone.setText("SĐT: Chưa cập nhật");
                     }
-                })
-                .addOnFailureListener(e -> {
-                    if (isFinishing() || isDestroyed()) return;
-                    txtHostName.setText("Chủ nhà");
-                    if (txtHostEmail != null) txtHostEmail.setText("Email: Chưa cập nhật");
-                    if (txtHostPhone != null) txtHostPhone.setText("SĐT: Chưa cập nhật");
                 });
     }
 
     private void loadAmenities(List<String> amenityIds) {
-        if (amenityIds == null || amenityIds.isEmpty()) {
-            txtAmenities.setText("Chưa có thông tin tiện nghi.");
-            return;
-        }
-
-        List<Task<DocumentSnapshot>> tasks = new ArrayList<>();
-        for (String id : amenityIds) {
-            if (id != null && !id.trim().isEmpty()) {
-                tasks.add(db.collection("amenities").document(id.trim()).get());
+        List<String> nextIds = new ArrayList<>();
+        if (amenityIds != null) {
+            for (String id : amenityIds) {
+                if (id != null && !id.trim().isEmpty() && !nextIds.contains(id.trim()))
+                    nextIds.add(id.trim());
             }
         }
+        currentAmenityIds = nextIds;
+        for (String existingId : new ArrayList<>(amenityListeners.keySet())) {
+            if (!nextIds.contains(existingId)) {
+                amenityListeners.remove(existingId).remove();
+                amenityNames.remove(existingId);
+            }
+        }
+        for (String id : nextIds) {
+            if (amenityListeners.containsKey(id)) continue;
+            ListenerRegistration registration = db.collection("amenities").document(id)
+                    .addSnapshotListener((doc, error) -> {
+                        if (isFinishing() || isDestroyed() || error != null) return;
+                        String name = doc != null && doc.exists() ? doc.getString("name") : null;
+                        if (name == null || name.trim().isEmpty()) amenityNames.remove(id);
+                        else amenityNames.put(id, name.trim());
+                        renderAmenities();
+                    });
+            amenityListeners.put(id, registration);
+        }
+        renderAmenities();
+    }
 
-        if (tasks.isEmpty()) {
+    private void renderAmenities() {
+        if (currentAmenityIds.isEmpty()) {
             txtAmenities.setText("Chưa có thông tin tiện nghi.");
             return;
         }
-
-        Tasks.whenAllSuccess(tasks)
-                .addOnSuccessListener(results -> {
-                    if (isFinishing() || isDestroyed()) return;
-                    List<String> amenityNames = new ArrayList<>();
-                    for (Object res : results) {
-                        if (res instanceof DocumentSnapshot) {
-                            DocumentSnapshot doc = (DocumentSnapshot) res;
-                            if (doc.exists()) {
-                                String name = doc.getString("name");
-                                if (name != null && !name.trim().isEmpty()) {
-                                    amenityNames.add(name.trim());
-                                }
-                            }
-                        }
-                    }
-
-                    if (amenityNames.isEmpty()) {
-                        txtAmenities.setText("• " + TextUtils.join("\n• ", amenityIds));
-                    } else {
-                        txtAmenities.setText("• " + TextUtils.join("\n• ", amenityNames));
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    if (isFinishing() || isDestroyed()) return;
-                    txtAmenities.setText("• " + TextUtils.join("\n• ", amenityIds));
-                });
+        List<String> labels = new ArrayList<>();
+        for (String id : currentAmenityIds) {
+            labels.add(amenityNames.containsKey(id) ? amenityNames.get(id) : id);
+        }
+        txtAmenities.setText("• " + TextUtils.join("\n• ", labels));
     }
 
     private String formatDate(Date date) {
@@ -1646,6 +1680,11 @@ public class Detail extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        removeImageListeners();
+        if (hostListener != null) hostListener.remove();
+        if (sentRequestListener != null) sentRequestListener.remove();
+        for (ListenerRegistration registration : amenityListeners.values()) registration.remove();
+        amenityListeners.clear();
         if (roomListener != null) {
             roomListener.remove();
             roomListener = null;

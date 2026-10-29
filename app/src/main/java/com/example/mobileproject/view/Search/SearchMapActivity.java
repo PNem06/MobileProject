@@ -109,6 +109,7 @@ public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCa
     }
 
     private void loadPosts() {
+        com.example.mobileproject.util.AccountVisibilityHelper.getLockedAccountIds(lockedIds -> {
         FirebaseFirestore.getInstance().collection("posts")
                 .whereEqualTo("status", "APPROVED")
                 .get()
@@ -118,6 +119,9 @@ public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCa
                     for (DocumentSnapshot doc : snapshot.getDocuments()) {
                         ListingPost post = doc.toObject(ListingPost.class);
                         if (post == null) continue;
+                        String ownerId = post.getAccountId();
+                        if (ownerId == null || ownerId.trim().isEmpty()) ownerId = doc.getString("ownerId");
+                        if (lockedIds.contains(ownerId)) continue;
                         if (post.getPostId() == null || post.getPostId().trim().isEmpty()) {
                             post.setPostId(doc.getId());
                         }
@@ -141,6 +145,7 @@ public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCa
                     txtMapListHeader.setText("Không tải được danh sách chỗ ở");
                     Toast.makeText(this, "Lỗi tải bài đăng: " + error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                 });
+        });
     }
 
     private void loadCoverImage(ListingPost post) {

@@ -297,6 +297,7 @@ public class SearchLocationActivity extends AppCompatActivity {
 
     private void queryFirestoreLocationSuggestions(String query) {
         String normalizedQuery = query.toLowerCase(Locale.ROOT);
+        com.example.mobileproject.util.AccountVisibilityHelper.getLockedAccountIds(lockedIds -> {
         FirebaseFirestore.getInstance().collection("posts")
                 .whereEqualTo("status", "APPROVED")
                 .get()
@@ -306,6 +307,9 @@ public class SearchLocationActivity extends AppCompatActivity {
                     if (!query.equals(currentQuery)) return;
 
                     for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                        String ownerId = doc.getString("accountId");
+                        if (ownerId == null || ownerId.trim().isEmpty()) ownerId = doc.getString("ownerId");
+                        if (lockedIds.contains(ownerId)) continue;
                         String destination = doc.getString("destination");
                         String address = doc.getString("address");
 
@@ -328,6 +332,7 @@ public class SearchLocationActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     updateSuggestionTitle();
                 });
+        });
     }
 
     private void addSuggestionUnique(String locationName, String details) {

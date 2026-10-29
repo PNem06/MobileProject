@@ -194,6 +194,7 @@ public class MessagesFragment extends TabContentFragment {
                         if (document != null && document.exists()) {
                             profile.name = document.getString("fullName");
                             profile.avatarUrl = document.getString("avatarUrl");
+                            profile.locked = "LOCKED".equalsIgnoreCase(document.getString("status"));
                         }
                         profiles.put(participantId, profile);
                         renderConversations();
@@ -219,6 +220,8 @@ public class MessagesFragment extends TabContentFragment {
                 String otherId = userId.equals(firstId) ? secondId : firstId;
                 if (otherId == null || otherId.trim().isEmpty()) continue;
                 if (blockedIds.contains(otherId)) continue;
+                Profile otherProfile = profiles.get(otherId);
+                if (otherProfile != null && otherProfile.locked) continue;
 
                 totalCount++;
                 String lastSender = document.getString("lastMessageSenderId");
@@ -349,6 +352,7 @@ public class MessagesFragment extends TabContentFragment {
     private static class Profile {
         String name;
         String avatarUrl;
+        boolean locked;
     }
 
     private static class ConversationRow {

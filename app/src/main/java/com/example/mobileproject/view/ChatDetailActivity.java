@@ -109,7 +109,6 @@ public class ChatDetailActivity extends AppCompatActivity {
         loadPartnerProfile();
         setupRecyclerView();
         checkBlockStatus();
-        ensureConversation();
     }
 
     private void initViews() {
@@ -158,7 +157,18 @@ public class ChatDetailActivity extends AppCompatActivity {
                     db.collection("blocks").whereEqualTo("blockerId",partnerId).whereEqualTo("blockedUserId",currentUid).get()
                             .addOnSuccessListener(theirs->{
                                 if(isFinishing()||isDestroyed())return;
-                                partnerBlockedMe=!theirs.isEmpty();blockStatusKnown=true;updateBlockUi();
+                                partnerBlockedMe=!theirs.isEmpty();
+                                db.collection("accounts").document(partnerId).get()
+                                        .addOnSuccessListener(account -> {
+                                            if(isFinishing()||isDestroyed())return;
+                                            if(account.exists()&&"LOCKED".equalsIgnoreCase(account.getString("status"))){
+                                                Toast.makeText(this,"Cuộc trò chuyện này không còn khả dụng.",Toast.LENGTH_SHORT).show();
+                                                finish();
+                                                return;
+                                            }
+                                            blockStatusKnown=true;updateBlockUi();ensureConversation();
+                                        })
+                                        .addOnFailureListener(error->blockCheckFailed());
                             }).addOnFailureListener(error->blockCheckFailed());
                 }).addOnFailureListener(error->blockCheckFailed());
     }

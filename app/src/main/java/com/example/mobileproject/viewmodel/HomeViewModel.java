@@ -55,6 +55,7 @@ public class HomeViewModel extends AndroidViewModel {
     private final Map<String, ListenerRegistration> ownerListeners = new HashMap<>();
     private final Map<String, JSONObject> ownerProfiles = new HashMap<>();
     private final Set<String> favoritePosts = new HashSet<>();
+    private final Set<String> lockedAccountIds = new HashSet<>();
     private final Map<String, Boolean> pendingFavorites = new HashMap<>();
     private boolean favoritesReady;
     private boolean warnedOwnerRead;
@@ -258,7 +259,22 @@ public class HomeViewModel extends AndroidViewModel {
     }
 
     private void attach(int token) {
-        watch(db.collection("posts").whereEqualTo("status", "APPROVED"), "feedPublic", token);
+        com.example.mobileproject.util.AccountVisibilityHelper.getLockedAccountIds(ids -> {
+            if (!running || token != generation) return;
+            lockedAccountIds.clear();
+            lockedAccountIds.addAll(ids);
+            JSONArray cachedFeed = rows("feed");
+            JSONArray visibleCachedFeed = new JSONArray();
+            for (int i = 0; i < cachedFeed.length(); i++) {
+                JSONObject item = cachedFeed.optJSONObject(i);
+                if (item != null && !lockedAccountIds.contains(item.optString("ownerId")))
+                    visibleCachedFeed.put(item);
+            }
+            data.put("feed", visibleCachedFeed);
+            persistCachedData("feed", visibleCachedFeed);
+            refreshUi();
+            watch(db.collection("posts").whereEqualTo("status", "APPROVED"), "feedPublic", token);
+        });
         if (!uid.isEmpty()) {
             listeners.add(
                     db.collection("accounts")
@@ -310,8 +326,12 @@ public class HomeViewModel extends AndroidViewModel {
                                 if (rows(existingKey).length() > 0) return;
                             }
                             List<JSONObject> items = new ArrayList<>();
-                            for (DocumentSnapshot doc : snap.getDocuments())
-                                items.add(convert(doc));
+                            for (DocumentSnapshot doc : snap.getDocuments()) {
+                                JSONObject item = convert(doc);
+                                if ("feedPublic".equals(key)
+                                        && lockedAccountIds.contains(item.optString("ownerId"))) continue;
+                                items.add(item);
+                            }
                             if ("notices".equals(key)) {
                                 items.sort(
                                         (a, b) ->

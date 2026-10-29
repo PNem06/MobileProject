@@ -247,7 +247,9 @@ public class SearchResultsActivity extends AppCompatActivity {
         if (adapter != null) {
             adapter.notifyDataSetChanged();
         }
+        com.example.mobileproject.util.AccountVisibilityHelper.getLockedAccountIds(lockedIds -> {
         com.example.mobileproject.util.BlockHelper.getBlockedUserIds(blockedIds -> {
+            blockedIds.addAll(lockedIds);
             if (isFinishing() || isDestroyed()) return;
             db.collection("posts")
                     .whereEqualTo("status", "APPROVED")
@@ -298,6 +300,7 @@ public class SearchResultsActivity extends AppCompatActivity {
                                 Toast.LENGTH_LONG
                         ).show();
                     });
+        });
         });
     }
 
