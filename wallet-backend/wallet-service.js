@@ -3,8 +3,9 @@ const crypto=require('node:crypto');
 const c=require('./core');
 const {PostReservations}=require('./post-reservations');
 const {PaymentDatabase,rentalPayment}=require('./payment-storage');
+const {Withdrawals}=require('./withdrawal-service');
 class WalletService {
-  constructor(db,Timestamp,config,clock=Date.now){this.db=PaymentDatabase.from(db);this.T=Timestamp;this.config=config;this.clock=clock;this.reservations=new PostReservations(this);}
+  constructor(db,Timestamp,config,clock=Date.now){this.db=PaymentDatabase.from(db);this.T=Timestamp;this.config=config;this.clock=clock;this.reservations=new PostReservations(this);this.withdrawals=new Withdrawals(this);}
   async storageStatus(){const state=await this.db.state();return {storageSchema:state.storageSchema,storageState:state.mode,storageAdapterVersion:1,projectId:this.config.projectId||''};}
   savePayment(tx,booking){if(tx.storageSchema===2)tx.set(this.ref('payments/rental_'+booking.exchangeId),rentalPayment(booking));}
   async checkPayment(tx,booking,creating=false){
@@ -81,7 +82,8 @@ class WalletService {
   saveBalances(tx,balances){for(const {ref,value} of balances.values())tx.set(ref,{...value,updatedAt:this.time()});}
   notify(tx,uid,id,title,body,booking){
     tx.create(this.ref('notifications/'+id),{userId:uid,recipientId:uid,title,body,message:body,
-      type:'wallet',exchangeId:booking?.exchangeId||'',postId:booking?.postId||'',isRead:false,walletManaged:true,createdAt:this.time()});
+      type:'wallet',exchangeId:booking?.exchangeId||'',postId:booking?.postId||'',
+      ...(booking?.withdrawalId?{withdrawalId:booking.withdrawalId}:{}),isRead:false,walletManaged:true,createdAt:this.time()});
   }
   async ensureWallet(actor){await this.db.runTransaction(async tx=>{const ref=this.ref('wallets/'+actor.uid);const old=await tx.get(ref);if(!old.exists)tx.create(ref,this.zero(actor.uid));});}
   async createTopup(actor,input){
@@ -297,12 +299,13 @@ class WalletService {
       bookings=all.docs.map(d=>({...d.data(),exchangeId:d.id}));events=bank.docs.map(d=>({...d.data(),eventId:d.id}));}
     const sort=(a,b)=>c.milliseconds(b.createdAt)-c.milliseconds(a.createdAt);
     const notifications=await this.db.collection('notifications').where('userId','==',walletOwnerId).get();
-    return c.json({apiVersion:3,postReservationVersion:1,sharedAdminWalletVersion:1,...await this.storageStatus(),
+    return c.json({apiVersion:3,postReservationVersion:1,sharedAdminWalletVersion:1,withdrawalVersion:1,...await this.storageStatus(),
       userId:actor.uid,accountId:actor.accountId,name:actor.name,isAdmin:actor.isAdmin,
       walletOwnerId,walletScope:actor.isAdmin?'SYSTEM':'PERSONAL',bank:this.bankInfo(),serverNow:this.clock(),wallet:wallet.data(),
       topups:topups.docs.map(d=>({...d.data(),topupId:d.id})).sort(sort).slice(0,30),
       ledger:ledger.docs.map(d=>({...d.data(),ledgerId:d.id})).sort(sort).slice(0,60),bookings:bookings.sort(sort).slice(0,100),bankEvents:events,
-      notifications:notifications.docs.filter(d=>d.get('walletManaged')).map(d=>({...d.data(),notificationId:d.id})).sort(sort).slice(0,30)});
+      notifications:notifications.docs.filter(d=>d.get('walletManaged')).map(d=>({...d.data(),notificationId:d.id})).sort(sort).slice(0,30),
+      ...await this.withdrawals.list(actor)});
   }
 }
 module.exports={WalletService};

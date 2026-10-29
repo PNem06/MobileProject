@@ -35,7 +35,8 @@ test('reciprocal acceptance atomically locks both posts for the same two parties
  const h=fixture();h.swap('swap');await h.decide('B','swap','ACCEPTED');for(const id of ['target','offered']){const p=h.db.docs.get('posts/'+id);assert.equal(p.bookingKey,'exchanges/swap');assert.equal(p.status,'BOOKED');assert.deepEqual(new Set(p.bookingPartyIds),new Set(['A','B']));}assert.equal([...h.db.docs.keys()].filter(x=>x.startsWith('notifications/')).length,2);assert.equal(h.db.docs.get('wallets/A').available,50000);
 });
 test('two acceptances cannot win the same target post',async()=>{
- const h=fixture();h.swap('first');h.swap('second','C','other');const r=await Promise.allSettled([h.decide('B','first','ACCEPTED'),h.decide('B','second','ACCEPTED')]);assert.equal(r.filter(x=>x.status==='fulfilled').length,1);assert.equal(h.db.docs.get('exchanges/second').status,'PENDING');assert.equal(h.db.docs.get('posts/other').status,'APPROVED');
+ // Current exchange-service automatically rejects competing pending requests after acceptance.
+ const h=fixture();h.swap('first');h.swap('second','C','other');const r=await Promise.allSettled([h.decide('B','first','ACCEPTED'),h.decide('B','second','ACCEPTED')]);assert.equal(r.filter(x=>x.status==='fulfilled').length,1);assert.equal(h.db.docs.get('exchanges/second').status,'REJECTED');assert.equal(h.db.docs.get('posts/other').status,'APPROVED');
 });
 test('wallet checkout and reciprocal acceptance share one lock',async()=>{
  const h=fixture();h.swap('swap');const r=await Promise.allSettled([h.pay('C'),h.decide('B','swap','ACCEPTED')]);assert.equal(r.filter(x=>x.status==='fulfilled').length,1);const paid=r[0].status==='fulfilled';assert.equal(h.db.docs.get('wallets/C').available,paid?40000:50000);assert.equal(h.db.docs.get('posts/offered').status,paid?'APPROVED':'BOOKED');

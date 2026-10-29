@@ -13,6 +13,8 @@ public final class NotificationTarget {
         if (type.equals("chat_message") || type.equals("chat"))
             return new NotificationTarget(Kind.CHAT, notice.text("senderId", "partnerId", "otherUserId"), notice.text("conversationId"));
         String exchange = notice.text("exchangeId", "requestId");
+        if ((notice.flag("walletManaged") || type.equals("wallet")) && !notice.text("withdrawalId").isEmpty())
+            return new NotificationTarget(Kind.WALLET, notice.text("withdrawalId"), "withdrawals");
         if (notice.flag("walletManaged") || type.equals("wallet"))
             return new NotificationTarget(Kind.WALLET, exchange, "");
         if (!exchange.isEmpty() && (type.contains("exchange") || type.contains("request"))) {

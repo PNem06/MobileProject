@@ -46,6 +46,15 @@ public class NotificationRoutingTest {
         NotificationTarget t=target("type","wallet","walletManaged",true);
         assertEquals(NotificationTarget.Kind.WALLET,t.kind); assertEquals("",t.id);
     }
+    @Test public void withdrawalNoticeUsesWithdrawalDetailInsteadOfBookingDetail() {
+        NotificationTarget t=target("type","wallet","walletManaged",true,"withdrawalId","RUT123","exchangeId","");
+        assertEquals(NotificationTarget.Kind.WALLET,t.kind);assertEquals("RUT123",t.id);assertEquals("withdrawals",t.collection);
+    }
+    @Test public void withdrawalTargetSurvivesTheHomeCacheMapper() {
+        org.json.JSONObject json=HomePostMapper.fromDocument("n",data("type","wallet","walletManaged",true,"withdrawalId","RUT123"));
+        NotificationTarget t=NotificationTarget.resolve(Notice.fromJson(json));
+        assertEquals("RUT123",t.id);assertEquals("withdrawals",t.collection);
+    }
     @Test public void legacyNoticeWithoutTargetHasInformationFallback() {
         assertEquals(NotificationTarget.Kind.INFO,target("type","post_approved","body","Approved").kind);
     }
