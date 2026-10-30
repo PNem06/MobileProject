@@ -847,10 +847,8 @@ public class New_Post extends AppCompatActivity {
                                      Map<String, Object> post,
                                      String postId) {
         final List<Uri> urisToSave = new ArrayList<>(imageUris);
-
         new Thread(() -> {
             List<String> encodedImages = new ArrayList<>();
-
             try {
                 for (Uri uri : urisToSave) {
                     encodedImages.add(encodePostImage(uri));
@@ -861,13 +859,10 @@ public class New_Post extends AppCompatActivity {
                                 "Không xử lý được ảnh: " + e.getMessage()));
                 return;
             }
-
             runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed()) return;
-
                 WriteBatch batch = db.batch();
                 batch.set(postRef, post, SetOptions.merge());
-
                 for (int i = 0; i < encodedImages.size(); i++) {
                     DocumentReference imageRef = db.collection("images").document();
                     Map<String, Object> image = new HashMap<>();

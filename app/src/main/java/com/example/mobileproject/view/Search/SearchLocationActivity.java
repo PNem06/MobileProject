@@ -136,7 +136,6 @@ public class SearchLocationActivity extends AppCompatActivity {
                         apiKey
                 );
             }
-
             placesClient = Places.createClient(this);
 
         } catch (PackageManager.NameNotFoundException e) {
@@ -373,12 +372,10 @@ public class SearchLocationActivity extends AppCompatActivity {
                         String address = prediction
                                 .getFullText(null)
                                 .toString();
-
                         if (!address.trim().isEmpty()) {
                             addSuggestionUnique(address.trim(), "Google Maps");
                         }
                     }
-
                     suggestionAdapter.notifyDataSetChanged();
                     updateSuggestionTitle();
                 })

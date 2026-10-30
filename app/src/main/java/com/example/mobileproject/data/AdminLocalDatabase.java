@@ -8,7 +8,6 @@ import androidx.room.RoomDatabase;
 @Database(entities = {ReportCacheEntity.AdminReportCacheEntity.class, ExchangeCacheEntity.class}, version = 4, exportSchema = false)
 public abstract class AdminLocalDatabase extends RoomDatabase {
     private static volatile AdminLocalDatabase INSTANCE;
-
     private static boolean columnExists(androidx.sqlite.db.SupportSQLiteDatabase db, String tableName, String columnName) {
         try (android.database.Cursor cursor = db.query("PRAGMA table_info(" + tableName + ")")) {
             int nameIndex = cursor.getColumnIndex("name");
@@ -24,7 +23,6 @@ public abstract class AdminLocalDatabase extends RoomDatabase {
         }
         return false;
     }
-
     public static final androidx.room.migration.Migration MIGRATION_2_3 = new androidx.room.migration.Migration(2,3) {
         @Override public void migrate(@androidx.annotation.NonNull androidx.sqlite.db.SupportSQLiteDatabase db) {
             if (!columnExists(db, "admin_exchange_cache", "walletManaged")) {
@@ -50,7 +48,6 @@ public abstract class AdminLocalDatabase extends RoomDatabase {
                             // Ignored if column already exists
                         }
                     }
-
                     if (!columnExists(db, "admin_report_cache", "targetType")) {
                         try {
                             db.execSQL("ALTER TABLE admin_report_cache ADD COLUMN targetType TEXT");

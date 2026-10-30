@@ -94,7 +94,6 @@ public class SearchMapActivity extends AppCompatActivity implements OnMapReadyCa
                 }
             }
         });
-
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         if (mapFragment != null) mapFragment.getMapAsync(this);
         loadPosts();
