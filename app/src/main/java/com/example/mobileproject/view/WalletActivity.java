@@ -63,7 +63,9 @@ import java.util.concurrent.Executors;
 public class WalletActivity extends AppCompatActivity {
     public static final String EXTRA_BOOKING_ID="walletBookingId";
     public static final String EXTRA_LEGACY_ID="walletLegacyExchangeId";
+    public static final String EXTRA_WITHDRAWAL_ID="walletWithdrawalId";
     private WalletViewModel vm;
+    private WalletWithdrawalUi withdrawalUi;
     private LinearLayout content;
     private Typeface headingFont,bodyFont;
     private final Handler clock=new Handler(Looper.getMainLooper());
@@ -81,13 +83,14 @@ public class WalletActivity extends AppCompatActivity {
         super.onCreate(state);EdgeToEdge.enable(this);setContentView(R.layout.activity_wallet);
         headingFont=ResourcesCompat.getFont(this,R.font.sx_fraunces);bodyFont=ResourcesCompat.getFont(this,R.font.sx_noto_sans);
         content=findViewById(R.id.walletContent);vm=new ViewModelProvider(this).get(WalletViewModel.class);
+        withdrawalUi=new WalletWithdrawalUi(this,content,vm);
         findViewById(R.id.walletBack).setOnClickListener(v->{if("HOME".equals(vm.page)||"QUOTE".equals(vm.page))finish();else vm.open("HOME");});
         findViewById(R.id.walletBell).setOnClickListener(v->vm.open("NOTICES"));
         findViewById(R.id.walletBell).setOnLongClickListener(v->{if(debugBuild()){configure();return true;}return false;});
         setupNav();
         com.example.mobileproject.navigation.MainNavigationInsets.install(findViewById(R.id.walletRoot),R.id.walletBottomNav);
         vm.revision.observe(this,revision->render());
-        vm.init(getIntent().getStringExtra("targetPostId"),getIntent().getStringExtra(EXTRA_BOOKING_ID),getIntent().getStringExtra(EXTRA_LEGACY_ID));
+        vm.init(getIntent().getStringExtra("targetPostId"),getIntent().getStringExtra(EXTRA_BOOKING_ID),getIntent().getStringExtra(EXTRA_LEGACY_ID),getIntent().getStringExtra(EXTRA_WITHDRAWAL_ID));
     }
     private boolean debugBuild(){return (getApplicationInfo().flags&ApplicationInfo.FLAG_DEBUGGABLE)!=0;}
     private int dp(float value){return Math.round(value*getResources().getDisplayMetrics().density);}
@@ -117,20 +120,22 @@ public class WalletActivity extends AppCompatActivity {
     private void render(){
         if(vm==null||content==null)return;
         if(vm.snapshot.optBoolean("isAdmin")&&("TOPUP".equals(vm.page)||"QR".equals(vm.page)||"QUOTE".equals(vm.page)))vm.page="HOME";
+        if(vm.snapshot.optBoolean("isAdmin")&&"WITHDRAW_FORM".equals(vm.page))vm.page="WITHDRAWALS";
         String title;
-        switch(vm.page){case "TOPUP":case "QR":title="Nạp tiền";break;case "HISTORY":title="Lịch sử giao dịch";break;case "NOTICES":title="Thông báo";break;case "QUOTE":title="Thuê phòng";break;case "BOOKING":title="Chi tiết trao đổi";break;default:title=vm.snapshot.length()==0?"Ví StayExchange":vm.snapshot.optBoolean("isAdmin")?"Ví quản trị":"Ví của tôi";}
+        switch(vm.page){case "WITHDRAW_FORM":case "WITHDRAWALS":case "WITHDRAWAL":title="Rút tiền";break;case "TOPUP":case "QR":title="Nạp tiền";break;case "HISTORY":title="Lịch sử giao dịch";break;case "NOTICES":title="Thông báo";break;case "QUOTE":title="Thuê phòng";break;case "BOOKING":title="Chi tiết trao đổi";break;default:title=vm.snapshot.length()==0?"Ví StayExchange":vm.snapshot.optBoolean("isAdmin")?"Ví quản trị":"Ví của tôi";}
         ((TextView)findViewById(R.id.walletTitle)).setText(title);
         findViewById(R.id.walletLoading).setVisibility(vm.busy?View.VISIBLE:View.INVISIBLE);
         ((TextView)findViewById(R.id.walletConnection)).setText(vm.online?"Đã đồng bộ với hệ thống":"Dữ liệu lưu để xem lại · Cần mạng để giao dịch");
         TextView error=findViewById(R.id.walletError);error.setText(vm.message);error.setVisibility(vm.message.isEmpty()?View.GONE:View.VISIBLE);
         String bankConfiguration=currentBank().optString("configurationId")+"|"+waitingTopup().optString("topupId");
         if ("TOPUP".equals(vm.page) && "TOPUP".equals(lastRenderedPage) && lastRenderedBank.equals(bankConfiguration) && topupCreate != null && content.getChildCount() > 0) { topupCreate.setEnabled(vm.usable()); topupCreate.setAlpha(vm.usable()?1f:.5f); return; }
+        if("WITHDRAW_FORM".equals(vm.page)&&"WITHDRAW_FORM".equals(lastRenderedPage)&&content.getChildCount()>0&&withdrawalUi.refreshForm())return;
         lastRenderedPage=vm.page;
         lastRenderedBank=bankConfiguration;
         content.removeAllViews();countdown=null;cancelButton=null;cancelUntil=0;
         if(!vm.sameUser()){heading("Ví StayExchange");sub("Vui lòng đăng nhập đúng tài khoản và mở lại ví.");return;}
         if(WalletApi.baseUrl(this).isEmpty()){heading("Kết nối thanh toán");sub("Nhóm cần thiết lập địa chỉ máy chủ một lần trước khi sử dụng ví.");if(debugBuild())button(content,"Thiết lập kết nối",true,true,this::configure);return;}
-        switch(vm.page){case "TOPUP":renderTopup();break;case "QR":renderQr();break;case "QUOTE":renderQuote();break;case "BOOKING":renderBooking();break;case "HISTORY":renderHistory();break;case "NOTICES":renderNotices();break;default:renderHome();}
+        switch(vm.page){case "WITHDRAW_FORM":withdrawalUi.form();break;case "WITHDRAWALS":withdrawalUi.list();break;case "WITHDRAWAL":withdrawalUi.detail();break;case "TOPUP":renderTopup();break;case "QR":renderQr();break;case "QUOTE":renderQuote();break;case "BOOKING":renderBooking();break;case "HISTORY":renderHistory();break;case "NOTICES":renderNotices();break;default:renderHome();}
         if(!"TOPUP".equals(vm.page))button(content,"Làm mới trạng thái",false,!vm.busy,()->{vm.refresh();if("QUOTE".equals(vm.page))vm.loadQuote();});
         if(debugBuild()&&!vm.online)button(content,"Cấu hình máy chủ của nhóm",false,true,this::configure);
         updateCountdown();
@@ -141,6 +146,8 @@ public class WalletActivity extends AppCompatActivity {
         JSONObject w=vm.snapshot.optJSONObject("wallet");if(w==null)w=new JSONObject();long available=w.optLong("available"),held=w.optLong("held");
         LinearLayout balance=card();balance.setBackground(getDrawable(R.drawable.bg_black_blue));text(balance,admin?"Tổng số dư ví hệ thống":"Số dư khả dụng",14,"#E4E0FF",false);text(balance,money(admin?available+held:available),35,"#FFFFFF",true);
         if(admin){text(balance,"Đang giữ hộ: "+money(held),15,"#FFFFFF",false);text(balance,"Khả dụng (gồm phí hủy): "+money(available),15,"#FFFFFF",false);}else button(balance,"Nạp tiền vào ví",true,vm.usable(),vm::newTopup);
+        if(!admin){text(balance,"Đang giữ cho yêu cầu rút: "+money(held),14,"#E4E0FF",false);button(content,"Rút tiền về ngân hàng",true,vm.usable()&&vm.withdrawalsSupported(),vm::newWithdrawal);}
+        button(content,admin?"Yêu cầu rút tiền · "+vm.snapshot.optInt("withdrawalPendingCount")+" chờ xử lý":"Yêu cầu rút của tôi",false,true,()->vm.open("WITHDRAWALS"));
         if(admin)note("Các quản trị viên cùng xem một ví hệ thống, gồm tiền giữ hộ và phần khả dụng. Khoản giữ gắn với từng yêu cầu; hệ thống tự hoàn cho A hoặc trả cho B theo trạng thái giao dịch.",false);
         JSONObject waiting=waitingTopup();if(waiting.length()>0){final String id=waiting.optString("topupId");button(content,"Mở yêu cầu nạp đang chờ · "+money(waiting.optLong("amount")),false,true,()->vm.viewTopup(id));}
         for(int i=0;i<vm.array("topups").length();i++){JSONObject t=vm.array("topups").optJSONObject(i);if(t!=null&&"REVIEW".equals(t.optString("status"))){final String id=t.optString("topupId");button(content,"Khoản nạp cần đối soát · "+money(t.optLong("amount")),false,true,()->vm.viewTopup(id));break;}}
@@ -296,7 +303,7 @@ public class WalletActivity extends AppCompatActivity {
             final String id=topup.optString("topupId");button(c,"Xem yêu cầu nạp",false,true,()->vm.viewTopup(id));
         }
     }
-    private void renderNotices(){heading("Thông báo ví");JSONArray entries=vm.array("notifications");if(entries.length()==0)sub("Chưa có thông báo ví.");for(int i=0;i<entries.length();i++){JSONObject n=entries.optJSONObject(i);if(n==null)continue;LinearLayout c=card();text(c,n.optString("title"),17,"#141222",true);subCard(c,n.optString("body"));subCard(c,date(n.optLong("createdAt")));String id=n.optString("exchangeId");if(!id.isEmpty())button(c,"Xem yêu cầu",false,true,()->vm.viewBooking(id));}}
+    private void renderNotices(){heading("Thông báo ví");JSONArray entries=vm.array("notifications");if(entries.length()==0)sub("Chưa có thông báo ví.");for(int i=0;i<entries.length();i++){JSONObject n=entries.optJSONObject(i);if(n==null)continue;LinearLayout c=card();text(c,n.optString("title"),17,"#141222",true);subCard(c,n.optString("body"));subCard(c,date(n.optLong("createdAt")));String withdrawal=n.optString("withdrawalId");if(!withdrawal.isEmpty())button(c,"Xem yêu cầu rút",false,true,()->vm.viewWithdrawal(withdrawal));else{String id=n.optString("exchangeId");if(!id.isEmpty())button(c,"Xem yêu cầu",false,true,()->vm.viewBooking(id));}}}
     private void postImage(LinearLayout parent,String url,String postId){
         ImageView image=new ImageView(this);image.setScaleType(ImageView.ScaleType.CENTER_CROP);image.setContentDescription("Ảnh chỗ ở");image.setBackgroundColor(Color.parseColor("#EFEDF8"));image.setImageResource(R.drawable.ic_home);parent.addView(image,params(-1,140));
         if(!url.isEmpty()){showPhoto(image,url);return;}

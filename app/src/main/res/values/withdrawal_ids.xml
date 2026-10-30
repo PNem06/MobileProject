@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="withdrawalAmount" type="id" />
+    <item name="withdrawalBank" type="id" />
+    <item name="withdrawalAccount" type="id" />
+    <item name="withdrawalName" type="id" />
+    <item name="withdrawalSubmit" type="id" />
+    <item name="withdrawalClaim" type="id" />
+    <item name="withdrawalPaid" type="id" />
+    <item name="withdrawalReject" type="id" />
+</resources>

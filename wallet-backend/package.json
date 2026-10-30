@@ -1,6 +1,6 @@
 {
   "name": "stayexchange-wallet",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "private": true,
   "description": "MBBank or VPBank/SePay wallet backend for the existing StayExchange Android project",
   "engines": {
@@ -12,7 +12,8 @@
     "diagnose": "node --env-file=.env diagnose.js",
     "reconcile:mb-minute": "node --env-file=.env reconcile-mb-minute.js",
     "payments:migrate": "node --env-file=.env payment-migration.js",
-    "test:payments-emulator": "npm --prefix rules-tests run test:payments"
+    "test:payments-emulator": "npm --prefix rules-tests run test:payments",
+    "test:withdrawals-emulator": "npm --prefix rules-tests run test:withdrawals"
   },
   "dependencies": {
     "firebase-admin": "^13.0.0"
