@@ -129,7 +129,6 @@ public final class AdminUsersActivity extends AppCompatActivity {
         search.setText(vm.query);
 
         search.addTextChangedListener(new TextWatcher() {
-
             @Override
             public void beforeTextChanged(
                     CharSequence s,
@@ -138,7 +137,6 @@ public final class AdminUsersActivity extends AppCompatActivity {
                     int after
             ) {
             }
-
             @Override
             public void onTextChanged(
                     CharSequence s,
@@ -169,16 +167,13 @@ public final class AdminUsersActivity extends AppCompatActivity {
         filterAdapter.setDropDownViewResource(
                 R.layout.item_admin_user_filter
         );
-
         filter.setAdapter(filterAdapter);
-
         filter.setSelection(
                 Math.max(
                         0,
                         Arrays.asList(FILTERS).indexOf(vm.filter)
                 )
         );
-
         filter.setOnItemSelectedListener(
                 new AdapterView.OnItemSelectedListener() {
 

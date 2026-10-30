@@ -84,7 +84,12 @@ public class WalletActivity extends AppCompatActivity {
         headingFont=ResourcesCompat.getFont(this,R.font.sx_fraunces);bodyFont=ResourcesCompat.getFont(this,R.font.sx_noto_sans);
         content=findViewById(R.id.walletContent);vm=new ViewModelProvider(this).get(WalletViewModel.class);
         withdrawalUi=new WalletWithdrawalUi(this,content,vm);
-        findViewById(R.id.walletBack).setOnClickListener(v->{if("HOME".equals(vm.page)||"QUOTE".equals(vm.page))finish();else vm.open("HOME");});
+        findViewById(R.id.walletBack).setOnClickListener(v->{
+            boolean isAdmin = getIntent().getBooleanExtra("isAdmin", false)
+                    || (vm != null && vm.snapshot != null && vm.snapshot.optBoolean("isAdmin"));
+            if(isAdmin || "HOME".equals(vm.page)||"QUOTE".equals(vm.page)) finish();
+            else vm.open("HOME");
+        });
         findViewById(R.id.walletBell).setOnClickListener(v->vm.open("NOTICES"));
         findViewById(R.id.walletBell).setOnLongClickListener(v->{if(debugBuild()){configure();return true;}return false;});
         setupNav();
@@ -108,6 +113,13 @@ public class WalletActivity extends AppCompatActivity {
     private String status(String raw){switch(raw){case "PENDING":return "Đang chờ phản hồi";case "ACCEPTED":return "Đã chấp nhận";case "ONGOING":return "Đang diễn ra";case "CANCELLED":return "A đã hủy";case "REJECTED":return "B đã từ chối";case "COMPLETED":return "Đã hoàn tất";default:return raw;}}
     private void setupNav(){
         BottomNavigationView nav=findViewById(R.id.walletBottomNav);
+        if(nav==null) return;
+        boolean isAdmin = getIntent().getBooleanExtra("isAdmin", false)
+                || (vm != null && vm.snapshot != null && vm.snapshot.optBoolean("isAdmin"));
+        if(isAdmin) {
+            nav.setVisibility(View.GONE);
+            return;
+        }
         nav.getMenu().findItem(R.id.menu_settings).setChecked(true);
         nav.setOnItemSelectedListener(item->{
             com.example.mobileproject.navigation.MainTab tab=com.example.mobileproject.navigation.MainTab.fromMenuId(item.getItemId());
@@ -119,6 +131,14 @@ public class WalletActivity extends AppCompatActivity {
     }
     private void render(){
         if(vm==null||content==null)return;
+        BottomNavigationView nav=findViewById(R.id.walletBottomNav);
+        if (nav != null) {
+            boolean isAdmin = getIntent().getBooleanExtra("isAdmin", false)
+                    || (vm.snapshot != null && vm.snapshot.optBoolean("isAdmin"));
+            if (isAdmin) {
+                nav.setVisibility(View.GONE);
+            }
+        }
         if(vm.snapshot.optBoolean("isAdmin")&&("TOPUP".equals(vm.page)||"QR".equals(vm.page)||"QUOTE".equals(vm.page)))vm.page="HOME";
         if(vm.snapshot.optBoolean("isAdmin")&&"WITHDRAW_FORM".equals(vm.page))vm.page="WITHDRAWALS";
         String title;

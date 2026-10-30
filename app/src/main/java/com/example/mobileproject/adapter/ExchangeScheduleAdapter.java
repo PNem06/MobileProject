@@ -56,13 +56,16 @@ public class ExchangeScheduleAdapter
         h.host.setText("Chủ nhà: " + item.hostName);
         h.address.setText(item.address.isEmpty() ? "Chưa có địa chỉ" : item.address);
 
-        String date = (item.startDate == null
-                ? "--/--/----"
-                : dateFormat.format(item.startDate))
-                + " - "
-                + (item.endDate == null
-                ? "--/--/----"
-                : dateFormat.format(item.endDate));
+        String date;
+        if (item.startDate != null && item.endDate != null) {
+            date = dateFormat.format(item.startDate) + " - " + dateFormat.format(item.endDate);
+        } else if (item.startDate != null) {
+            date = "Từ " + dateFormat.format(item.startDate);
+        } else if (item.endDate != null) {
+            date = "Đến " + dateFormat.format(item.endDate);
+        } else {
+            date = "Thời gian chưa cập nhật";
+        }
 
         if (item.guestCount > 0) {
             date += "  •  " + item.guestCount + " khách";
@@ -83,17 +86,7 @@ public class ExchangeScheduleAdapter
                     R.drawable.bg_schedule_status_upcoming);
         }
 
-        if (item.imageUrl != null && !item.imageUrl.isEmpty()) {
-            Glide.with(h.image)
-                    .load(PostImageUtils.asGlideModel(item.imageUrl))
-                    .placeholder(android.R.drawable.ic_menu_gallery)
-                    .error(android.R.drawable.ic_menu_gallery)
-                    .centerCrop()
-                    .into(h.image);
-        } else {
-            Glide.with(h.image).clear(h.image);
-            h.image.setImageResource(android.R.drawable.ic_menu_gallery);
-        }
+        PostImageUtils.loadInto(h.image, item.imageUrl, R.drawable.bg_blank_canvas);
 
         h.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onClick(item);

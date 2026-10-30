@@ -204,9 +204,15 @@ public class HomeViewModel extends AndroidViewModel {
         return caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
     }
 
-    public void refreshUi() {
+    private final android.os.Handler uiHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable pendingRefreshRunnable = () -> {
         Integer n = changed.getValue();
         changed.setValue(n == null ? 1 : n + 1);
+    };
+
+    public void refreshUi() {
+        uiHandler.removeCallbacks(pendingRefreshRunnable);
+        uiHandler.postDelayed(pendingRefreshRunnable, 100);
     }
 
     public void tell(String message) {
@@ -553,7 +559,7 @@ public class HomeViewModel extends AndroidViewModel {
                                             }
                                             return;
                                         }
-                                        if (doc == null || doc.getMetadata().isFromCache()) return;
+                                        if (doc == null) return;
                                         JSONObject owner = new JSONObject();
                                         if (doc.exists()) {
                                             try {

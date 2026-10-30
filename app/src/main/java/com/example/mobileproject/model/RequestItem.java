@@ -39,6 +39,7 @@ public class RequestItem implements Serializable {
     public String proposedPostImageUrl = "";
     public double proposedPostRating = 4.8;
     public String proposedPostDates = "";
+    public String proposedPostLocation = "";
     public boolean isPaid = false;
     public boolean walletManaged = false;
 

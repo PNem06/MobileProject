@@ -167,18 +167,37 @@ public class ExchangeScheduleRepository {
         ExchangeScheduleItem item = new ExchangeScheduleItem();
         item.exchangeId = doc.getId();
         item.postId = text(doc.get("postId"));
+        if (item.postId.isEmpty()) item.postId = text(doc.get("targetPostId"));
         item.hostId = text(doc.get("hostId"));
+        if (item.hostId.isEmpty()) item.hostId = text(doc.get("host_accountId"));
+        if (item.hostId.isEmpty()) item.hostId = text(doc.get("recipientId"));
         item.status = text(doc.get("status"));
+
         item.startDate = date(doc.get("startDate"));
+        if (item.startDate == null) item.startDate = date(doc.get("start_date"));
+        if (item.startDate == null) item.startDate = date(doc.get("checkIn"));
+        if (item.startDate == null) item.startDate = date(doc.get("availableFrom"));
+
         item.endDate = date(doc.get("endDate"));
+        if (item.endDate == null) item.endDate = date(doc.get("end_date"));
+        if (item.endDate == null) item.endDate = date(doc.get("checkOut"));
+        if (item.endDate == null) item.endDate = date(doc.get("availableTo"));
+
         Number guests = doc.get("guestCount") instanceof Number
                 ? (Number) doc.get("guestCount") : null;
+        if (guests == null && doc.get("guests") instanceof Number) {
+            guests = (Number) doc.get("guests");
+        }
         item.guestCount = guests == null ? 0 : guests.intValue();
 
         // Hỗ trợ dữ liệu denormalized nếu nhóm có lưu trực tiếp trên Exchange.
         String title = text(doc.get("postTitle"));
         String address = text(doc.get("postAddress"));
+        if (address.isEmpty()) address = text(doc.get("address"));
+        if (address.isEmpty()) address = text(doc.get("location"));
         String image = text(doc.get("postImageUrl"));
+        if (image.isEmpty()) image = text(doc.get("imageUrl"));
+        if (image.isEmpty()) image = text(doc.get("imageBase64"));
         String hostName = text(doc.get("hostName"));
         if (!title.isEmpty()) item.title = title;
         if (!address.isEmpty()) item.address = address;
@@ -195,31 +214,63 @@ public class ExchangeScheduleRepository {
                             String title = text(post.get("title"));
                             String address = text(post.get("addressText"));
                             if (address.isEmpty()) address = text(post.get("address"));
+                            if (address.isEmpty()) address = text(post.get("location"));
                             if (!title.isEmpty()) item.title = title;
                             if (!address.isEmpty()) item.address = address;
-                            publishCurrent();
-                        }
-                    });
 
-            db.collection("postImages")
-                    .whereEqualTo("postId", item.postId)
-                    .get()
-                    .addOnSuccessListener(snapshot -> {
-                        long best = Long.MAX_VALUE;
-                        String url = "";
-                        for (DocumentSnapshot image : snapshot.getDocuments()) {
-                            Number order = image.get("orderIndex") instanceof Number
-                                    ? (Number) image.get("orderIndex") : null;
-                            long n = order == null ? Long.MAX_VALUE - 1 : order.longValue();
-                            String candidate = text(image.get("imageUrl"));
-                            if (n < best && !candidate.isEmpty()) {
-                                best = n;
-                                url = candidate;
+                            if (item.startDate == null) {
+                                item.startDate = date(post.get("startDate"));
+                                if (item.startDate == null) item.startDate = date(post.get("availableFrom"));
                             }
-                        }
-                        if (!url.isEmpty()) {
-                            item.imageUrl = url;
+                            if (item.endDate == null) {
+                                item.endDate = date(post.get("endDate"));
+                                if (item.endDate == null) item.endDate = date(post.get("availableTo"));
+                            }
+
+                            String img = text(post.get("imageBase64"));
+                            if (img.isEmpty()) img = text(post.get("imageUrl"));
+                            if (img.isEmpty()) img = text(post.get("image"));
+                            if (img.isEmpty()) img = text(post.get("imgUrl"));
+                            if (!img.isEmpty()) {
+                                item.imageUrl = img;
+                            }
                             publishCurrent();
+                        }
+
+                        if (item.imageUrl.isEmpty()) {
+                            db.collection("images")
+                                    .whereEqualTo("postId", item.postId)
+                                    .limit(1)
+                                    .get()
+                                    .addOnSuccessListener(snapshot -> {
+                                        if (snapshot != null && !snapshot.isEmpty()) {
+                                            DocumentSnapshot doc = snapshot.getDocuments().get(0);
+                                            String url = text(doc.get("imgUrl"));
+                                            if (url.isEmpty()) url = text(doc.get("imageUrl"));
+                                            if (url.isEmpty()) url = text(doc.get("imageBase64"));
+                                            if (!url.isEmpty()) {
+                                                item.imageUrl = url;
+                                                publishCurrent();
+                                                return;
+                                            }
+                                        }
+                                        db.collection("postImages")
+                                                .whereEqualTo("postId", item.postId)
+                                                .limit(1)
+                                                .get()
+                                                .addOnSuccessListener(pSnapshot -> {
+                                                    if (pSnapshot != null && !pSnapshot.isEmpty()) {
+                                                        DocumentSnapshot doc = pSnapshot.getDocuments().get(0);
+                                                        String url = text(doc.get("imgUrl"));
+                                                        if (url.isEmpty()) url = text(doc.get("imageUrl"));
+                                                        if (url.isEmpty()) url = text(doc.get("imageBase64"));
+                                                        if (!url.isEmpty()) {
+                                                            item.imageUrl = url;
+                                                            publishCurrent();
+                                                        }
+                                                    }
+                                                });
+                                    });
                         }
                     });
         }
@@ -341,7 +392,24 @@ public class ExchangeScheduleRepository {
     private Date date(Object value) {
         if (value instanceof Timestamp) return ((Timestamp) value).toDate();
         if (value instanceof Date) return new Date(((Date) value).getTime());
-        if (value instanceof Number) return new Date(((Number) value).longValue());
+        if (value instanceof Number) {
+            long millis = ((Number) value).longValue();
+            if (millis > 0) return new Date(millis);
+        }
+        if (value instanceof String) {
+            String str = ((String) value).trim();
+            if (str.isEmpty()) return null;
+            try {
+                long millis = Long.parseLong(str);
+                if (millis > 0) return new Date(millis);
+            } catch (NumberFormatException ignored) {}
+            for (String pattern : new String[]{"dd/MM/yyyy", "dd-MM-yyyy", "yyyy-MM-dd", "dd/MM/yyyy HH:mm"}) {
+                try {
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(pattern, java.util.Locale.getDefault());
+                    return sdf.parse(str);
+                } catch (Exception ignored) {}
+            }
+        }
         return null;
     }
 }

@@ -255,6 +255,15 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
                         : "RECIPROCAL";
 
         sub.requestDateText = "Yêu cầu " + sub.status;
+        sub.startDateText = dateText(doc.get("startDate"));
+        sub.endDateText = dateText(doc.get("endDate"));
+        if (!sub.startDateText.isEmpty()) {
+            sub.proposedPostDates = sub.startDateText + (sub.endDateText.isEmpty() ? "" : " - " + sub.endDateText);
+        } else if (!sub.endDateText.isEmpty()) {
+            sub.proposedPostDates = sub.endDateText;
+        }
+        sub.dateRangeText = sub.proposedPostDates;
+
         sub.walletManaged = Boolean.TRUE.equals(doc.getBoolean("walletManaged"));
         sub.paymentStatus = doc.getString("paymentStatus") == null ? "" : doc.getString("paymentStatus");
         sub.paymentId = doc.getString("paymentId") == null ? "" : doc.getString("paymentId");
@@ -279,23 +288,63 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
         FirebaseFirestore.getInstance().collection("posts").document(item.proposedPostId).get()
                 .addOnSuccessListener(post -> {
                     if (post.exists()) {
-                        item.proposedPostTitle = post.getString("title");
+                        item.proposedPostTitle = safeString(post.getString("title"), "Bài viết đề xuất");
                         Object rating = post.get("rating");
                         if (rating instanceof Number) item.proposedPostRating = ((Number) rating).doubleValue();
+
+                        item.proposedPostLocation = safeString(post.getString("address"), post.getString("location"));
+
+                        if (item.proposedPostDates == null || item.proposedPostDates.isEmpty() || "Chưa cập nhật thời gian".equals(item.proposedPostDates)) {
+                            String start = dateText(post.get("startDate"));
+                            if (start.isEmpty()) start = dateText(post.get("availableFrom"));
+                            String end = dateText(post.get("endDate"));
+                            if (end.isEmpty()) end = dateText(post.get("availableTo"));
+                            if (!start.isEmpty()) {
+                                item.proposedPostDates = start + (end.isEmpty() ? "" : " - " + end);
+                            }
+                        }
+
                         String img = post.getString("imageUrl");
+                        if (img == null || img.isEmpty()) img = post.getString("imageBase64");
+                        if (img == null || img.isEmpty()) img = post.getString("image");
+                        if (img == null || img.isEmpty()) img = post.getString("imgUrl");
                         if (img != null && !img.isEmpty()) item.proposedPostImageUrl = img;
                     }
-                    FirebaseFirestore.getInstance().collection("images")
-                            .whereEqualTo("postId", item.proposedPostId).limit(1).get()
-                            .addOnSuccessListener(images -> {
-                                if (images != null && !images.isEmpty()) {
-                                    String url = images.getDocuments().get(0).getString("imgUrl");
-                                    if (url == null || url.isEmpty()) url = images.getDocuments().get(0).getString("imageUrl");
-                                    if (url != null && !url.isEmpty()) item.proposedPostImageUrl = url;
-                                }
+
+                    if (item.proposedPostImageUrl == null || item.proposedPostImageUrl.isEmpty()) {
+                        loadPostImageFromCollection("images", item.proposedPostId, url -> {
+                            if (url != null && !url.isEmpty()) {
+                                item.proposedPostImageUrl = url;
                                 adapter.notifyDataSetChanged();
-                            }).addOnFailureListener(e -> adapter.notifyDataSetChanged());
-                });
+                            } else {
+                                loadPostImageFromCollection("postImages", item.proposedPostId, url2 -> {
+                                    if (url2 != null && !url2.isEmpty()) item.proposedPostImageUrl = url2;
+                                    adapter.notifyDataSetChanged();
+                                });
+                            }
+                        });
+                    } else {
+                        adapter.notifyDataSetChanged();
+                    }
+                }).addOnFailureListener(e -> adapter.notifyDataSetChanged());
+    }
+
+    private interface ImageCallback { void onImageLoaded(String url); }
+    private void loadPostImageFromCollection(String collection, String postId, ImageCallback callback) {
+        FirebaseFirestore.getInstance().collection(collection)
+                .whereEqualTo("postId", postId).limit(1).get()
+                .addOnSuccessListener(images -> {
+                    if (images != null && !images.isEmpty()) {
+                        DocumentSnapshot imageDoc = images.getDocuments().get(0);
+                        String value = imageDoc.getString("imgUrl");
+                        if (value == null || value.isEmpty()) value = imageDoc.getString("imageUrl");
+                        if (value == null || value.isEmpty()) value = imageDoc.getString("imageBase64");
+                        if (value == null || value.isEmpty()) value = imageDoc.getString("url");
+                        callback.onImageLoaded(value);
+                    } else {
+                        callback.onImageLoaded(null);
+                    }
+                }).addOnFailureListener(e -> callback.onImageLoaded(null));
     }
 
     private void loadSenderInfo(RequestItem item) {
@@ -416,6 +465,7 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
         TextView txtRequestDate = dialog.findViewById(R.id.txtDialogRequestDate);
 
         TextView txtProposedTitle = dialog.findViewById(R.id.txtProposedTitle);
+        TextView txtProposedAddress = dialog.findViewById(R.id.txtProposedAddress);
         TextView txtProposedDates = dialog.findViewById(R.id.txtProposedDates);
         TextView txtProposedRating = dialog.findViewById(R.id.txtProposedRating);
         ImageView imgProposedPost = dialog.findViewById(R.id.imgProposedPost);
@@ -428,14 +478,55 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
         txtRequestDate.setText(valueOrDefault(subRequest.requestDateText, "Thời gian chưa có"));
 
         txtProposedTitle.setText(valueOrDefault(subRequest.proposedPostTitle, "Chưa có bài viết đề xuất"));
+        if (txtProposedAddress != null) {
+            txtProposedAddress.setText(valueOrDefault(subRequest.proposedPostLocation, "Chưa cập nhật địa chỉ"));
+        }
         txtProposedDates.setText(valueOrDefault(subRequest.proposedPostDates, "Chưa cập nhật thời gian"));
         txtProposedRating.setText(String.format(java.util.Locale.US, "%.1f", subRequest.proposedPostRating > 0 ? subRequest.proposedPostRating : 0));
 
-        if (subRequest.senderAvatarUrl != null && !subRequest.senderAvatarUrl.isEmpty()) {
-            Glide.with(this).load(subRequest.senderAvatarUrl).into(imgAvatar);
-        }
-        if (subRequest.proposedPostImageUrl != null && !subRequest.proposedPostImageUrl.isEmpty()) {
-            Glide.with(this).load(PostImageUtils.asGlideModel(subRequest.proposedPostImageUrl)).into(imgProposedPost);
+        PostImageUtils.loadInto(imgAvatar, subRequest.senderAvatarUrl, R.drawable.ic_user);
+        PostImageUtils.loadInto(imgProposedPost, subRequest.proposedPostImageUrl, R.drawable.bg_blank_canvas);
+
+        if (subRequest.proposedPostId != null && !subRequest.proposedPostId.isEmpty()) {
+            FirebaseFirestore.getInstance().collection("posts").document(subRequest.proposedPostId).get()
+                    .addOnSuccessListener(post -> {
+                        if (dialog.isShowing() && post.exists()) {
+                            String title = safeString(post.getString("title"), "");
+                            if (!title.isEmpty()) txtProposedTitle.setText(title);
+
+                            String loc = safeString(post.getString("address"), post.getString("location"));
+                            if (!loc.isEmpty()) {
+                                subRequest.proposedPostLocation = loc;
+                                if (txtProposedAddress != null) txtProposedAddress.setText(loc);
+                            }
+
+                            String start = dateText(post.get("startDate"));
+                            if (start.isEmpty()) start = dateText(post.get("availableFrom"));
+                            String end = dateText(post.get("endDate"));
+                            if (end.isEmpty()) end = dateText(post.get("availableTo"));
+                            if (!start.isEmpty()) {
+                                String dates = start + (end.isEmpty() ? "" : " - " + end);
+                                subRequest.proposedPostDates = dates;
+                                txtProposedDates.setText(dates);
+                            }
+
+                            String img = post.getString("imageUrl");
+                            if (img == null || img.isEmpty()) img = post.getString("imageBase64");
+                            if (img == null || img.isEmpty()) img = post.getString("image");
+                            if (img == null || img.isEmpty()) img = post.getString("imgUrl");
+                            if (img != null && !img.isEmpty()) {
+                                subRequest.proposedPostImageUrl = img;
+                                PostImageUtils.loadInto(imgProposedPost, img, R.drawable.bg_blank_canvas);
+                            } else {
+                                loadPostImageFromCollection("images", subRequest.proposedPostId, url -> {
+                                    if (dialog.isShowing() && url != null && !url.isEmpty()) {
+                                        subRequest.proposedPostImageUrl = url;
+                                        PostImageUtils.loadInto(imgProposedPost, url, R.drawable.bg_blank_canvas);
+                                    }
+                                });
+                            }
+                        }
+                    });
         }
 
         View.OnLongClickListener blockLongClickListener = v -> {
@@ -502,6 +593,7 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
         TextView txtRequestDate = dialog.findViewById(R.id.txtMoneyRequestDate);
 
         TextView txtTargetTitle = dialog.findViewById(R.id.txtMoneyTargetTitle);
+        TextView txtTargetAddress = dialog.findViewById(R.id.txtMoneyTargetAddress);
         TextView txtTargetDates = dialog.findViewById(R.id.txtMoneyTargetDates);
         TextView txtTargetRating = dialog.findViewById(R.id.txtMoneyTargetRating);
         ImageView imgTargetPost = dialog.findViewById(R.id.imgMoneyTargetPost);
@@ -512,16 +604,21 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
         txtSenderName.setText(valueOrDefault(subRequest.senderName, "Người dùng"));
         txtRequestDate.setText(valueOrDefault(subRequest.requestDateText, "Thời gian chưa có"));
 
-        txtTargetTitle.setText(valueOrDefault(subRequest.proposedPostTitle, "Chưa có bài viết đề xuất"));
-        txtTargetDates.setText(valueOrDefault(subRequest.proposedPostDates, "Chưa cập nhật thời gian"));
-        txtTargetRating.setText(String.format(java.util.Locale.US, "%.1f", subRequest.proposedPostRating > 0 ? subRequest.proposedPostRating : 0));
+        String title = !subRequest.proposedPostTitle.isEmpty() ? subRequest.proposedPostTitle : (mainRequestItem != null ? mainRequestItem.postTitle : "");
+        txtTargetTitle.setText(valueOrDefault(title, "Chưa có bài viết"));
 
-        if (subRequest.senderAvatarUrl != null && !subRequest.senderAvatarUrl.isEmpty()) {
-            Glide.with(this).load(subRequest.senderAvatarUrl).into(imgAvatar);
-        }
-        if (subRequest.proposedPostImageUrl != null && !subRequest.proposedPostImageUrl.isEmpty()) {
-            Glide.with(this).load(PostImageUtils.asGlideModel(subRequest.proposedPostImageUrl)).into(imgTargetPost);
-        }
+        String address = !subRequest.proposedPostLocation.isEmpty() ? subRequest.proposedPostLocation : (mainRequestItem != null ? mainRequestItem.locationText : "");
+        if (txtTargetAddress != null) txtTargetAddress.setText(valueOrDefault(address, "Chưa cập nhật địa chỉ"));
+
+        String dates = !subRequest.proposedPostDates.isEmpty() ? subRequest.proposedPostDates : (mainRequestItem != null ? mainRequestItem.dateRangeText : "");
+        txtTargetDates.setText(valueOrDefault(dates, "Chưa cập nhật thời gian"));
+
+        double ratingVal = subRequest.proposedPostRating > 0 ? subRequest.proposedPostRating : (mainRequestItem != null ? mainRequestItem.rating : 0);
+        txtTargetRating.setText(String.format(java.util.Locale.US, "%.1f", ratingVal));
+
+        PostImageUtils.loadInto(imgAvatar, subRequest.senderAvatarUrl, R.drawable.ic_user);
+        String targetImg = !subRequest.proposedPostImageUrl.isEmpty() ? subRequest.proposedPostImageUrl : (mainRequestItem != null ? mainRequestItem.postImageUrl : "");
+        PostImageUtils.loadInto(imgTargetPost, targetImg, R.drawable.bg_blank_canvas);
 
         View.OnLongClickListener blockLongClickListener = v -> {
             if (subRequest.requesterId != null && !subRequest.requesterId.trim().isEmpty()) {
@@ -561,6 +658,26 @@ public class ReceivedRequestsDetailActivity extends AppCompatActivity {
         }
 
         dialog.show();
+    }
+
+    private String dateText(Object value) {
+        if (value instanceof com.google.firebase.Timestamp) {
+            return new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(((com.google.firebase.Timestamp) value).toDate());
+        }
+        if (value instanceof java.util.Date) {
+            return new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format((java.util.Date) value);
+        }
+        if (value instanceof Long) {
+            return new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(new java.util.Date((Long) value));
+        }
+        if (value instanceof String) {
+            return (String) value;
+        }
+        return "";
+    }
+
+    private String safeString(String value, String fallback) {
+        return (value == null || value.trim().isEmpty()) ? fallback : value;
     }
 
     private void updateStatus(RequestItem item, String status, Dialog dialog) {

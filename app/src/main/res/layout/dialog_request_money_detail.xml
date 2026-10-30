@@ -183,10 +183,40 @@
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
+                    <!-- Location / Address Row -->
+                    <LinearLayout
+                        android:id="@+id/layoutMoneyTargetAddress"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="12dp"
+                            android:layout_height="12dp"
+                            android:src="@drawable/ic_location_pin"
+                            app:tint="#666666"
+                            tools:ignore="ContentDescription" />
+
+                        <TextView
+                            android:id="@+id/txtMoneyTargetAddress"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:text="Chưa cập nhật địa chỉ"
+                            android:textColor="#666666"
+                            android:textSize="12sp" />
+
+                    </LinearLayout>
+
+                    <!-- Dates & Rating Row -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
+                        android:layout_marginTop="4dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -199,21 +229,20 @@
 
                         <TextView
                             android:id="@+id/txtMoneyTargetDates"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="4dp"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
                             android:text="31/02/2026 - 4/03/2026"
                             android:textColor="#666666"
                             android:textSize="12sp" />
 
-                        <View
-                            android:layout_width="0dp"
-                            android:layout_height="0dp"
-                            android:layout_weight="1" />
-
                         <ImageView
                             android:layout_width="12dp"
                             android:layout_height="12dp"
+                            android:layout_marginStart="4dp"
                             android:src="@drawable/ic_star_yellow"
                             tools:ignore="ContentDescription" />
 

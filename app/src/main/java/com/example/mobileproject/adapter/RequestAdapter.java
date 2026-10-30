@@ -51,24 +51,33 @@ public class RequestAdapter extends RecyclerView.Adapter<RequestAdapter.ViewHold
         RequestItem item = items.get(position);
 
         holder.txtPostTitle.setText(valueOrDefault(item.postTitle, "Căn hộ chỗ ở"));
+
+        if (holder.txtLocation != null) {
+            if (item.locationText != null && !item.locationText.trim().isEmpty()) {
+                holder.txtLocation.setText(item.locationText);
+                if (holder.layoutLocation != null) holder.layoutLocation.setVisibility(View.VISIBLE);
+                holder.txtLocation.setVisibility(View.VISIBLE);
+            } else {
+                if (holder.layoutLocation != null) holder.layoutLocation.setVisibility(View.GONE);
+                holder.txtLocation.setVisibility(View.GONE);
+            }
+        }
+
         holder.txtDates.setText(valueOrDefault(item.dateRangeText, "Thời gian chưa cập nhật"));
+
+        if (holder.txtPriceOrPoints != null) {
+            if (item.priceOrPointsText != null && !item.priceOrPointsText.trim().isEmpty()) {
+                holder.txtPriceOrPoints.setText(item.priceOrPointsText);
+                holder.txtPriceOrPoints.setVisibility(View.VISIBLE);
+            } else {
+                holder.txtPriceOrPoints.setVisibility(View.GONE);
+            }
+        }
+
         holder.txtRating.setText(String.format(Locale.US, "%.1f", item.rating));
 
         // Tải ảnh bài đăng
-        if (item.postImageUrl != null && !item.postImageUrl.trim().isEmpty()) {
-            Object imageModel = PostImageUtils.asGlideModel(item.postImageUrl);
-            if (imageModel != null) {
-                Glide.with(context)
-                        .load(imageModel)
-                        .placeholder(R.drawable.bg_blank_canvas)
-                        .error(R.drawable.bg_blank_canvas)
-                        .into(holder.imgPostThumbnail);
-            } else {
-                holder.imgPostThumbnail.setImageResource(R.drawable.bg_blank_canvas);
-            }
-        } else {
-            holder.imgPostThumbnail.setImageResource(R.drawable.bg_blank_canvas);
-        }
+        PostImageUtils.loadInto(holder.imgPostThumbnail, item.postImageUrl, R.drawable.bg_blank_canvas);
 
         String status = item.status == null ? "PENDING" : item.status.toUpperCase();
 
@@ -206,8 +215,8 @@ public class RequestAdapter extends RecyclerView.Adapter<RequestAdapter.ViewHold
     static class ViewHolder extends RecyclerView.ViewHolder {
         ImageView imgPostThumbnail, btnHeart;
         TextView txtStatusBadge, txtRating;
-        TextView txtPostTitle, txtDates;
-        LinearLayout layoutReceivedSubStats;
+        TextView txtPostTitle, txtLocation, txtDates, txtPriceOrPoints;
+        LinearLayout layoutLocation, layoutReceivedSubStats;
         TextView txtSubRequestsCount, txtRejectedCount;
         TextView btnActionLeft, btnActionRight;
 
@@ -218,7 +227,10 @@ public class RequestAdapter extends RecyclerView.Adapter<RequestAdapter.ViewHold
             txtStatusBadge = itemView.findViewById(R.id.txtStatusBadge);
             txtRating = itemView.findViewById(R.id.txtRating);
             txtPostTitle = itemView.findViewById(R.id.txtPostTitle);
+            layoutLocation = itemView.findViewById(R.id.layoutLocation);
+            txtLocation = itemView.findViewById(R.id.txtLocation);
             txtDates = itemView.findViewById(R.id.txtDates);
+            txtPriceOrPoints = itemView.findViewById(R.id.txtPriceOrPoints);
             layoutReceivedSubStats = itemView.findViewById(R.id.layoutReceivedSubStats);
             txtSubRequestsCount = itemView.findViewById(R.id.txtSubRequestsCount);
             txtRejectedCount = itemView.findViewById(R.id.txtRejectedCount);
