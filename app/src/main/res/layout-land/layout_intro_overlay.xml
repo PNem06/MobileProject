@@ -10,58 +10,44 @@
     android:focusable="true"
     android:elevation="10dp">
 
-    <!-- Logo chuyển sang neo mảng trái -->
-    <ImageView
-        android:id="@+id/introLogo"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginVertical="24dp"
-        android:scaleType="fitCenter"
-        android:src="@drawable/logo_stageexchange"
-        app:layout_constraintWidth_percent="0.35"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <!-- Chữ bọc ScrollView sang phía phải -->
-    <ScrollView
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:fillViewport="true"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="24dp"
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/introLogo"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <ImageView
+            android:id="@+id/introLogo"
+            android:layout_width="wrap_content"
+            android:layout_height="120dp"
+            android:layout_marginBottom="16dp"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter"
+            android:src="@drawable/logo_stageexchange" />
+
+        <TextView
+            android:id="@+id/introAppName"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:orientation="vertical">
+            android:text="STAY EXCHANGE"
+            android:textColor="@color/black"
+            android:textSize="28sp"
+            android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/introAppName"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="STAY EXCHANGE"
-                android:textColor="@color/black"
-                android:textSize="28sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/introAppDesc"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:gravity="center"
-                android:text="Ứng dụng trao đổi chỗ ở"
-                android:textColor="#857C9E"
-                android:textSize="16sp" />
-
-        </LinearLayout>
-    </ScrollView>
+        <TextView
+            android:id="@+id/introAppDesc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:text="Ứng dụng trao đổi chỗ ở"
+            android:textColor="#857C9E"
+            android:textSize="16sp" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
