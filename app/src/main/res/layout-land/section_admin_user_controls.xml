@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <!-- Cột dọc để dễ cuộn, nhưng ta gom các thành phần nhỏ thành các hàng ngang tiết kiệm không gian -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/adminUsersBack"
+            style="@style/AdminUserButton"
+            android:layout_width="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:text="@string/admin_users_back" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/AdminUserText"
+                android:text="@string/admin_users_title"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/adminUsersSummary"
+                style="@style/AdminUserTextMuted" />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/adminUsersReload"
+            style="@style/AdminUserButton"
+            android:layout_width="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="@string/admin_users_reload" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:baselineAligned="false"
+        android:layout_marginBottom="8dp">
+
+        <!-- Ô Tìm kiếm -->
+        <EditText
+            android:id="@+id/adminUsersSearch"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:minHeight="48dp"
+            android:hint="@string/admin_users_search_hint"
+            android:inputType="text"
+            android:imeOptions="actionSearch|flagNoFullscreen"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:textColor="@color/admin_user_navy"
+            android:textColorHint="@color/admin_user_muted"
+            android:backgroundTint="@color/admin_user_navy"
+            android:textSize="15sp"
+            android:importantForAutofill="no" />
+
+        <!-- Ô Lọc -->
+        <Spinner
+            android:id="@+id/adminUsersFilter"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:minHeight="48dp"
+            android:contentDescription="@string/admin_users_filter_description"
+            android:popupBackground="@android:color/white"
+            android:spinnerMode="dropdown" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:id="@+id/adminUsersSource"
+            style="@style/AdminUserTextMuted"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/adminUsersEmpty"
+            style="@style/AdminUserTextMuted"
+            android:layout_width="wrap_content"
+            android:text="@string/admin_users_verifying"
+            android:textSize="16sp" />
+    </LinearLayout>
+
+</LinearLayout>
