@@ -1,16 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#F5F6FA"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:orientation="vertical">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="4dp"
         android:text="Quản lý bài đăng"
         android:textColor="#222222"
         android:textSize="22sp"
@@ -20,22 +18,84 @@
         android:id="@+id/txtPendingCount"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
+        android:layout_marginTop="4dp"
         android:text="Đang tải bài đăng..."
         android:textColor="#666666"
         android:textSize="14sp" />
+
+    <!-- Thanh lọc 3 tab tối ưu ngang -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#FFFFFF"
+        android:padding="4dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:elevation="1dp">
+
+        <TextView
+            android:id="@+id/btnPendingTab"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="Chờ duyệt"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_tab_selected"
+            android:layout_marginEnd="3dp" />
+
+        <TextView
+            android:id="@+id/btnPublicTab"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="Public"
+            android:textColor="#4B5563"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_tab_unselected"
+            android:layout_marginHorizontal="3dp" />
+
+        <TextView
+            android:id="@+id/btnUnpublicTab"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="Hidden"
+            android:textColor="#4B5563"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_tab_unselected"
+            android:layout_marginStart="3dp" />
+    </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:fillViewport="true"
+        android:clipToPadding="false"
         android:scrollbars="vertical">
 
         <LinearLayout
             android:id="@+id/layoutPendingPosts"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
+            android:orientation="vertical"
+            android:paddingBottom="12dp" />
 
     </ScrollView>
 
