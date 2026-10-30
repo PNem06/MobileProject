@@ -132,9 +132,7 @@ public class ExchangeActivity extends AppCompatActivity {
                     Toast.LENGTH_SHORT).show();
             return;
         }
-
         btnSend.setEnabled(false);
-
         if (existingExchangeId != null && !existingExchangeId.isEmpty()) {
             Map<String, Object> updates = new HashMap<>();
             updates.put("offeredPostId", selectedPostId);
@@ -146,7 +144,6 @@ public class ExchangeActivity extends AppCompatActivity {
             });
             return;
         }
-
         // Read the target post to find its owner.
         db.collection("posts")
                 .document(targetPostId)
@@ -159,14 +156,10 @@ public class ExchangeActivity extends AppCompatActivity {
                                 Toast.LENGTH_SHORT).show();
                         return;
                     }
-
-
                     String ownerIdValue = target.getString("accountId");
-
                     if (ownerIdValue == null || ownerIdValue.trim().isEmpty()) {
                         ownerIdValue = target.getString("ownerId");
                     }
-
                     if (ownerIdValue == null || ownerIdValue.trim().isEmpty()) {
                         btnSend.setEnabled(true);
                         Toast.makeText(this,
@@ -174,10 +167,8 @@ public class ExchangeActivity extends AppCompatActivity {
                                 Toast.LENGTH_SHORT).show();
                         return;
                     }
-
 // Create a final variable for use inside lambda expressions.
                     final String recipientId = ownerIdValue.trim();
-
                     if (recipientId.equals(currentUid)) {
                         btnSend.setEnabled(true);
                         Toast.makeText(this,
@@ -185,7 +176,6 @@ public class ExchangeActivity extends AppCompatActivity {
                                 Toast.LENGTH_SHORT).show();
                         return;
                     }
-
                     Map<String, Object> request = new HashMap<>();
                     request.put("requester_accountId", currentUid);
                     request.put("requesterId", currentUid);

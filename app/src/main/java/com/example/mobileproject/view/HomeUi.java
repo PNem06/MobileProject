@@ -380,31 +380,41 @@ public class HomeUi extends HomeViews {
             empty(homeSections, title, note);
             return;
         }
+        if (selectedFilter == 2) {
+            allPostsPage = cards.pagedSection(
+                    homeSections,
+                    "Bài đăng yêu thích",
+                    posts,
+                    allPostsPage,
+                    showAllPosts,
+                    selected -> {
+                        if (selected == -2) {
+                            showAllPosts = true;
+                            allPostsPage = 0;
+                        } else if (selected == -1) {
+                            showAllPosts = false;
+                            allPostsPage = 0;
+                        } else {
+                            allPostsPage = selected;
+                        }
+                        renderHomeSections();
+                    }
+            );
+            return;
+        }
+
         int split = Math.min(3, posts.size());
         String firstTitle = query.isEmpty() ? "Nơi lưu trú được ưa chuộng" : "Kết quả tìm kiếm";
-        if (wide() && posts.size() > split) {
-            LinearLayout columns = template(R.id.homeColumns);
-            LinearLayout left = columns.findViewById(R.id.homeColumnLeft);
-            LinearLayout right = columns.findViewById(R.id.homeColumnRight);
-            homeSections.addView(columns);
-            cards.section(left, firstTitle, posts.subList(0, split), "feed0", false);
+        cards.section(homeSections, firstTitle, posts.subList(0, split), "feed0", false);
+        if (posts.size() > split) {
             cards.section(
-                    right,
+                    homeSections,
                     "Gợi ý cho chuyến đi tiếp của bạn",
                     posts.subList(split, posts.size()),
                     "feed1",
                     false);
-        } else {
-            cards.section(homeSections, firstTitle, posts.subList(0, split), "feed0", false);
-            if (posts.size() > split)
-                cards.section(
-                        homeSections,
-                        "Gợi ý cho chuyến đi tiếp của bạn",
-                        posts.subList(split, posts.size()),
-                        "feed1",
-                        false);
         }
-        allPostsPage = cards.pagedSection(homeSections, posts, allPostsPage, showAllPosts, selected -> {
+        allPostsPage = cards.pagedSection(homeSections, "Tất cả bài đăng", posts, allPostsPage, showAllPosts, selected -> {
             if (selected == -2) {
                 showAllPosts = true;
                 allPostsPage = 0;

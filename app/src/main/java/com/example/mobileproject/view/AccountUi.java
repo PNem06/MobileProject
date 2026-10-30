@@ -72,8 +72,13 @@ public class AccountUi extends HomeViews {
         ((TextView) root.findViewById(R.id.walletEntrySubtitle)).setText(admin
                 ? "Ví hệ thống dùng chung cho các quản trị viên"
                 : "Nạp tiền, thanh toán và xem lịch sử giao dịch");
-        root.findViewById(R.id.btnWallet).setOnClickListener(v ->
-                hostActivity.startActivity(new Intent(hostActivity, WalletActivity.class)));
+        root.findViewById(R.id.btnWallet).setOnClickListener(v -> {
+            Intent walletIntent = new Intent(hostActivity, WalletActivity.class);
+            if (admin) {
+                walletIntent.putExtra("isAdmin", true);
+            }
+            hostActivity.startActivity(walletIntent);
+        });
         root.findViewById(R.id.btnPersonalInfo).setOnClickListener(v -> {
             if (vm.busy) return;
             vm.draftName = vm.profile().optString("fullName");
@@ -90,14 +95,15 @@ public class AccountUi extends HomeViews {
         root.findViewById(R.id.btnLogout).setOnClickListener(v -> {
             if (!vm.busy) confirmLogout();
         });
-        List<JSONObject> mine = new ArrayList<>();
-        JSONArray array = vm.rows("mine");
-        for (int i = 0; i < array.length(); i++) {
-            JSONObject p = array.optJSONObject(i);
-            if (p != null) mine.add(p);
-        }
+
         LinearLayout myPosts = root.findViewById(R.id.myPostsContainer);
-        if (cards != null && myPosts != null) {
+        if (!admin && cards != null && myPosts != null) {
+            List<JSONObject> mine = new ArrayList<>();
+            JSONArray array = vm.rows("mine");
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject p = array.optJSONObject(i);
+                if (p != null) mine.add(p);
+            }
             cards.section(myPosts, "Bài đăng của tôi", mine, "mine", true, createPost);
         } else if (myPosts != null) {
             myPosts.setVisibility(View.GONE);

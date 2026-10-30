@@ -233,6 +233,7 @@ public class RequestsFragment extends TabContentFragment {
         TextView txtRequestDate = dialog.findViewById(R.id.txtDialogRequestDate);
 
         TextView txtProposedTitle = dialog.findViewById(R.id.txtProposedTitle);
+        TextView txtProposedAddress = dialog.findViewById(R.id.txtProposedAddress);
         TextView txtProposedDates = dialog.findViewById(R.id.txtProposedDates);
         TextView txtProposedRating = dialog.findViewById(R.id.txtProposedRating);
         ImageView imgProposedPost = dialog.findViewById(R.id.imgProposedPost);
@@ -256,15 +257,19 @@ public class RequestsFragment extends TabContentFragment {
         } else {
             txtProposedTitle.setText(valueOrDefault(item.postTitle, "Chưa chọn bài viết đề xuất"));
         }
-        txtProposedDates.setText(valueOrDefault(item.dateRangeText, "Chưa cập nhật thời gian"));
+
+        if (txtProposedAddress != null) {
+            String addr = !item.proposedPostLocation.isEmpty() ? item.proposedPostLocation : item.locationText;
+            txtProposedAddress.setText(valueOrDefault(addr, "Chưa cập nhật địa chỉ"));
+        }
+
+        String dates = !item.proposedPostDates.isEmpty() ? item.proposedPostDates : item.dateRangeText;
+        txtProposedDates.setText(valueOrDefault(dates, "Chưa cập nhật thời gian"));
         txtProposedRating.setText(String.format(java.util.Locale.US, "%.1f", item.proposedPostRating > 0 ? item.proposedPostRating : 5.0));
 
-        if (item.postImageUrl != null && !item.postImageUrl.isEmpty()) {
-            Glide.with(this).load(PostImageUtils.asGlideModel(item.postImageUrl)).into(imgAvatar);
-        }
-        if (item.proposedPostImageUrl != null && !item.proposedPostImageUrl.isEmpty()) {
-            Glide.with(this).load(PostImageUtils.asGlideModel(item.proposedPostImageUrl)).into(imgProposedPost);
-        }
+        PostImageUtils.loadInto(imgAvatar, item.postImageUrl, R.drawable.ic_user);
+        String propImg = !item.proposedPostImageUrl.isEmpty() ? item.proposedPostImageUrl : item.postImageUrl;
+        PostImageUtils.loadInto(imgProposedPost, propImg, R.drawable.bg_blank_canvas);
 
         if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
         dialog.show();
@@ -411,12 +416,23 @@ public class RequestsFragment extends TabContentFragment {
         if (item.hostId.isEmpty()) item.hostId = stringField(doc, "recipientId", "");
         item.postId = doc.getString("postId");
         if (item.postId == null || item.postId.isEmpty()) item.postId = doc.getString("targetPostId");
+
+        item.proposedPostId = stringField(doc, "offeredPostId", "proposedPostId");
+
         item.status = safeString(doc.getString("status"), "PENDING").toUpperCase();
         item.exchangeType = safeString(doc.getString("exchangeType"), "RECIPROCAL");
         item.isSentTab = sent;
         item.startDateText = dateText(doc.get("startDate"));
         item.endDateText = dateText(doc.get("endDate"));
-        item.dateRangeText = item.startDateText.isEmpty() ? "Thời gian chưa cập nhật" : item.startDateText + (item.endDateText.isEmpty() ? "" : " - " + item.endDateText);
+        if (!item.startDateText.isEmpty()) {
+            item.dateRangeText = item.startDateText + (item.endDateText.isEmpty() ? "" : " - " + item.endDateText);
+        } else if (!item.endDateText.isEmpty()) {
+            item.dateRangeText = item.endDateText;
+        } else {
+            item.dateRangeText = "Thời gian chưa cập nhật";
+        }
+        item.proposedPostDates = item.dateRangeText;
+
         item.walletManaged = Boolean.TRUE.equals(doc.getBoolean("walletManaged"));
         item.paymentStatus = safeString(doc.getString("paymentStatus"), "");
         item.paymentId = safeString(doc.getString("paymentId"), "");
@@ -456,30 +472,134 @@ public class RequestsFragment extends TabContentFragment {
 
     private void loadPostInfo(RequestItem item, Runnable done) {
         final int generation = loadGeneration;
-        if (item.postId == null || item.postId.isEmpty()) { if (currentLoad(generation) && done != null) done.run(); return; }
+        if (item.postId == null || item.postId.isEmpty()) {
+            if (item.proposedPostId != null && !item.proposedPostId.isEmpty()) {
+                loadProposedPostInfo(item, done);
+            } else {
+                if (currentLoad(generation) && done != null) done.run();
+            }
+            return;
+        }
         FirebaseFirestore.getInstance().collection("posts").document(item.postId).get()
                 .addOnSuccessListener(post -> {
                     if (!currentLoad(generation)) return;
                     if (post.exists()) {
                         item.postTitle = safeString(post.getString("title"), "Bài viết");
                         item.locationText = safeString(post.getString("address"), safeString(post.getString("location"), ""));
-                        Object rating = post.get("rating"); if (rating instanceof Number) item.rating = ((Number) rating).doubleValue();
+                        Object rating = post.get("rating");
+                        if (rating instanceof Number) item.rating = ((Number) rating).doubleValue();
+
+                        Object priceObj = post.get("price");
+                        if (priceObj instanceof Number) {
+                            long p = ((Number) priceObj).longValue();
+                            if (p > 0) {
+                                item.priceOrPointsText = String.format(java.util.Locale.getDefault(), "%,d đ", p);
+                            } else {
+                                item.priceOrPointsText = "";
+                            }
+                        } else {
+                            item.priceOrPointsText = "";
+                        }
+
+                        if (item.dateRangeText == null || item.dateRangeText.isEmpty() || "Thời gian chưa cập nhật".equals(item.dateRangeText)) {
+                            String start = dateText(post.get("startDate"));
+                            if (start.isEmpty()) start = dateText(post.get("availableFrom"));
+                            String end = dateText(post.get("endDate"));
+                            if (end.isEmpty()) end = dateText(post.get("availableTo"));
+                            if (!start.isEmpty()) {
+                                item.dateRangeText = start + (end.isEmpty() ? "" : " - " + end);
+                            }
+                        }
+
                         Object image = post.get("imageBase64");
-                        if (!(image instanceof String)) image = post.get("imageUrl");
+                        if (!(image instanceof String) || ((String) image).isEmpty()) image = post.get("imageUrl");
+                        if (!(image instanceof String) || ((String) image).isEmpty()) image = post.get("image");
+                        if (!(image instanceof String) || ((String) image).isEmpty()) image = post.get("imgUrl");
                         if (image instanceof String) item.postImageUrl = (String) image;
                     }
                     loadPostImageFromCollection("images", item, () -> {
                         if (item.postImageUrl == null || item.postImageUrl.isEmpty()) {
                             loadPostImageFromCollection("postImages", item, () -> {
-                                if (currentLoad(generation) && done != null) done.run();
-                                if (adapter != null) adapter.notifyDataSetChanged();
+                                if (item.proposedPostId != null && !item.proposedPostId.isEmpty()) {
+                                    loadProposedPostInfo(item, done);
+                                } else {
+                                    if (currentLoad(generation) && done != null) done.run();
+                                    if (adapter != null) adapter.notifyDataSetChanged();
+                                }
                             });
                         } else {
-                            if (currentLoad(generation) && done != null) done.run();
-                            if (adapter != null) adapter.notifyDataSetChanged();
+                            if (item.proposedPostId != null && !item.proposedPostId.isEmpty()) {
+                                loadProposedPostInfo(item, done);
+                            } else {
+                                if (currentLoad(generation) && done != null) done.run();
+                                if (adapter != null) adapter.notifyDataSetChanged();
+                            }
                         }
                     });
-                }).addOnFailureListener(e -> { if (currentLoad(generation) && done != null) done.run(); });
+                }).addOnFailureListener(e -> {
+                    if (item.proposedPostId != null && !item.proposedPostId.isEmpty()) {
+                        loadProposedPostInfo(item, done);
+                    } else {
+                        if (currentLoad(generation) && done != null) done.run();
+                    }
+                });
+    }
+
+    private void loadProposedPostInfo(RequestItem item, Runnable done) {
+        final int generation = loadGeneration;
+        if (item.proposedPostId == null || item.proposedPostId.isEmpty()) {
+            if (currentLoad(generation) && done != null) done.run();
+            return;
+        }
+        FirebaseFirestore.getInstance().collection("posts").document(item.proposedPostId).get()
+                .addOnSuccessListener(post -> {
+                    if (!currentLoad(generation)) return;
+                    if (post.exists()) {
+                        item.proposedPostTitle = safeString(post.getString("title"), "");
+                        item.proposedPostLocation = safeString(post.getString("address"), safeString(post.getString("location"), ""));
+                        Object rating = post.get("rating");
+                        if (rating instanceof Number) item.proposedPostRating = ((Number) rating).doubleValue();
+
+                        if (item.proposedPostDates == null || item.proposedPostDates.isEmpty() || "Thời gian chưa cập nhật".equals(item.proposedPostDates)) {
+                            String start = dateText(post.get("startDate"));
+                            if (start.isEmpty()) start = dateText(post.get("availableFrom"));
+                            String end = dateText(post.get("endDate"));
+                            if (end.isEmpty()) end = dateText(post.get("availableTo"));
+                            if (!start.isEmpty()) {
+                                item.proposedPostDates = start + (end.isEmpty() ? "" : " - " + end);
+                            }
+                        }
+
+                        Object image = post.get("imageBase64");
+                        if (!(image instanceof String) || ((String) image).isEmpty()) image = post.get("imageUrl");
+                        if (!(image instanceof String) || ((String) image).isEmpty()) image = post.get("image");
+                        if (!(image instanceof String) || ((String) image).isEmpty()) image = post.get("imgUrl");
+                        if (image instanceof String) item.proposedPostImageUrl = (String) image;
+                    }
+                    if (item.proposedPostImageUrl == null || item.proposedPostImageUrl.isEmpty()) {
+                        FirebaseFirestore.getInstance().collection("images")
+                                .whereEqualTo("postId", item.proposedPostId).limit(1).get()
+                                .addOnSuccessListener(images -> {
+                                    if (images != null && !images.isEmpty()) {
+                                        DocumentSnapshot imgDoc = images.getDocuments().get(0);
+                                        String val = imgDoc.getString("imgUrl");
+                                        if (val == null || val.isEmpty()) val = imgDoc.getString("imageUrl");
+                                        if (val == null || val.isEmpty()) val = imgDoc.getString("imageBase64");
+                                        if (val != null) item.proposedPostImageUrl = val;
+                                    }
+                                    if (currentLoad(generation) && done != null) done.run();
+                                    if (adapter != null) adapter.notifyDataSetChanged();
+                                }).addOnFailureListener(e -> {
+                                    if (currentLoad(generation) && done != null) done.run();
+                                    if (adapter != null) adapter.notifyDataSetChanged();
+                                });
+                    } else {
+                        if (currentLoad(generation) && done != null) done.run();
+                        if (adapter != null) adapter.notifyDataSetChanged();
+                    }
+                }).addOnFailureListener(e -> {
+                    if (currentLoad(generation) && done != null) done.run();
+                });
     }
 
     private void loadPostImageFromCollection(String collection, RequestItem item, Runnable done) {

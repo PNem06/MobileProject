@@ -657,23 +657,17 @@ public final class AdminUserRepository {
             message.setValue("Trạng thái hiện tại không hợp lệ.");
             return;
         }
-
         busy = true;
         refreshUi();
-
         final String actor = uid;
         final String next = target.active() ? "INACTIVE" : "ACTIVE";
-
         db.runTransaction(transaction -> {
             DocumentSnapshot admin = transaction.get(
                     db.collection("accounts").document(actor)
             );
-
             DocumentReference ref = db.collection("accounts")
                     .document(target.documentId);
-
             DocumentSnapshot account = transaction.get(ref);
-
             if (auth.getCurrentUser() == null
                     || !actor.equals(auth.getCurrentUser().getUid())
                     || !"ADMIN".equals(admin.getString("role"))

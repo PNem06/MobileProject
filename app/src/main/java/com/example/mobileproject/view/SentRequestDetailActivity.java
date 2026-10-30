@@ -29,6 +29,7 @@ public class SentRequestDetailActivity extends AppCompatActivity {
     private TextView txtSenderName;
     private TextView txtRequestDate;
     private TextView txtProposedTitle;
+    private TextView txtProposedAddress;
     private TextView txtProposedDates;
     private TextView txtProposedRating;
 
@@ -45,6 +46,7 @@ public class SentRequestDetailActivity extends AppCompatActivity {
         txtSenderName = findViewById(R.id.txtDialogSenderName);
         txtRequestDate = findViewById(R.id.txtDialogRequestDate);
         txtProposedTitle = findViewById(R.id.txtProposedTitle);
+        txtProposedAddress = findViewById(R.id.txtProposedAddress);
         txtProposedDates = findViewById(R.id.txtProposedDates);
         txtProposedRating = findViewById(R.id.txtProposedRating);
 
@@ -103,18 +105,23 @@ public class SentRequestDetailActivity extends AppCompatActivity {
                                     + (status == null ? "PENDING" : status)
                     );
 
+                    String startDateStr = dateText(doc.get("startDate"));
+                    String endDateStr = dateText(doc.get("endDate"));
+                    String docDates = !startDateStr.isEmpty() ? startDateStr + (endDateStr.isEmpty() ? "" : " - " + endDateStr) : "";
+
                     if (postId.isEmpty()) {
                         txtSenderName.setText("Không xác định được bài viết");
                     } else {
-                        loadPost(postId, false);
+                        loadPost(postId, false, docDates);
                     }
 
                     if (proposedPostId.isEmpty()) {
                         txtProposedTitle.setText("Chưa chọn bài viết đề xuất");
-                        txtProposedDates.setText("Thời gian chưa cập nhật");
+                        if (txtProposedAddress != null) txtProposedAddress.setText("Chưa cập nhật địa chỉ");
+                        txtProposedDates.setText(!docDates.isEmpty() ? docDates : "Thời gian chưa cập nhật");
                         txtProposedRating.setText("—");
                     } else {
-                        loadPost(proposedPostId, true);
+                        loadPost(proposedPostId, true, docDates);
                     }
                 })
                 .addOnFailureListener(e ->
@@ -124,7 +131,7 @@ public class SentRequestDetailActivity extends AppCompatActivity {
                 );
     }
 
-    private void loadPost(String postId, boolean proposed) {
+    private void loadPost(String postId, boolean proposed, String fallbackDates) {
         db.collection("posts")
                 .document(postId)
                 .get()
@@ -138,9 +145,17 @@ public class SentRequestDetailActivity extends AppCompatActivity {
                         return;
                     }
 
-                    String title = valueOrDefault(
-                            post.getString("title"), "Bài viết");
+                    String title = valueOrDefault(post.getString("title"), "Bài viết");
                     String image = getStringField(post, "imageBase64", "imageUrl");
+                    if (image.isEmpty()) image = getStringField(post, "image", "imgUrl");
+
+                    String location = valueOrDefault(post.getString("address"), post.getString("location"));
+
+                    String start = dateText(post.get("startDate"));
+                    if (start.isEmpty()) start = dateText(post.get("availableFrom"));
+                    String end = dateText(post.get("endDate"));
+                    if (end.isEmpty()) end = dateText(post.get("availableTo"));
+                    String dates = !start.isEmpty() ? start + (end.isEmpty() ? "" : " - " + end) : fallbackDates;
 
                     Object ratingValue = post.get("rating");
                     double rating = ratingValue instanceof Number
@@ -148,23 +163,25 @@ public class SentRequestDetailActivity extends AppCompatActivity {
 
                     if (proposed) {
                         txtProposedTitle.setText(title);
+                        if (txtProposedAddress != null) {
+                            txtProposedAddress.setText(valueOrDefault(location, "Chưa cập nhật địa chỉ"));
+                        }
+                        txtProposedDates.setText(valueOrDefault(dates, "Thời gian chưa cập nhật"));
                         txtProposedRating.setText(
                                 String.format(java.util.Locale.US, "%.1f", rating));
 
-                        txtProposedDates.setText("Thời gian chưa cập nhật");
-
                         if (!image.isEmpty() && imgProposedPost != null) {
-                            Glide.with(this)
-                                    .load(PostImageUtils.asGlideModel(image))
-                                    .into(imgProposedPost);
+                            PostImageUtils.loadInto(imgProposedPost, image, R.drawable.bg_blank_canvas);
+                        } else {
+                            fetchImageFromCollection(postId, imgProposedPost);
                         }
                     } else {
                         txtSenderName.setText("Yêu cầu gửi tới: " + title);
 
                         if (!image.isEmpty() && imgAvatar != null) {
-                            Glide.with(this)
-                                    .load(PostImageUtils.asGlideModel(image))
-                                    .into(imgAvatar);
+                            PostImageUtils.loadInto(imgAvatar, image, R.drawable.ic_user);
+                        } else {
+                            fetchImageFromCollection(postId, imgAvatar);
                         }
                     }
                 })
@@ -173,6 +190,53 @@ public class SentRequestDetailActivity extends AppCompatActivity {
                                 "Không tải được thông tin bài viết.",
                                 Toast.LENGTH_SHORT).show()
                 );
+    }
+
+    private void fetchImageFromCollection(String postId, ImageView targetImageView) {
+        if (targetImageView == null) return;
+        db.collection("images")
+                .whereEqualTo("postId", postId).limit(1).get()
+                .addOnSuccessListener(images -> {
+                    if (images != null && !images.isEmpty()) {
+                        DocumentSnapshot doc = images.getDocuments().get(0);
+                        String url = doc.getString("imgUrl");
+                        if (url == null || url.isEmpty()) url = doc.getString("imageUrl");
+                        if (url == null || url.isEmpty()) url = doc.getString("imageBase64");
+                        if (url != null && !url.isEmpty()) {
+                            PostImageUtils.loadInto(targetImageView, url, R.drawable.bg_blank_canvas);
+                            return;
+                        }
+                    }
+                    db.collection("postImages")
+                            .whereEqualTo("postId", postId).limit(1).get()
+                            .addOnSuccessListener(pImages -> {
+                                if (pImages != null && !pImages.isEmpty()) {
+                                    DocumentSnapshot doc = pImages.getDocuments().get(0);
+                                    String url = doc.getString("imgUrl");
+                                    if (url == null || url.isEmpty()) url = doc.getString("imageUrl");
+                                    if (url == null || url.isEmpty()) url = doc.getString("imageBase64");
+                                    if (url != null && !url.isEmpty()) {
+                                        PostImageUtils.loadInto(targetImageView, url, R.drawable.bg_blank_canvas);
+                                    }
+                                }
+                            });
+                });
+    }
+
+    private String dateText(Object value) {
+        if (value instanceof com.google.firebase.Timestamp) {
+            return new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(((com.google.firebase.Timestamp) value).toDate());
+        }
+        if (value instanceof java.util.Date) {
+            return new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format((java.util.Date) value);
+        }
+        if (value instanceof Long) {
+            return new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(new java.util.Date((Long) value));
+        }
+        if (value instanceof String) {
+            return (String) value;
+        }
+        return "";
     }
 
     private String getStringField(

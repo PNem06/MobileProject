@@ -118,12 +118,41 @@
                     android:textSize="15sp"
                     android:textStyle="bold" />
 
+                <!-- Location / Address Row -->
+                <LinearLayout
+                    android:id="@+id/layoutLocation"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="12dp"
+                        android:layout_height="12dp"
+                        android:src="@drawable/ic_location_pin"
+                        app:tint="#666666"
+                        tools:ignore="ContentDescription" />
+
+                    <TextView
+                        android:id="@+id/txtLocation"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="Địa chỉ"
+                        android:textColor="#666666"
+                        android:textSize="12sp" />
+
+                </LinearLayout>
+
                 <!-- Date Range -->
                 <TextView
                     android:id="@+id/txtDates"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="2dp"
                     android:text="31/02/2026 - 04/03/2026"
                     android:textColor="#555555"
                     android:textSize="12sp" />
@@ -134,7 +163,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="2.700.000đ cho 1 đêm"
+                    android:text="2.700.000đ"
                     android:textColor="#222222"
                     android:textSize="12sp"
                     android:textStyle="bold" />

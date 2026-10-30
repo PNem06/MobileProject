@@ -128,7 +128,12 @@ public class PostCards extends HomeViews {
     }
 
     int pagedSection(LinearLayout parent, List<JSONObject> posts, int requestedPage, boolean showAll,
-                     java.util.function.IntConsumer onPageSelected) {
+            java.util.function.IntConsumer onPageSelected) {
+        return pagedSection(parent, "Tất cả bài đăng", posts, requestedPage, showAll, onPageSelected);
+    }
+
+    int pagedSection(LinearLayout parent, String sectionTitle, List<JSONObject> posts, int requestedPage, boolean showAll,
+            java.util.function.IntConsumer onPageSelected) {
         LinearLayout section = template(R.id.homePostSection);
         section.setPadding(0, 0, 0, dp(18));
         TextView title = section.findViewById(R.id.postSectionTitle);
