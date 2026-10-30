@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/homeRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:focusableInTouchMode="true"
+    android:background="#FFFFFF">
+
+    <LinearLayout
+        android:id="@+id/homeScreenContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Header Bar -->
+        <FrameLayout
+            android:id="@+id/homeHeader"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="#FFFFFF">
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbarHome"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:id="@+id/headerHomeContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingEnd="13dp">
+
+                    <!-- Search Input Box -->
+                    <LinearLayout
+                        android:id="@+id/layoutSearch"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="10dp"
+                        android:background="@drawable/bg_blank_canvas">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="26dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_search"
+                            app:tint="#171719" />
+
+                        <EditText
+                            android:id="@+id/edtSearch"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp"
+                            android:background="@null"
+                            android:fontFamily="@font/sx_fraunces"
+                            android:hint="Bắt đầu tìm kiếm"
+                            android:imeOptions="actionSearch"
+                            android:inputType="text"
+                            android:singleLine="true"
+                            android:textColor="#171719"
+                            android:textColorHint="#171719"
+                            android:textSize="18sp" />
+                    </LinearLayout>
+
+                    <!-- Bell / Notification Button -->
+                    <FrameLayout
+                        android:id="@+id/btnNotification"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?android:attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_notification"
+                            app:tint="#171719"
+                            android:importantForAccessibility="no" />
+
+                        <!-- Unread Dot Indicator -->
+                        <View
+                            android:id="@+id/viewUnreadDot"
+                            android:layout_width="8dp"
+                            android:layout_height="8dp"
+                            android:layout_gravity="top|end"
+                            android:layout_marginTop="10dp"
+                            android:layout_marginEnd="10dp"
+                            android:background="@drawable/bg_schedule_status_ongoing"
+                            android:visibility="gone" />
+                    </FrameLayout>
+
+                </LinearLayout>
+            </com.google.android.material.appbar.MaterialToolbar>
+
+            <!-- Header Content: Subpage Mode -->
+            <FrameLayout
+                android:id="@+id/headerSubpageContent"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/txtHeaderTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:fontFamily="@font/sx_noto_sans"
+                    android:textColor="#171719"
+                    android:textSize="24sp"
+                    android:layout_marginHorizontal="64dp" />
+
+                <FrameLayout
+                    android:id="@+id/btnHeaderBack"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_back_button"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_arrow_back"
+                        app:tint="#171719"
+                        android:importantForAccessibility="no" />
+                </FrameLayout>
+            </FrameLayout>
+
+        </FrameLayout>
+
+        <!-- Filter Chips Frame -->
+        <FrameLayout
+            android:id="@+id/homeFilters"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="visible">
+
+            <LinearLayout
+                android:id="@+id/layoutHomeFilters"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingBottom="4dp"
+                android:paddingTop="4dp">
+
+                <!-- Filter 0: Tất cả -->
+                <TextView
+                    android:id="@+id/btnFilterAll"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="10dp"
+                    android:layout_marginHorizontal="3dp"
+                    android:minHeight="48dp"
+                    android:gravity="center"
+                    android:fontFamily="@font/sx_fraunces"
+                    android:text="Tất cả"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp"
+                    android:background="@drawable/bg_chip_selected_dark"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <TextView
+                    android:id="@+id/btnFilterFavorites"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_chip_unselected"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:fontFamily="@font/sx_fraunces"
+                    android:gravity="center"
+                    android:minHeight="48dp"
+                    android:text="Yêu thích"
+                    android:textColor="#171719"
+                    android:textSize="15sp" />
+
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- Loading Bar -->
+        <ProgressBar
+            android:id="@+id/homeProgress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:indeterminate="true"
+            android:visibility="gone" />
+
+        <!-- Scroll Content Area -->
+        <ScrollView
+            android:id="@+id/homeScroll"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:fillViewport="true"
+            android:scrollbars="none">
+
+            <FrameLayout
+                android:id="@+id/homeContent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+            </FrameLayout>
+        </ScrollView>
+
+        <!-- Bottom Navigation Menu -->
+
+    </LinearLayout>
+
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/homeNavigationDrawer"
+        android:layout_width="300dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:background="#FFFFFF"
+        android:elevation="16dp"
+        app:itemIconTint="#171719"
+        app:itemTextColor="#171719"
+        app:menu="@menu/menu_home" />
+
+</androidx.drawerlayout.widget.DrawerLayout>

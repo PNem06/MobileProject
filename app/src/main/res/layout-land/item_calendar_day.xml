@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="48dp">
+
+    <!-- Background for range highlighting -->
+    <View
+        android:id="@+id/vSelectionBackground"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="2dp" />
+
+    <!-- Day text number -->
+    <TextView
+        android:id="@+id/txtDayNumber"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:textColor="#333333"
+        android:textSize="14sp"
+        android:textStyle="normal"
+        android:text="1" />
+
+</FrameLayout>

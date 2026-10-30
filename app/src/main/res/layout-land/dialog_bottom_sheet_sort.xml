@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <!-- Header cố định -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="12dp"
+        android:background="#CCCCCC" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:text="Sắp xếp theo"
+        android:textColor="#000000"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <!-- RadioGroup bọc trong ScrollView để xoay ngang đủ chỗ -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="false">
+
+        <RadioGroup
+            android:id="@+id/rgSort"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Các nút RadioButton là con trực tiếp -->
+            <RadioButton
+                android:id="@+id/rbNewest"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:checked="true"
+                android:text="Bài viết mới nhất"
+                android:textColor="#111111"
+                android:textSize="15sp" />
+
+            <RadioButton
+                android:id="@+id/rbHighestRated"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="Đánh giá cao nhất"
+                android:textColor="#111111"
+                android:textSize="15sp" />
+
+            <RadioButton
+                android:id="@+id/rbPriceLowToHigh"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="Giá: Thấp đến Cao"
+                android:textColor="#111111"
+                android:textSize="15sp" />
+
+            <RadioButton
+                android:id="@+id/rbPriceHighToLow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="Giá: Cao đến Thấp"
+                android:textColor="#111111"
+                android:textSize="15sp" />
+
+        </RadioGroup>
+    </ScrollView>
+
+</LinearLayout>

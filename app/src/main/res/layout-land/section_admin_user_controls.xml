@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/adminUsersBack"
+            style="@style/AdminUserButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:minHeight="48dp"
+            android:text="@string/admin_users_back" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/adminUsersReload"
+            style="@style/AdminUserButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:minHeight="48dp"
+            android:text="@string/admin_users_reload" />
+    </LinearLayout>
+
+    <TextView
+        style="@style/AdminUserText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="@string/admin_users_title"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/adminUsersSummary"
+        style="@style/AdminUserTextMuted"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/adminUsersSearch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:minHeight="48dp"
+        android:hint="@string/admin_users_search_hint"
+        android:inputType="text"
+        android:imeOptions="actionSearch"
+        android:maxLines="1"
+        android:singleLine="true"
+        android:textColor="@color/admin_user_navy"
+        android:textColorHint="@color/admin_user_muted"
+        android:backgroundTint="@color/admin_user_navy"
+        android:textSize="15sp"
+        android:importantForAutofill="no" />
+
+    <Spinner
+        android:id="@+id/adminUsersFilter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:minHeight="48dp"
+        android:contentDescription="@string/admin_users_filter_description"
+        android:popupBackground="@android:color/white"
+        android:spinnerMode="dropdown" />
+
+    <TextView
+        android:id="@+id/adminUsersSource"
+        style="@style/AdminUserTextMuted"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/adminUsersEmpty"
+        style="@style/AdminUserTextMuted"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="@string/admin_users_verifying"
+        android:textSize="16sp" />
+
+</LinearLayout>
